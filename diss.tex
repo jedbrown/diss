@@ -1,0 +1,184 @@
+\documentclass[11pt,pdftex]{article}
+
+\usepackage{amsmath,amssymb,bm,graphicx,url,verbatim,slashbox,multirow,hyperref,siunitx}
+\usepackage{microtype,ucs}
+\usepackage[utf8x]{inputenc}
+
+\input{JedMacros.tex}
+
+\title{Numerical methods for ice flow modeling}
+\author{Jed Brown}
+
+\usepackage{amsmath,amssymb,bm}
+\usepackage{microtype}
+
+\usepackage{ucs}
+\usepackage[utf8x]{inputenc}
+
+%\setlength\topmargin{.25in}
+\pdfadjustspacing=1
+
+\makeatletter
+% The following gives us a systematic, central way to squeeze whitespace
+% around section and subsection headings.
+\renewcommand\section{\@startsection {section}{1}{\z@}%
+                                   {-1.6ex \@plus -1ex \@minus -.2ex}%
+                                   {1.4ex \@plus.2ex}%
+                                   {\normalfont\Large\bfseries}}
+\renewcommand\subsection{\@startsection{subsection}{2}{\z@}%
+                                     {-1.ex\@plus -1ex \@minus -.2ex}%
+                                     {1.ex \@plus .2ex}%
+                                     {\normalfont\large\bfseries}}
+\renewcommand\subsubsection{\@startsection{subsubsection}{3}{\z@}%
+                            {.5\baselineskip\@plus.7\baselineskip}%
+                            {-.5em}%
+                            {\normalfont\bfseries}}    
+\renewcommand\paragraph{\@startsection{paragraph}{4}{\z@}%
+                                    {1ex \@plus1ex \@minus.2ex}%
+                                    {-1em}%
+                                    {\normalfont\normalsize\slshape}}
+%% \renewcommand\subsubsection{\@startsection{subsubsection}{3}{\z@}%
+%%                                      {-1.ex\@plus -1ex \@minus -.2ex}%
+%%                                      {1.ex \@plus .2ex}%
+%%                                      {\normalfont\normalsize\bfseries}}
+%% \renewcommand\paragraph{\@startsection{paragraph}{4}{\z@}%
+%%                                     {1ex \@plus1ex \@minus.2ex}%
+%%                                     {-1em}%
+%%                                     {\normalfont\normalsize\bfseries}}
+\renewcommand\subparagraph{\@startsection{subparagraph}{5}{\parindent}%
+                                       {1ex \@plus1ex \@minus .2ex}%
+                                       {-1em}%
+                                      {\normalfont\normalsize\bfseries}}
+
+\newcommand{\squishlist}{\vspace{-.12in}\begin{itemize}\addtolength{\itemsep}{-0.5\baselineskip}}
+\newcommand{\squishend}{\end{itemize}}
+
+\newenvironment{squeeze-item}{\vspace{-.5\baselineskip}\begin{itemize}\addtolength{\itemsep}{-0.25\baselineskip}}{\end{itemize}}
+
+\newenvironment{lyxlist}[1]
+  {\vspace*{-1em}\begin{list}{}
+    {\settowidth{\labelwidth}{#1}
+     \setlength{\leftmargin}{\labelwidth}
+     \addtolength{\leftmargin}{\labelsep}
+     \addtolength{\itemsep}{-0.25\baselineskip}
+     \renewcommand{\makelabel}[1]{##1\hfil}}}
+  {\end{list}}
+
+% \renewcommand{\topfraction}{1.00}
+% \renewcommand{\floatpagefraction}{1.00}
+% \renewcommand{\textfraction}{0.00}
+% \renewcommand{\dbltopfraction}{1.00}
+% \renewcommand{\dblfloatpagefraction}{1.00}
+% \makeatother
+
+\begin{document}
+\pagenumbering{roman}
+\maketitle 
+\thispagestyle{empty}
+
+\pagenumbering{arabic}
+
+\section{Introduction}
+\label{sec:intro}
+% \input{introduction}
+
+\section{Background} \label{sec:background}
+% \input{background}
+
+%    \subsection{Ice Sheet Physics and Governing Equations}
+%    \label{subsec:icesheetmodeling_background}
+%    \input{icesheetmodeling_background}
+
+%    \subsection{Current Ice Sheet Models}
+%    \label{subsec:current_models}
+%    \input{current_models}
+
+%    \subsection{Interoperability \& Code Frameworks}
+%    \label{subsec:interoperability}
+%    \input{interoperability}
+
+%    \subsection{Solver Technology}
+%    \label{subsec:solver_technology}
+%    \input{solver_technology}
+
+%    \subsection{Inverse modeling}
+%    \label{subsec:background_inverse}
+%    \input{background_inverse}
+
+% \section{Proposed Research and Methods}
+% \label{sec:icesheetmodeling}
+% \input{icesheetmodeling}
+
+%    \subsection{Modeling Approaches}
+%    \label{subsec:modeling_approaches}
+%    \input{modeling_approaches}
+
+%       \subsubsection{3D Stokes Solver}
+%       \label{subsubsec:3dstokes}
+%       \input{3dstokes}
+
+%       \subsubsection{High-Order Shallow Ice Model}
+%       \label{subsubsec:high_order_shallow}
+%       \input{high_order_shallow}
+
+%       \subsubsection{Energy balance model}
+%       \label{subsubsec:energy}
+%       \input{energy}
+
+%       \subsubsection{Regional Ocean Model}
+%       \label{subsubsec:regional_ocean}
+%       \input{regional_ocean}
+
+%    \subsection{Enabling Technologies}
+%    \label{subsec:enabling_technologies}
+%    \input{enabling_technologies}
+
+%       \subsubsection{Geometry and Mesh Generation}
+%       \label{subsubsec:geometry_mesh}
+%       \input{geometry_mesh}
+
+%       \subsubsection{Solvers \& Physics-Based Preconditioning}
+%       \label{subsubsec:preconditioning}
+%       \input{preconditioning}
+
+%       \subsubsection{Solution Coupling}
+%       \label{subsubsec:solution_coupling}
+%       \input{solution_coupling}
+
+%       \subsubsection{Adjoint \& Inverse Methods}
+%       \label{subsubsec:adjoint_inverse}
+%       \input{adjoint_inverse}
+
+%    \subsection{Model Integration}
+%    \label{subsec:model_integration}
+%    \input{model_integration}
+\section{Efficient nonlinear solvers for nodal high-order finite element methods in 3D}\label{sec:dohp}
+
+\section{Textbook multigrid efficiency for hydrostatic ice sheet flow}\label{sec:tme-ice}
+
+\section{Software}\label{sec:software}
+\subsection{Multiphysics coupling}\label{ssec:multiphysics}
+\input{multiphysics}
+
+\subsection{High throughput on cache-based architectures}\label{ssec:throughput}
+\input{throughput}
+
+\section{Discretization minutia}\label{sec:discretization}
+\subsection{Regularity and boundary conditions}\label{ssec:slip}
+\input{slip}
+
+\subsection{Boundary layer processes}\label{ssec:boundary-layer}
+\input{boundary-layer}
+
+\subsection{Solving steady-state problems}\label{ssec:steady-state}
+\input{steady-state}
+
+\newpage
+\addcontentsline{toc}{section}{References}
+\bibliographystyle{amsalpha}
+\bibliography{jedbib/jedbib}
+
+\appendix
+
+\end{document}
+
