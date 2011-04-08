@@ -44,7 +44,7 @@ The implementation of Dirichlet conditions is somewhat different from its defini
 In general circumstances, the true solution is actually only $W^{1,\pp}$, but we always assume that there is regularization which permits us to only use Hilbert spaces.
 For well-posedness, it remains to specify $(D\uu - p\bm 1)\cdot\nn$ on $\Gamma$ as an algebraic function $\bm g(\uu)$ to enforce stress conditions on tangent components at slip surfaces and on all components at free surfaces in which case $\bm g$ is independent of $\uu$.
 
-Although it is not used directly in our work, \eqref{eq:slip:stokes-weak} corresponds to the minimization of the viscous energy $\half D\uu\tcolon \eta\bm 1 \tcolon D\uu$ over the subspace where $\div\uu = 0$.
+Although it is not used directly in our work, \eqref{eq:slip:stokes-weak} corresponds to the minimization of the viscous energy $\int_\Omega \half D\uu\tcolon \eta\bm 1 \tcolon D\uu$ over the subspace where $\div\uu = 0$.
 In particular, it is the first variation of the Lagrangian obtained when pressure $p$ is introduced as a Lagrange multiplier to enforce the constraint.
 Boundedness of the Lagrangian requires coercivity of the viscous energy term which follows from Korn's inequality which controls $\norm{\uu}_{H^1}$ using the symmetric gradient $\norm{D\uu}_{L^2}$
 and an inf-sup condition to control pressure using divergence of velocity~\cite{evans1998partial,brenner2008mathematical}.
@@ -79,6 +79,11 @@ In other words, the PDE is solved to within a constant of the pure approximation
 This is a powerful property and not generally available for nonsymmetric problems or non-Galerkin methods.
 Error estimators, adaptivity, and uncertainty quantification for both smooth and non-smooth problems are also most mature in the Galerkin context, see \cite{ainsworth1997pee,matthies2005gml,babuska2005scm,barth2010mlmcfe}.
 
+We consider two classes of finite element space defined on hexahedral meshes.
+The first is spanned by a tensor product of 1D polynomials of degree $k \ge 1$ that have been pushed forward from the reference cube $[0,1]^3$ to the physical element.
+This has a variant $\Qk k$ that is continuous between elements and a discontinuous variant $\Qkdisc k$.
+The other is a $\Pkdisc k$ which is spanned by polynomials of maximum degree $k$ and is discontinuous between elements.
+
 Stability of the Galerkin approximation depends on discrete versions of Korn's inequality and the inf-sup condition.
 Korn's inequality bounds the $H^1$ norm in terms of the $L^2$ norm of symmetric gradient and is easily satisfied by $C^0$ vector-valued spaces such as $Q_k$ (Korn's inequality becomes a delicate matter for nonconforming finite element spaces which are not considered here).
 The inf-sup condition is more troublesome.
@@ -88,7 +93,7 @@ Given a velocity space $\VV$ and pressure space $\QQ$, the inf-sup constant
 \end{equation}
 is a measure of how well the velocity space spans the pressure space.
 If $\beta$ is bounded below by a positive constant as the mesh is refined, then the finite element method will converge at an optimal rate.
-More precisely, given discrete solutions $(\uu_h,p_h) \in \VV \times \QQ$ with inf-sup constant $\beta$ and exact solution $(\uu,p)$, the velocity and pressure errors satisfy the a priori estimate
+More precisely, given discrete solutions $(\uu_h,p_h) \in \VV \times \QQ$ with inf-sup constant $\beta$ and exact solution $(\uu,p)$, the velocity and pressure errors satisfy the a priori estimate~\cite{brezzi1991mixed}
 \begin{align}\label{eq:slip:apriori}
   \eta \norm{\uu - \uu_h}_{H^1} & \le C \left[ \frac{\eta}{\beta} \inf_{\vv \in \VV} \norm{\uu - \vv}_{H^1} + \inf_{q \in \QQ} \norm{p-q}_{L^2} \right] \\
   \norm{p - p_h}_{L^2} & \le \frac{C}{\beta} \left[ \frac{\eta}{\beta} \inf_{\vv \in \VV} \norm{\uu - \vv}_{H^1} + \inf_{q\in\QQ} \norm{p-q}_{L^2} \right] .
@@ -98,7 +103,7 @@ For problems posed in anisotropic domains or containing thin boundary layers, th
 
 For many choices of $\VV \times \QQ$, such as using the same basis functions, $\beta$ is zero meaning there is a discrete pressure mode that is untested by the velocity space, thus the Stokes system is singular.
 Other choices, such as $\Qk 1-\Pkdisc 0$ have positive values of $\beta$ on most grids, but $\beta$ decays under mesh refinement so spurious pressure modes appear and convergence rates suffer~\cite{brenner2008mathematical,chapelle1993inf,babuska1997babuska}.
-It is important to recognize that if the pressure space contains the piecwise constant functions, the constraint equation will force the velocity field to be exactly divergence-free when integrated over an element $e$,
+It is important to recognize that if the pressure space contains the piecwise constant functions, the constraint equation will force the discrete velocity field $\uu$ to be exactly divergence-free when integrated over an element $e$,
 \begin{gather*}
   \int_e \div\uu = \int_{\partial e} \uu\cdot\nn.
 \end{gather*}
@@ -112,15 +117,79 @@ While this is acceptable for some fluid dynamics problems, it is unusable for th
 An alternative is $\Qk k - \Qkdisc{k-2}$ which is locally conservative and has uniform inf-sup stability independent of aspect ratio.
 This element is more ``squishy'' inside elements than $\Pkdisc{k-1}$, and has suboptimal order of accuracy $k-1$ in $H^1$ for velocity and in $L^2$ for pressure.
 
-We use two classes of finite element space defined on a hexahedral mesh.
-The first is spanned by a tensor product of 1D polynomials of degree $k \ge 1$ that have been pushed forward from the reference cube $[0,1]^3$ to the physical element.
-This has a variant $\Qk k$ that is continuous between elements and a discontinuous variant $\Qkdisc k$.
-The other is a $\Pkdisc k$ which is spanned by polynomials of maximum degree $k$ and is discontinuous between elements.
+\subsubsection{Implementation of Dirichlet boundary conditions}\label{sssec:implementation-dirichlet}
+In the continuum context, Dirichlet boundary conditions are built into the approximation space and thus do not explicitly appear in the weak form.
+There are many ways to implement Dirichlet boundary conditions in the discrete context including removal from the ansatz space, penalties, ``lifting'' the known part to the right hand side for the linear problem, zeroing rows of the Jacobian, and zeroing both rows and columns by suitable evaluation of the residual.
+Most of these methods perform similarly for simple problems and simple preconditioners, but have serious deficiencies for more difficult problems and sophisticated solvers.
+When possible (e.g. the Dirichlet part of the domain is not itself part of the solution such as occurs with a frozen bed or contact problem), removal of Dirichlet unknowns is a robust solution, but it introduces some complexity in managing vectors residing in the ansatz space versus vectors residing in the closure (used for output and visualization) and prevents direct addressing of neighbors in structured grid computation.
+This is the standard way to enforce Dirichlet conditions in \Dohp.
+Penalties are easy to implement, but a penalty parameter must be chosen which contributes to ill-conditioning which reduces the accuracy of the solution (ability to converge to very high tolerance), can contaminate Schur complements, requires the Krylov method to work in the preconditioned norm (usually means left preconditioning instead of right), and must always be paired with a preconditioner that corrects the contribution from the penalty.
+``Lifting'' can be performed directly on the linear system and is performed transparently using \PETSc's \code{PCRedistribute}, but the method does not compose well with field-split and hierarchical preconditioners, and the sparse matrix manipulations require extra memory and time.
+Simply replacing rows of the Jacobian matrix with rows of the identity is easy to perform independent of the element assembly loop.
+Unfortunately, it destroys symmetry and pollutes the spectrum of the operator which has very problem-dependent effects on the iteration count.
 
-\subsubsection{Implementation of Dirichlet boundary conditions}
+Zeroing both the rows and columns corresponding to Dirichlet degrees of freedom is the best alternative when the degrees of freedom are not eliminated, but there are several implementation details to consider.
+Assembling into the matrix without observing boundary conditions and zeroing afterward is not efficient with sparse matrix representations since columns are difficult to address in a compressed row format (and rows are difficult to address for compressed column formats).
+A better approach is to discard contributions to those rows and columns during insertion of the element stiffness matrix and then simply place the diagonal entry afterward.
+This requires a compatible residual evaluation which we now consider.
+
+Let $\VV_D$ be a discrete ansatz space with inhomogeneous Dirichlet boundary conditions implicitly built in, $\VV_0$ be the corresponding space with homogeneous conditions, $\VV_\Gamma$ be the trace space on the Dirichlet boundary, and $\bar\VV = \VV_0 \times \VV_\Gamma$ the space of all functions in the finite element space defined on the closure of the domain.
+We define three projectors on $\bar\VV$,  $R_0$ projects to the $\VV_0$ subspace of $\bar\VV$ with zero values on the boundary $\VV_\Gamma$, $R_D$ projects to the affine subspace $\VV_D$, and $R_\Gamma$ projects to the trace space $\VV_\Gamma$ with zero in the interior.
+We can now write the discrete residual $F$ in terms of the ``interior'' residual $f$ that does not recognize boundary conditions as
+\begin{equation}\label{eq:slip:dirichlet}
+  F(u) = R_0 f(R_D u) + R_\Gamma \alpha (u - R_D 0) .
+\end{equation}
+The value of the possibly spatially varying scaling factor $\alpha \ne 0$ does not affect the correctness of the formulation, but weighting it to be of similar magnitude to nearby diagonal entries in the matrix (e.g. by using local viscosity and the mesh size) is preferred to improve the conditioning of the linear system including boundary conditions and more importantly when geometric multigrid is used with rediscretized (non-Galerkin) coarse level operators.
+The Jacobian of \eqref{eq:slip:dirichlet} isolates the Dirichlet degrees of freedom from the rest of the system.
+The implementation of \eqref{eq:slip:dirichlet} and its derivative is straightforward, local element residuals and Jacobians are evaluated with correct Dirichlet values imposed on the state $u$, the result is inserted with contributions to Dirichlet nodes discarded.
+Then a loop over the boundary places the $\alpha$-scaled difference from the correct boundary values into the residual vector and inserts $\alpha$ on the diagonal of the Jacobian.
 
 \subsubsection{Slip}
+Slip boundary conditions are a combination of Dirichlet on the normal component and (usually nonlinear) Robin on the tangent component.
+When the slip surface is curved, there are multiple ways to define the normal direction.
+Geometric averages such as those advocated by \cite{walkley2004calculation} can be very accurate and appear to be preferable for problems with surface tension in which conservation is not essential.
+When exact conservation is critical, there is no choice but to use ``conservative normals''~\cite{lynch1980finite}.
+Conservative normals are defined at an arbitrary node (or mode) $i$ in which the basis function $\phi_i$ has support on the boundary $\Gamma$ by
+\begin{equation}
+  \label{eq:slip:conservative-normal}
+  \nn_i = \frac{\int_\Gamma \phi_i \nn}{\abs{\int_\Gamma \phi_i\nn}} .
+\end{equation}
+If the velocity field is constrained so that $\uu_i \cdot \nn_i = 0$ for a node $i$ with support on the boundary, then node $i$ will contribute zero flux through the boundary.
+We enforce this condition for all boundary nodes so the total flux is also zero across the boundary: $\int_\Gamma \uu \cdot \nn = 0$.
+Note that we do not in general have that $\int_f \uu \cdot \nn = 0$ for all mesh faces $f$ for the same reason that continuous Galerkin methods are not locally conservative.
+However, a weaker local conservation statement similar to that in \cite{hughes2000continuous} still holds.
 
+There is a technical difficulty observed by \cite{walkley2004calculation} when using conservative normals with inf-sup stable spaces.
+In particular, the velocity space must be at least quadratic for stability reasons and the corner basis functions of $\Pk{2}$ triangles (appearing on the surface of a tetrahedral mesh) have the property that
+\begin{equation*}
+  \int_\Gamma \phi_i = 0 .
+\end{equation*}
+This means that the normal need not be constrained on any flat element face (but having no constraint admits non-physical recirculation within elements) and that for isoparametrically mapped elements with small face curvature, the definition of the normal becomes unstable due to near cancellation and can flip direction as the surface evolves.
+This problem does not occur for non-deformed quadrilaterals (on the surface of a hexahedral mesh), but may arise for sufficiently deformed elements.
+The extra constraint on element quality is inconvenient for moving mesh simulations and for meshing complex structures, but it is a limitation that we accept in the present work.
+An interesting alternative is to eschew Lagrange interpolants in favor of the non-negative spline bases used in isogeometric analysis~\cite{cottrell2009isogeometric}, see \cite{akkerman2010isogeometric} for recent results with free surface flows.
 
-While use of conservative normals provides exact conservation across the interface, there is no guarantee that it will preserve realistic steady states, particularly for free surface flows where the hydrostatic contribution to pressure cannot be removed.  This issue is discussed in \cite{behr2004application}.
+When implementing the normal constraint in slip boundary conditions, it is not practical to remove the normal component from the ansatz space so we prefer to leave them in as described in \secref{sssec:implementation-dirichlet}.
+To enforce Dirichlet conditions on the normal component, we rotate coordinates in the global vector so that the normal component is isolated.
+The rotation is undone at the element level so that local operations need not be aware that the solution vector contains rotated blocks.
+This rotation affects the construction of coarse level spaces in multigrid and domain decomposition methods.
+The ML~\cite{ml-guide} algebraic multigrid package allows the user to specify low-energy modes to be represented in the coarse space.
+These modes should respect the change of basis so that their energies remain low.
+The impact on domain decomposition methods such as FETI-DP is more delicate, see \cite{klawonn2007robust,klawonn2006dual,dohrmann2010hybrid} for details on the construction of coarse spaces.
+
+While use of conservative normals provides exact conservation across the interface, there is no guarantee that it will preserve realistic steady states, particularly for free surface flows where the hydrostatic contribution to pressure cannot be removed.
 Indeed, with a smooth curved boundary and a level surface, the momentum residual will not point in the same direction as the conservative normal.
+The tangent component of the momentum residual is a spurious tangent force that causes non-physical recirculation within the fluid domain that can not be prevented simply by adding artificial friction to the slip surface.
+This issue is addressed \cite{behr2004application} which we follow below.
+Recall the boundary integral appearing in the weak form of the Stokes problem \eqref{eq:slip:stokes-weak}
+\begin{equation}\label{eq:slip:stress-bc}
+  - \int_\Gamma \vv\cdot (\eta D\uu - p\bm 1)\cdot\nn
+\end{equation}
+where well-posedness of the continuous weak form requires specifying the stress $(D\uu - p\bm 1)\cdot\nn$ as an algebraic function of $\uu$.
+We are only concerned with the tangential part of the stress since the normal components have Dirichlet conditions imposed.
+The approach of \cite{behr2004application} integrates \eqref{eq:slip:stress-bc} ``as is'', without applying any boundary condition at all.
+This has the effect of extending the PDE to include the boundary.
+It is completely invalid for the continuum problem, resulting in non-uniqueness since the solution to the same PDE on any extended domain with any applied boundary conditions is also a solution on the initial domain, but turns out to be valid in the discrete context.
+The idea was introduced in the context of open boundary conditions for natural convection in \cite{papanastasiou1992nob} and later refined 
+in the restricted context of outflow boundary conditions for advection-diffusion by \cite{griffiths1997nbc} and \cite{renardy1997inb}.
+In particular, \cite{griffiths1997nbc} showed that the boundary condition produces $\bigO((h+1/\Peclet)^{p+1})$ errors in $\Linfty$ for mesh size $h$, Peclet number $\Peclet$, and finite elements of polynomial degree $p$, a result distinctly better than the $\bigO(h^{p+1} + 1/\Peclet)$ obtained for Neumann outflow conditions.
