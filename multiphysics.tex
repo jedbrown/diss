@@ -1,0 +1,185 @@
+Ice flow and more generally, earth system models, involve many physical processes occurring on multiple spatial domains and possessing multiple time scales.
+An important challenge in computational science is how to couple models of these processes in a maintainable way without sacrificing accuracy and analysis capability.
+The traditional method of splitting in time and integrating each process independently has been shown to result in low-order splitting errors~\cite{knoll2003bat,mousseau2002inc} for many problems of interest, as well as fundamentally different results regarding the stability of the system \cite{estep2008posteriori} and existence of steady states versus limit cycle behavior~\cite{jardin20081d}.
+Tightly coupled multiphysics software should enable the use of robust IMEX or fully implicit methods while permitting different physics modules to be managed independently.
+
+There are essentially two scalable approaches to tightly coupled multiphysics, perform coupled multigrid or multilevel domain decomposition with all the fields lumped together or split the system into blocks that are each reasonably well understood and can be treated effectively.
+
+In many cases \cite{rannacher2000finite,jameson2001many,adams2010toward}, the monolithic coupling approach has potential to offer the best possible performance.
+The general guidelines are to define the smoother in terms of low-order discretization and to smooth all components at any node or element of the grid at the same time, usually either by block Gauss-Seidel relaxation or by block incomplete LU factorization, the former permits a nonlinear smoother which has higher arithmetic intensity, but the latter tends to be more robust, especially to strong anisotropy.
+The purpose of the low-order discretization (first-order upwind for hyperbolic terms) is to retain $h$-ellipticity, a necessary and sufficient condition for the existence of a pointwise smoother~\cite{brandt1979multigrid,trottenberg2001multigrid}.
+When an operator fails to satisfy $h$-ellipticity, there are high-frequency error components that are poorly corrected by the smoother.
+
+For multi-compenent problems, the relative scaling between fields is important for good solver performance, and this can be difficult to achieve when different parts of the domain are in different regimes.
+When the problem is indefinite, the smoother and restriction operators need to be chosen to be compatible with the inf-sup condition.
+Such restriction operators are usually defined geometrically, but it has also been done algebraically for the special case of contact problems~\cite{adams2004amm}.
+The associated smoothers~\cite{vanka1986block} are relatively more expensive than for definite problems and it is difficult to handle anisotropy because incomplete factorization becomes problematic.
+
+It is difficult to write generic software for coupled multigrid because many fine-grained operations require physics- and discretization-dependent choices.
+Additionally, very little theory is available for coupled multi-physics and defining smoothers for multi-domain problems or surface-volume coupled problems is unclear.
+A different approach is to apply a Newton iteration on the coupled problem and solve the linear system with a Krylov method using a preconditioner defined in terms of some operator splitting such that each split can be understood and efficient solvers can be provided.
+This approach~\cite{knoll2004jfn} has proven successful at reusing software, with many papers accessing such methods through PETSc~\cite{petsc-web-page}.
+However, until recent additions to PETSc, it was cumbersome to package separate physics separately without compromising which methods are available, and decisions about using field-split versus monolithic methods were typically required up-front.
+The enhancements to PETSc allow each physics to be packaged independently without sacrificing performance or runtime flexibility in choice of methods.
+We first summarize a variety of field-split methods and their requirements from the user, then we examine the linear algebraic interface by which the user can generically provide this information.
+
+\subsubsection{Field-split preconditioning}
+Suppose the Jacobian of the original coupled problem has block structure
+\begin{equation}\label{eq:fieldsplit:jacobian}
+  J = \begin{pmatrix} A & B \\ C & D \end{pmatrix} .
+\end{equation}
+We explain the methods for $2\times 2$ block systems, but $n\times n$ systems can be treated similarly.
+Field split methods can be classified as block relaxation or factorization.
+
+Relaxation methods are inspired by the classical stationary iterative methods the preconditioners taking the forms
+\begin{align*}
+  P^{-1}_{text{Jacobi}} &= \begin{pmatrix} A & \\ & D \end{pmatrix}^{-1} \\
+  P^{-1}_{text{GS}} &= \begin{pmatrix} A & \\ C & D \end{pmatrix}^{-1} \\
+  P^{-1}_{text{SGS}} &=
+      \begin{pmatrix} A & \\  & \bm 1 \end{pmatrix}^{-1}
+      \left(
+        \bm 1 -
+        \begin{pmatrix} A & B \\ & \bm 1 \end{pmatrix}
+        \begin{pmatrix} A & \\ C & D \end{pmatrix}^{-1}
+      \right)
+\end{align*}
+which can be accessed at runtime using the PETSc option \code{-pc\_fieldsplit\_type additive}, \code{multiplicative}, and \code{symmetric\_multiplicative} respectively.
+Relaxation is simple to use and expected to perform well when most energy in the system is carried by coupling within each split rather than by coupling between splits.
+
+Stiff hyperbolic waves and systems with constraints are two common cases where relaxation breaks down.
+The first is somewhat more benign and we use the shallow water equations as an illustrative example.
+In conservative non-dimensional form with thickness $h$ and momentum $uh$, the flat-bed shallow water equations are
+\begin{align*}
+  (uh)_t + \div \Big( u\otimes uh + \frac g 2 h^2 \bm 1 \Big) & = 0 \\
+  h_t + \div uh & = 0 \\
+\end{align*}
+where $g$ is the gravitational acceleration.
+When the gravity wave speed $\sqrt{gh}$ is much faster than the velocity $u$, we are in the low Mach limit which is an especially interesting case for global circulation models.
+Semi-discretizing in time using implicit Euler with step size $\Delta t$, the Jacobian takes the form
+\begin{align}\label{eq:fieldsplit:swe}
+  \hat J(uh,h) =
+  \begin{pmatrix}
+    \Delta t^{-1} \bm 1 & g h \grad \\
+    \div & \Delta t^{-1} \bm 1
+  \end{pmatrix}
+\end{align}
+where several ``slow'' terms in the second row have been suppressed.
+The off-diagonal blocks carry the energy of the gravity wave and capture the stiffness that appears for large time steps, which explains why relaxation performs poorly for \eqref{eq:fieldsplit:swe}.
+The alternative is to define a factorization preconditioner for \eqref{eq:fieldsplit:jacobian} as
+\begin{align}\label{eq:fieldsplit:schur}
+  P^{-1} & =
+  \begin{pmatrix} A & B \\ & S \end{pmatrix}^{-1}
+  \begin{pmatrix} 1 & \\ CA^{-1} & 1 \end{pmatrix}^{-1}
+  =
+  \begin{pmatrix} 1 & A^{-1} B \\  & 1 \end{pmatrix}^{-1}
+  \begin{pmatrix} A & \\ C & S \end{pmatrix}^{-1}
+\end{align}
+where $S = D - C A^{-1} B$ is the Schur complement.
+When used as a right (left) preconditioner for GMRES, the lower (upper) triangular blocks of \eqref{eq:fieldsplit:schur} can be dropped without changing the eigenvalues of the preconditioner operator~\cite{murphy2000npi,ipsen2001note} which saves one solve with $A$ per Krylov iteration.
+The resulting preconditioned operator has minimal polynomial degree 2 so that GMRES converges in two iterations if the preconditioner is applied exactly.
+When the problem is symmetric, it is possible to precondition MINRES with the positive definite
+\begin{align*}
+  P^{-1} = \begin{pmatrix} A & \\ & -S \end{pmatrix}
+\end{align*}
+which produces a preconditioned operator with minimal polynomial degree 3 so that MINRES converges in three iterations.
+In practice, the inverses appearing in \eqref{eq:fieldsplit:schur} are only applied approximately using some scalable method such as a V-cycle of multigrid so that the outer iteration converges in a constant number of iterations independent of grid resolution.
+Block factorization methods in this family are available in PETSc through \code{PCFieldSplit} and can be accessed at run time using \code{-pc\_fieldsplit\_type schur -pc\_fieldsplit\_schur\_factorization\_type lower}, \code{upper}, \code{diag}, and \code{full}.
+
+In the case of the semidiscrete shallow water equations~\eqref{eq:fieldsplit:swe}, $S$ is similar to the Helmholtz differential operator $\Delta t^{-1} - \Delta t g \div h \nabla$.
+This ``good Helmholtz'' structure is characteristic of stiff wave problems and discussed at length in the review \cite{knoll2005jfn} and a variety of applications \cite{mousseau2002inc,chacon2008optimal,park2009physics}.
+This Helmholtz operator is our first example of an ``auxiliary matrix'' not explicitly present in the continuum equations, but needed by the preconditioner.
+
+The situation becomes more delicate for problems with constraints such as contact problems and incompressible flow~\cite{elman2008tcp}.
+In these problems, the ``important'' part of the matrix $A$ is an elliptic operator so the Schur complement becomes dense.
+For isotropic variable-viscosity Stokes problems, the Schur complement is spectrally equivalent to a mass matrix defined with respect to the inverse-viscosity weighted inner product~\cite{olshanskii2006analysis}.
+This weighted mass matrix as another auxiliary matrix.
+Time dependence in a generalized Stokes problem with variable viscosity and density can be accommodated by using both the weighted mass matrix and a density-weighted Neumann Laplace operator~\cite{olshanskii2006uniform}.
+For anisotropic viscosity, Navier-Stokes, and other indefinite systems, we no longer have provable spectral equivalence and instead turn to heuristics based on approximate commutator arguments.
+The idea is to find $\tilde A$ operating on the dual space such that $C A^{-1} B \approx L \tilde A^{-1} M$ where $M$ is a mass matrix in the dual space and $L = CM_1^{-1}B$ is, for many problems, a discrete Laplacian with Neumann boundary conditions that can be assembled independently to preserve sparsity.
+Applying such preconditioners requires solves with $M$ and $L$, but only multiplication by $\tilde A$.
+There are three common approaches to constructing such an approximate commutator.
+
+The first is to use physical arguments to define $\tilde A$ by considering the continuum operators without boundary conditions (though see \cite{elman2009boundary}), for example in the ``pressure convection-diffusion'' preconditioner of \cite{silvester2001efficient,kay2002pss}.
+Such preconditioners, if one accounts for the action of the mass matrix, requires three auxiliary operators $(M,L,\tilde A)$ to be provided by the user (although approximations in terms of diagonals of existing matrices are possible).
+This approach has been shown to produce nearly mesh independent convergence rates~\cite{elman2005psm,deniet2007tps,elman2008tcp} for Navier-Stokes problems, with modest dependence on Reynolds number.
+
+The second approximate commutator approach is to use a least squares argument to define
+\begin{align*}
+  \tilde A = M L^{-1} C M_1^{-1} A M_1^{-1} B
+\end{align*}
+where $M_1$ is usually approximated by its diagonal~\cite{elman1999bfbt,elman2006bpb}.
+Application of this preconditioner requires an additional solve with $L$ and is therefore more costly than the first alternative, but anisotropy and other terms are naturally accommodated with no additional effort.
+This method shows near mesh independence for solving the Navier-Stokes equations and while slightly less robust, it typically has better performance than the first method when Newton linearization is used~\cite{elman2008tcp}.
+It has been used successfully for challenging variable viscosity Stokes problems discretized using $\Qk 1-\Pkdisc 0$ finite elements.
+The ``least squares commutator'' is available in PETSc using \code{PCLSC}.
+
+The third method is to define $\tilde A$ using sparse approximate commutators~\cite{elman2006bpb} which is a similar method to the sparse approximate inverse~\cite{grote1997parallel}.
+This approach has the attractive property of requiring only one solve per iteration without the need for additional user-provided auxiliary matrices.
+
+There are several important variants of the methods above including the augmented Lagrangian~\cite{awanou2005convergence,dohrmann2006pbp,deniet2007tps} which accelerates convergence by penalizing $A$ using a multiple of $B M^{-1} C$ which is singular (thus making the inner problem more difficult to solve with most methods) as well as the use of pivoting for preconditioning full-space iteration in PDE-constrained optimization~\cite{biros2005pln1,biros2005pln2,akcelik2006pap}.
+See \cite{benzi2005nss} for a review of methods for saddle point problems.
+
+As a practical and architectural concern, we warn that that excessive splitting leads to lower arithmetic intensity and more synchronization points which reduces the utilization of modern hardware.
+Therefore, it usually only makes sense to split when there is a clear reward in superior algorithmic performance such as many fewer Krylov iterations or substantially reduced storage requirements (e.g. by not needing to assemble inter-field coupling or by taking advantage of symmetric block storage for part of a larger problem).
+
+\subsubsection{Linear algebraic interfaces to facilitate field-split preconditioning}
+PETSc's philosophy involves isolating the user's specification of the discretization and physics from the solution methods and underlying data structures so that solver choices can be delayed until run time.
+The user should not need to write any special code to support a given solver (in some cases auxiliary matrices may still be needed), thus new solvers will automatically be available when added to the library or present in a plugin.
+The seemingly simple matter of interlacing fields for high throughput (see \secref{ssec:throughput}) versus splitting them for certain preconditioners motivates an interface in which ``blocks'' are addressed more abstractly than by number.
+Instead, PETSc uses the \code{IS} class which represents an arbitrary index set.
+An \code{IS} has an MPI communicator and indices which may be represented more compactly than arrays if they have structure such as a regular stride.
+
+There are two classes of matrix storage format relevant to field-split versus monolithic preconditioners.
+The traditional compressed sparse row formats, known as \code{AIJ} (plus symmetric and node-blocked variants), are fully assembled and stored in row-partitioned form.
+The \code{Nest} format does not store entries directly, instead it stores nested matrices of any format with the action of the whole matrix defined in terms of its nested blocks.
+Each nested block can use a different format which allows symmetry and constant block size optimizations to be used, even for mixed discretizations or multi-domain problems where it would otherwise not be possible.
+
+\code{MatGetSubMatrix} is the primary interface used by \code{PCFieldSplit} to extract blocks from the Jacobian.
+This function extracts a parallel submatrix with distribution specified by the distribution of the row and column index sets.
+For monolithic matrix formats like \code{AIJ}, \code{MatGetSubMatrix} necessarily requires the matrix entries to be copied into a new data structure which as much as doubles the memory needed by an application.
+In the generic parallel setting, this operation requires complex communication patterns which are not memory scalable as currently implemented.
+For matrices in the \code{Nest} format, \code{MatGetSubMatrix} returns the submatrix without making a copy or any parallel communication.
+
+While Schur complements needed by block factorization could be constructed from submatrices, it would be cumbersome for the user to provide problem-specific approximations to the Schur complement this way.
+Instead, \code{PCFieldSplit} uses
+\begin{minted}{c}
+PetscErrorCode MatGetSchurComplement(Mat mat,IS isrow0,IS iscol0,IS isrow1,IS iscol1,
+                                     MatReuse mreuse,Mat *newmat,MatReuse preuse,Mat *newpmat);
+\end{minted}
+to extract the Schur complement and an approximation to be used for preconditioning.
+The default implementation returns a matrix of type \code{MatSchurComplement} which applies $S$ according to its definition $D - CA^{-1}B$ by storing the four blocks and, if requested by the caller, the SIMPLE~\cite{patankar1972cph} approximation $D - C\text{diag}(A)^{-1}B$.
+This function can be overridden by the user to return arbitrary problem-specific data.
+
+The \code{MatGetSubMatrix} and \code{MatGetSchurComplement} interface is perfectly adequate for use by \code{PCFieldSplit} and \code{MatNest} provides an efficient storage format, but since the assembly interface is different for creating separate blocks from a monolithic matrix, it seems to require the user to decide up-front whether to assemble a \code{MatNest} or a \code{MatAIJ}.
+Additionally, if \code{MatAIJ} is used, assembly for a single physics would need to ``know'' about the other fields in order to set the indices correctly for insertion.
+These are both highly undesirable because they limit the algorithmic choices that can be made at run time so we have introduced an interface suitable for modular and generic assembly.
+
+Before explaining the interface, we need to define ``local'' spaces in the multi-physics context.
+We first assume a non-overlapping partition of owned nodes across subdomains, where typically subdomains are identified with MPI processes.
+We also assume a possibly overlapping partition of the integration domain.
+In the continuous finite element context, assembly is done by integration over elements, with each element typically integrated on exactly one process (thus the partition is non-overlapping).
+Note that finite difference and finite volume methods can also be interpreted as integration.
+The local space is then defined as the set of all nodes with support on the integration subdomain.
+This is also exactly the domain on which state variables need to be defined to evaluate a subdomain's contribution to the residual and contains the residual contribution from any given subdomain (identical for continuous finite element methods).
+The local space comes with an independent ordering (starting at zero for each subdomain) and a local-to-global mapping that translates local indices to global indices.
+Matrices and vectors typically carry a local-to-global mapping so that entries can be referenced by local index.
+A sub-physics local space is defined as the subset of a multi-physics local space that contributes to a particular physics (or field or other ``split'') and is uniquely represented by an index set (\cverb|IS|) containing those multi-physics local indices appearing in the sub-physics local space.
+When \cverb|DMComposite| is used to manage a multi-physics problem, each sub-physics local index set is a contiguous range.
+
+For the purpose of matrix assembly, the local space defines the part of the global vector and matrix into which entries can be contributed by the method outlined below.
+This is a restriction relative to the standard method of inserting any entry by global index, but the user can still define the local-to-global mapping to allow insertion wherever they desire.
+In return for this restriction, partially assembled matrices required by non-overlapping domain decomposition methods like FETI-DP~\cite{farhat2001feti,farhat2000scalable,klawonn2006dual,klawonn2007robust,klawonn2007inexact} and the closely related BDDC~\cite{dohrmann2003psb,mandel2003cbd,li2006bddc} can be assembled with no changes to user code.
+
+Assembly of ``sub-physics'' blocks as well as off-diagonal coupling blocks is achieved using
+\begin{minted}{c}
+PetscErrorCode MatGetLocalSubMatrix(Mat A,IS rows,IS cols,Mat *submat);
+\end{minted}
+which returns a submatrix with local indices defined by the index sets.
+This function is not collective and makes only weak guarantees about the functionality implemented by the returned submatrix.
+In particular, the communicator is not specified and collective operations like \cverb|MatMult| may not be defined.
+If the matrix storage format is \cverb|MatNest|, this function simply returns the appropriate submatrix which usually lives on a parallel communicator and has full functionality.
+For matrix formats that do not implement \cverb|MatGetLocalSubMatrix|, a proxy matrix is set up on \cverb|PETSC_COMM_SELF| that implements \cverb|MatSetValuesLocal| and similar functions by translating sub-physics local indices to coupled local or global (best choice depending on what is explicitly supported) indices and setting values in the parent matrix.
+If the row and column index sets have matching block size attribute, \cverb|MatSetValuesBlockedLocal| is also implemented regardless of whether the underlying storage format uses blocks.
+This permits sub-physics modules having constant block size to always speak the most specific language (blocked and/or symmetric) regardless of the underlying format.
+When the underlying format specifically supports blocks, we reap the benefits of faster insertion due to fewer searches and moves, otherwise there is negligible performance penalty.
+When \cverb|MatSetValuesBlockedLocal| is used recursively and the matrix implementation has no specific support, the proxy matrices are flattened so that index translation is never done more than once.
