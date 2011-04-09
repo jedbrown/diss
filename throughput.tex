@@ -1,0 +1,156 @@
+\subsubsection{Sparse matrix kernels}
+
+This section briefly describes some optimizations that improved PETSc's matrix kernels by about 30\% on Intel and AMD architectures, bringing them quite close to the memory bandwidth limits.
+This was implemented subsequent to the new data structures for factored matrices described in \cite{smith2010sparse} and thus represents an additional improvement.
+
+The following hardware descriptions generally hold across Intel Core, Core 2, and Core i7 as well as AMD K8 and K10 michoarchitectures.
+Most variation is due to different prefetch and TLB semantics as well as different latencies for vector instructions.
+Details can be found in the optimization reference manuals~\cite{intel2011optimization,amd2009optimization} as well as Agner Fog's excellent resources~\cite{fog2011michoarchitecture,fog2011instruction}.
+See \cite{drepper2007memory} for a more accessible introduction to the memory hierarchy.
+
+Most of our optimizations involve maximal reuse of level 1 data (L1D) cache, higher level caches, and streaming bandwidth.
+Each floating point unit can issue one packed add and one packed multiply per clock cycle, with latencies of 3 to 5 cycles.
+SSE instructions may have both operands in registers or have one operand in L1D with no throughput penalty, although a concurrently issued add and multiply cannot both have a memory operand.
+AMD has a 2-cycle latency penalty for memory operands, Intel has no latency penalty.
+This means that L1D is almost as good as a register, compared to L2 with roughly 10-cycle latency and DRAM with approximately 250-cycle latency.
+
+Assuming a 2.5 GHz clock, one packed load and store per cycle means a bandwidth to L1 of 24 GB/s each way (48 GB/s each way for newer architectures supporting 32-byte AVX registers).
+We can compare this to per-core memory bandwidth ranging from 1.75 GB/s (6-core with 2-channel DDR2-667, found on Cray XT-5) to 9.6 GB/s (4-core with 3-channel DDR3-1600).
+With four (SSE2) or eight (AVX) double precision floating point operations possible per cycle, it becomes clear that memory will be the bottleneck unless many floating point operations can be performed per value loaded.
+The ratio of flops per byte is known as arithmetic intensity.
+
+The hardware prefetch unit can recognize 16 forward-moving streams and 4 backward-moving streams, but only one stream per 4 kB page and not across page boundaries.
+Additionally, the hardware prefetcher does not resolve minor TLB misses which is a significant issue because the TLB can only address 1 or 2 MB and TLB misses produce roughly 60 cycles of latency, plus DRAM latency if the resulting address is not in high-level cache.
+Software prefetch can hide these latencies and resolve TLB misses in advance, providing roughly 20\% improvement in our STREAM benchmarks~\cite{mccalpin2007stream}.
+In addition to improving overall bandwidth, software prefetch instructions can set a ``non-temporal access'' (NTA) policy such that lines evicted from L1D will not subsequently reside in higher level caches.
+
+We consider four matrix formats with increasing amounts of structure: AIJ, AIJ+Inode, BAIJ, and SBAIJ.
+AIJ is a standard compressed row format that stores a column index for each nonzero entry.
+A matrix-vector product $y \gets A x$ is characterized by the kernel
+\begin{minted}{c}
+  for (i=0; i<m; i++) {
+    y[i] = 0.0;
+    for (j=ai[i]; j<ai[i+1]; j++) y[i] += aa[j] * x[aj[j]];
+  }
+\end{minted}
+Assuming perfect cache reuse with $m$ rows and an average of $n$ nonzeros per row, \cverb|MatMult| has an arithmetic intensity of
+\begin{align*}
+  \I_{\text{AIJ}} = \frac{2n}{(n+1)\texttt{sizeof(Scalar)} + (n+1)\texttt{sizeof(Int)}} \xrightarrow{n\to\infty} 0.167 \text{flops/byte}
+\end{align*}
+where the long-row limit is calculated for \cverb|double| precision and 32 bit integers.
+In practice, the vector will not reuse cache perfectly so some entries of $x$ will need to be loaded into cache more than once.
+Choosing a low-bandwidth ordering such as Reverse Cuthill-McKee~\cite{cuthill1969reducing} (RCM) improves cache reuse which reduces end-to-end run time substantially (speeding up matrix-free operations such as residual evaluation in addition to sparse matrix kernels), e.g. by more than a factor of 2~\cite{gropp2000pmt}.
+Our optimization for AIJ consisted of inserting software prefetch instructions to initiate loads of every cache line holding entries in the row after the current one.
+The L1D cache line length is detected during configuration so only one prefetch instruction per line is issued (it is 64 bytes on the x86-64 microarchitectures considered here).
+Sparse matrix-vector products for PDEs can be thought of as a stencil operation combined with a high-volume stream of matrix entries and column indices (the weights and shape of the stencil).
+Without the NTA policy, the high-volume stream flushes the vector $x$ out of caches prematurely.
+
+The AIJ+Inode format simply augments the AIJ format by marking clusters of consecutive rows ``Inodes'' that have the same nonzero pattern, then matrix kernels unroll over the Inodes.
+Use of the AIJ+Inode format is automatic if the matrix has consecutive rows with the same nonzero pattern.
+The column indices are \emph{not} copied out of the standard AIJ storage so matrix kernels skip over $b-1$ rows of identical entries in each Inode of size $b$.
+Skipping over these rows of column indices is especially inefficient with hardware prefetch because entries are eagerly brought into cache and then skipped, followed by a full DRAM stall as the kernel jumps over many skipped ahead in \cverb|aj| and starts $b-1$ new streams from \cverb|aa| that are not predicted by the prefetch unit.
+Software prefetch for AIJ+Inode avoids bringing in the redundant column entries and prevents the stalls due to jumping over column indices and starting new \cverb|aa| streams.
+The prefetch logic assumes that the next Inode and row lengths will be approximately the same size as the current one since this is the typical case for PDE-like problems.
+If no redundant column entries are brought in, the arithmetic intensity is
+\begin{align*}
+  \I_{\text{AIJ+Inode}} = \frac{2nb}{(n+1)b\texttt{sizeof(Scalar)} + (n+2)\texttt{sizeof(Int)}} \xrightarrow[b=3]{n\to\infty} 0.214 \text{flops/byte}
+\end{align*}
+where the inode size of 3 is representative of 3D elasticity or the viscous part of a Stokes problem.
+We expect this performance model to be somewhat less sharp than for $AIJ$ because it is not possible to load less than a cache line, therefore redundant column indices are unavoidable unless all rows naturally align with cache line boundaries.
+
+The BAIJ format optimizes for constant block size by storing only one column index per $b\times b$ block.
+With this format, the problems of skipping ahead in \cverb|aj| and \cverb|aa| go away, but issues of peak bandwidth and enabling the vector to reuse cache remain.
+The arithmetic intensity
+\begin{align*}
+  \I_{\text{BAIJ}} = \frac{2nb}{(n+1)b\texttt{sizeof(Scalar)} + (n/b+1)\texttt{sizeof(Int)}} \to \xrightarrow[b=3]{n\to\infty} 0.237 \text{flops/byte}
+\end{align*}
+is very close to the dense limit of $0.25$.
+
+The symmetric block format SBAIJ which stores only the upper-triangular part in compressed row format has a more involved memory access pattern.
+Each matrix entry is only loaded once where it is used for both upper and lower triangular contributions.
+The contribution from the lower-triangular part has multiple destinations effectively doubling the number of stencil-like streams that must be sustained, with all the new streams read-write as opposed to the read-only streams of nonsymmetric row formats.
+In return, the storage and arithmetic intensity is almost double that of nonsymmetric formats
+\begin{align*}
+  \I_{\text{SBAIJ}} = \frac{4nb - 2b^2}{(n+2)b\texttt{sizeof(Scalar)} + (n/b+1)\texttt{sizeof(Int)}} \to \xrightarrow[b=3]{n\to\infty} 0.47 \text{flops/byte} .
+\end{align*}
+% let scalar = 8; int = 4; intenBAIJ n b = 2*n*b / ((n+1)*b*scalar + (n/b+1)*int); intenAIJInode n b = 2*n*b/((n+1)*b*scalar + (n+2)*int)
+
+The data structure change described in \cite{smith2010sparse} caused both forward and back solves to traverse matrix entries forward in memory when using (incomplete) LU.
+Even though the matrix entries are fetched moving forward, the stencil for ``back solve'' still moves backward through memory so there are much fewer hardware prefetch streams (4 instead of 16 forward-moving on Intel/AMD, there is no hardware prefetch for backward-moving streams on Blue Gene/P).
+
+For (incomplete) Cholesky, the factors are only stored once so it is not possible for both forward and back solves to traverse matrix entries by moving forward.
+Because the primary backward-moving streams are prefetched by software, this causes relatively little performance degradation compared to ILU.
+
+% Core 2 P8700: DDR2-800 (6400 MB/s), single thread Triad peak 5400 MB/s
+% gcc-4.7 -O3 -std=c99 -march=native BasicVersion-onnode.c -lm -lnuma -DSSE2 -DPREFETCH_NTA
+% I observed as high as 5500 MB/s when using -DFAULT_TOGETHER, but this
+% is not practical
+% Performance is dependent on how the memory was used the last time
+% through, therefore optimization of each STREAM kernel is not entirely
+% independent of the others.
+
+As an estimate of the peak usable bandwidth, we use the STREAM Triad benchmark with a moderately tuned implementation (software prefetch, SSE2 arithmetic, non-temporal stores, unrolled over cache lines).
+We consider two test systems, a Core 2 Duo (P8700) clocked at 2.53 GHz with a single DDR2-800 memory channel (theoretical bandwidth of 6.4 GB/s) and a two-socket Opteron 2356 (quad core) clocked at 2.3 GHz with two channels of DDR2-677 memory per socket (theoretical peak of 5.3 GB/s per channel).
+The achieved bandwidth for Triad on the Intel system was 5.4 GB/s for a single thread.
+On Opteron, the single-threaded Triad achieved 5.8 GB/s, increasing to XXX GB/s for 4 processes (2 per socket) and XXX GB/s for 8 processes.
+
+Table~\ref{tab:throughput:baij} shows the performance of the three primary sparse matrix kernels with each storage format on both test machines.
+With prefetch enabled, the sparse matrix kernels obtain a remarkably high fraction of theoretical peak bandwidth, especially on Intel processors.
+
+\begin{table}
+  \centering
+  \begin{tabular}{l|c|c|c|c}
+    \multirow{2}{*}{\backslashbox{Kernel}{Format}} & \multicolumn{4}{c|}{Core 2, 1 process} \\
+                          & AIJ        & AIJ+I     & BAIJ       & SBAIJ      \\ \hline
+    \texttt{MatMult}      & 916(103\%) & 855(81\%) & 1013(86\%) & 1429(62\%) \\
+    \texttt{MatSolve}/ILU & 799        & 742       & 1078       & ---        \\
+    \texttt{MatSolve}/ICC & 741        & 737       & 1011       & 1007       \\ \hline
+                          & \multicolumn{4}{c}{Opteron, 1 process}           \\
+                          & AIJ        & AIJ+I     & BAIJ       & SBAIJ      \\ \hline
+    \texttt{MatMult}      & 506(53\%)  & 592(52\%) & 735(58\%)  & 744(30\%)  \\
+    \texttt{MatSolve}/ILU & 460        & 572       & 845        & ---        \\
+    \texttt{MatSolve}/ICC & 426        & 427       & 815        & 814        \\ \hline
+                          & \multicolumn{4}{c}{Opteron, 4 processes}           \\
+                          & AIJ        & AIJ+I     & BAIJ       & SBAIJ      \\ \hline
+%% FIXME: STREAM performance using MPI
+    \texttt{MatMult}      & 1673       & 1978      & 2450       & 3089       \\
+    \texttt{MatSolve}/ILU & 1621       & 1896      & 2766       & ---        \\
+    \texttt{MatSolve}/ICC & 1519       & 1522      & 2700       & 2710       \\
+                          & \multicolumn{4}{c}{Opteron, 8 processes}           \\ \hline
+                          & AIJ        & AIJ+I     & BAIJ       & SBAIJ      \\ \hline
+%% FIXME: STREAM performance using MPI
+    \texttt{MatMult}      &  2374  & 2408      &  2897      & 4331      \\
+    \texttt{MatSolve}/ILU &  2317  & 1781      &  2913      & ---       \\
+    \texttt{MatSolve}/ICC &  2214  & 1854      &  2892      & 2877      \\
+  \end{tabular}
+  \caption{Throughput (Mflop/s) and percentage of STREAM Triad bandwidth, assuming optimal vector reuse, for different matrix formats on Core 2 Duo (P8700) and Opteron 2356 (two sockets). The test problem is a $Q_1$ finite element discretization with block size of 2 on a 3D mesh (essentially a 27-point stencil) in which each process has $64\times 64\times 63$ nodes.}\label{tab:throughput:baij}
+\end{table}
+
+\subsubsection{Small dense tensor product kernels}
+A fundamental operation for computing with high order finite element and spectral element methods is application of a 3D tensor product kernel operations $A\otimes B\otimes C$ or, in index notation,
+\begin{equation}\label{eq:tensor:kernel}
+  y_{ijk} \gets A_{i\alpha} \otimes B_{b\beta} \otimes C_{c\gamma} x_{\alpha\beta\gamma} .
+\end{equation}
+To evaluate a state vector at quadrature points, the Greek indices run over the basis functions in each Cartesion direction and the Latin indices run over the number of quadrature points in that direction.
+When using a Gauss quadrature that integrates the mass matrix exactly (a typical choice in finite element computations), the range is the same.
+Additionally, when the approximation order is isotropic (the most common case), all the ranges are the same.
+The tensor product operation can be written in various ways as dense matrix multiplication (albeit highly non-square) so we expect it to achieve very close to the floating point peak for sufficiently large sizes (e.g. by calling a tuned BLAS3).
+Increasing the number of fields also increases the problem size which improves the efficiency of BLAS3 calls.
+The attainable performance for smaller sizes is much less clear, hence we examine the scalar $\Qk 3$ case.
+This is a very practical approximation order: it is high enough to reap some benefits from the regular structure, but not so high as to make resolving geometry overly difficult or to have highly non-uniform resolution (due to clustering of interpolation nodes near the edges of elements as the approximation order increases).
+
+In the scalar $\Qk 3$ case, each of $A,B,C$ is $4\times 4$ and the entire operation produces 64 entries in $y$ from 64 entries in $x$.
+We have considered a variety of unroll-and-jam optimizations as well as different register blocking strategies.
+The SSE3 horizontal add instruction \asm{HADDPD} has increased latency and reduced throughput compared to the standard vector addition and multiplication instructions \asm{ADDPD} and \asm{MULPD}, therefore we should try to avoid it whenever possible.
+Assuming lexicographic ordering, applying the first two parts $A$ and $B$ of the tensor product kernel perform the same operation for all values of $\gamma$ and thus provide balanced adds and multiplies (which can be issued concurrently as long as the kernel has been unrolled enough to cover the latency) without needing any horizontal operations.
+This is not possible when applying $C$ because packed loads (and vector arithmetic with memory operands) retrieve consecutive entries.
+The input could be transposed to avoid this constraint, but the cost for small sizes overwhelms the benefit, therefore we are forced to use one \asm{HADDPD} instruction per packed result $y_{i,j,k:k+1}$ and the reduction also creates some unavoidable (without more registers) pipeline stalls.
+Application of $A\otimes B\otimes \bm 1$ achieve nearly 80\% of floating point peak on the Core 2 Duo while $C$ is reduced to near 60\%.
+The full tensor product contraction $A\otimes B\otimes C$ is more than 70\% of floating point peak.
+This should be compared with sparse matrix kernels that rarely exceed 10\% of floating point peak due to low arithmetic intensity.
+The trend in computer architecture is for peak floating point performance to continue to improve via the use of longer registers (AVX), more cores, and GPU-style vectorization while memory bandwidth increases much more slowly.
+This trend which was observed long ago \cite{mccalpin1995mba} and has no end in sight, especially with the modern emphasis on energy efficiency.
+
+
+
+%While packed arithmetic instructions can have one operand directly referencing memory, the address must be 16-byte aligned.
