@@ -15,22 +15,24 @@ AMD has a 2-cycle latency penalty for memory operands, Intel has no latency pena
 This means that L1D is almost as good as a register, compared to L2 with roughly 10-cycle latency and DRAM with approximately 250-cycle latency.
 
 Assuming a 2.5 GHz clock, one packed load and store per cycle means a bandwidth to L1 of 24 GB/s each way (48 GB/s each way for newer architectures supporting 32-byte AVX registers).
-We can compare this to per-core memory bandwidth ranging from 1.75 GB/s (6-core with 2-channel DDR2-667, found on Cray XT-5) to 9.6 GB/s (4-core with 3-channel DDR3-1600).
+We can compare this to per-core memory bandwidth ranging from 1.75 GB/s (6-core with 2-channel DDR2-667, found on Cray XT-5) to 9.6 GB/s (4-core with 3-channel DDR3-1600, found on the newest Sandy Bridge processors).
 With four (SSE2) or eight (AVX) double precision floating point operations possible per cycle, it becomes clear that memory will be the bottleneck unless many floating point operations can be performed per value loaded.
-The ratio of flops per byte is known as arithmetic intensity.
+The ratio of flops per byte for a computational kernel is known as arithmetic intensity.
+The systems above balance computation with memory when the arithmetic intensity is between 2 and 6 flops/byte.
 
 The hardware prefetch unit can recognize 16 forward-moving streams and 4 backward-moving streams, but only one stream per 4 kB page and not across page boundaries.
 Additionally, the hardware prefetcher does not resolve minor TLB misses which is a significant issue because the TLB can only address 1 or 2 MB and TLB misses produce roughly 60 cycles of latency, plus DRAM latency if the resulting address is not in high-level cache.
 Software prefetch can hide these latencies and resolve TLB misses in advance, providing roughly 20\% improvement in our STREAM benchmarks~\cite{mccalpin2007stream}.
 In addition to improving overall bandwidth, software prefetch instructions can set a ``non-temporal access'' (NTA) policy such that lines evicted from L1D will not subsequently reside in higher level caches.
 
-We consider four matrix formats with increasing amounts of structure: AIJ, AIJ+Inode, BAIJ, and SBAIJ.
-AIJ is a standard compressed row format that stores a column index for each nonzero entry.
+We consider four matrix formats with increasing amounts of structure: \AIJ, \AIJInode, \BAIJ, and \SBAIJ.
+\AIJ is a standard compressed row format that stores a column index for each nonzero entry.
 A matrix-vector product $y \gets A x$ is characterized by the kernel
 \begin{minted}{c}
   for (i=0; i<m; i++) {
-    y[i] = 0.0;
-    for (j=ai[i]; j<ai[i+1]; j++) y[i] += aa[j] * x[aj[j]];
+      y[i] = 0.0;
+      for (j=ai[i]; j<ai[i+1]; j++)
+          y[i] += aa[j] * x[aj[j]];
   }
 \end{minted}
 Assuming perfect cache reuse with $m$ rows and an average of $n$ nonzeros per row, \cverb|MatMult| has an arithmetic intensity of
@@ -181,11 +183,12 @@ The unassembled representation is uniformly better in terms of memory use for al
 Note that both bandwidth and computation requirements improve for the tensor product formulation when the block size inreases (because the overhead of the coordinate transformation is reduced), while they degrade for the assembled representation.
 The arithmetic intensity for unassembled representations is typically around 8 flops/byte with weak dependence on polynomial order, block size, and even details of the physics (unless a great deal of recomputation is required for linearization, or a nonsymmetric high-rank tensor needs to be stored).
 This should be compared to the assembled sparse matrix representation which cannot surpass 1 flop/4 bytes even if column indices were not stored.
-This 30-fold increase in arithmetic intensity while simultaneously reducing memory traffic below even the lowest order representations bodes well for future architectures.
+As noted in \secref{ssec:sparsekernels}, modern hardware balances computation with memory when the arithmetic intensity is between about 2 and 6 flops/byte and expected to increase.
+The 30-fold increase in arithmetic intensity while simultaneously reducing memory traffic below even the lowest order representation bodes well for the importance of unassembled Jacobian representations on future architectures.
 
 \begin{figure}
   \centering
   \includegraphics{TensorVsAssembly}
   % python2 ./spmvmodel.py --plot --format pdf -o TensorVsAssembly.pdf
-  \caption{Memory and floating point requirements for matrix-free tensor-product application of an operator versus representation as an assembled matrix stored in BAIJ($b$) format.}\label{fig:tensorasm}
+  \caption{Memory and floating point requirements for matrix-free tensor-product application of an operator versus representation as an assembled matrix stored in \BAIJ[b] format.}\label{fig:tensorasm}
 \end{figure}
