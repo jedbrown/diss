@@ -55,7 +55,7 @@ If no redundant column entries are brought in, the arithmetic intensity is
 \begin{align*}
   \I_{\text{AIJ+Inode}} = \frac{2nb}{(n+1)b\texttt{sizeof(Scalar)} + (n+2)\texttt{sizeof(Int)}} \xrightarrow[b=3]{n\to\infty} 0.214 \text{flops/byte}
 \end{align*}
-where the inode size of 3 is representative of 3D elasticity or the viscous part of a Stokes problem.
+where the example Inode size of 3 is representative of 3D elasticity or the viscous part of a Stokes problem.
 We expect this performance model to be somewhat less sharp than for $AIJ$ because it is not possible to load less than a cache line, therefore redundant column indices are unavoidable unless all rows naturally align with cache line boundaries.
 
 The BAIJ format optimizes for constant block size by storing only one column index per $b\times b$ block.
@@ -65,6 +65,7 @@ The arithmetic intensity
   \I_{\text{BAIJ}} = \frac{2nb}{(n+1)b\texttt{sizeof(Scalar)} + (n/b+1)\texttt{sizeof(Int)}} \to \xrightarrow[b=3]{n\to\infty} 0.237 \text{flops/byte}
 \end{align*}
 is very close to the dense limit of $0.25$.
+In practice, BAIJ achieves a higher fraction of the bandwidth peak due its more regular memory access and unrolled kernels.
 
 The symmetric block format SBAIJ which stores only the upper-triangular part in compressed row format has a more involved memory access pattern.
 Each matrix entry is only loaded once where it is used for both upper and lower triangular contributions.
@@ -96,42 +97,45 @@ On Opteron, the single-threaded Triad achieved 5.8 GB/s, increasing to XXX GB/s 
 
 Table~\ref{tab:throughput:baij} shows the performance of the three primary sparse matrix kernels with each storage format on both test machines.
 With prefetch enabled, the sparse matrix kernels obtain a remarkably high fraction of theoretical peak bandwidth, especially on Intel processors.
+Indeed, the scalar format performance is competitive with the best \MatMult results of \cite{williams2007osm} and block formats are consistently faster by a factor of 20 to 30 percent.
+Block formats provide greater benefit for \MatSolve than for \MatMult, with BAIJ \MatSolve frequently outperforming the corresponding \MatMult.
+We are not aware of previous reports of this effect and speculate that it is due to \MatSolve having fewer read streams and using only one vector at a time (\MatMult reads from one vector and writes to another, \MatSolve is in-place).
 
 \begin{table}
   \centering
   \begin{tabular}{l|c|c|c|c}
-    \multirow{2}{*}{\backslashbox{Kernel}{Format}} & \multicolumn{4}{c|}{Core 2, 1 process} \\
-                          & AIJ        & AIJ+I     & BAIJ       & SBAIJ      \\ \hline
-    \texttt{MatMult}      & 916(103\%) & 855(81\%) & 1013(86\%) & 1429(62\%) \\
-    \texttt{MatSolve}/ILU & 799        & 742       & 1078       & ---        \\
-    \texttt{MatSolve}/ICC & 741        & 737       & 1011       & 1007       \\ \hline
-                          & \multicolumn{4}{c}{Opteron, 1 process}           \\
-                          & AIJ        & AIJ+I     & BAIJ       & SBAIJ      \\ \hline
-    \texttt{MatMult}      & 506(53\%)  & 592(52\%) & 735(58\%)  & 744(30\%)  \\
-    \texttt{MatSolve}/ILU & 460        & 572       & 845        & ---        \\
-    \texttt{MatSolve}/ICC & 426        & 427       & 815        & 814        \\ \hline
-                          & \multicolumn{4}{c}{Opteron, 4 processes}           \\
-                          & AIJ        & AIJ+I     & BAIJ       & SBAIJ      \\ \hline
+    \multirow{2}{*}{\backslashbox{Kernel}{Format}} & \multicolumn{4}{c}{Core 2, 1 process}            \\
+                                                   & AIJ        & AIJ+I     & BAIJ       & SBAIJ      \\ \hline
+    \MatMult                                       & 916(103\%) & 855(81\%) & 1013(86\%) & 1429(62\%) \\
+    \MatSolve/ILU                                  & 799        & 742       & 1078       & ---        \\
+    \MatSolve/ICC                                  & 741        & 737       & 1011       & 1007       \\ \hline
+                                                   & \multicolumn{4}{c}{Opteron, 1 process}           \\
+                                                   & AIJ        & AIJ+I     & BAIJ       & SBAIJ      \\ \hline
+    \MatMult                                       & 506(53\%)  & 592(52\%) & 735(58\%)  & 744(30\%)  \\
+    \MatSolve/ILU                                  & 460        & 572       & 845        & ---        \\
+    \MatSolve/ICC                                  & 426        & 427       & 815        & 814        \\ \hline
+                                                   & \multicolumn{4}{c}{Opteron, 4 processes}         \\
+                                                   & AIJ        & AIJ+I     & BAIJ       & SBAIJ      \\ \hline
 %% FIXME: STREAM performance using MPI
-    \texttt{MatMult}      & 1673       & 1978      & 2450       & 3089       \\
-    \texttt{MatSolve}/ILU & 1621       & 1896      & 2766       & ---        \\
-    \texttt{MatSolve}/ICC & 1519       & 1522      & 2700       & 2710       \\
-                          & \multicolumn{4}{c}{Opteron, 8 processes}           \\ \hline
-                          & AIJ        & AIJ+I     & BAIJ       & SBAIJ      \\ \hline
+    \MatMult                                       & 1673       & 1978      & 2450       & 3089       \\
+    \MatSolve/ILU                                  & 1621       & 1896      & 2766       & ---        \\
+    \MatSolve/ICC                                  & 1519       & 1522      & 2700       & 2710       \\
+                                                   & \multicolumn{4}{c}{Opteron, 8 processes}         \\ \hline
+                                                   & AIJ        & AIJ+I     & BAIJ       & SBAIJ      \\ \hline
 %% FIXME: STREAM performance using MPI
-    \texttt{MatMult}      &  2374  & 2408      &  2897      & 4331      \\
-    \texttt{MatSolve}/ILU &  2317  & 1781      &  2913      & ---       \\
-    \texttt{MatSolve}/ICC &  2214  & 1854      &  2892      & 2877      \\
+    \MatMult                                       & 2374       & 2408      & 2897       & 4331       \\
+    \MatSolve/ILU                                  & 2321       & 1954      & 2913       & ---        \\
+    \MatSolve/ICC                                  & 2214       & 1854      & 2892       & 2877       \\
   \end{tabular}
   \caption{Throughput (Mflop/s) and percentage of STREAM Triad bandwidth, assuming optimal vector reuse, for different matrix formats on Core 2 Duo (P8700) and Opteron 2356 (two sockets). The test problem is a $Q_1$ finite element discretization with block size of 2 on a 3D mesh (essentially a 27-point stencil) in which each process has $64\times 64\times 63$ nodes.}\label{tab:throughput:baij}
 \end{table}
 
 \subsubsection{Small dense tensor product kernels}
-A fundamental operation for computing with high order finite element and spectral element methods is application of a 3D tensor product kernel operations $A\otimes B\otimes C$ or, in index notation,
+A fundamental operation for computing with high order finite element and spectral element methods is application of a 3D tensor product kernel operations $y \gets (A\otimes B\otimes C) x$ or, in index notation,
 \begin{equation}\label{eq:tensor:kernel}
-  y_{ijk} \gets A_{i\alpha} \otimes B_{b\beta} \otimes C_{c\gamma} x_{\alpha\beta\gamma} .
+  y_{ijk} \gets A_{i\alpha} B_{b\beta} C_{c\gamma} x_{\alpha\beta\gamma} .
 \end{equation}
-To evaluate a state vector at quadrature points, the Greek indices run over the basis functions in each Cartesion direction and the Latin indices run over the number of quadrature points in that direction.
+To evaluate a state vector at quadrature points, the Greek indices run over the basis functions in each Cartesian direction and the Latin indices run over the number of quadrature points in that direction.
 When using a Gauss quadrature that integrates the mass matrix exactly (a typical choice in finite element computations), the range is the same.
 Additionally, when the approximation order is isotropic (the most common case), all the ranges are the same.
 The tensor product operation can be written in various ways as dense matrix multiplication (albeit highly non-square) so we expect it to achieve very close to the floating point peak for sufficiently large sizes (e.g. by calling a tuned BLAS3).
