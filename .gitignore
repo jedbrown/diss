@@ -1,0 +1,17 @@
+.tup
+*.png
+*.pdf
+diss.aux
+diss.bbl
+diss.blg
+diss.lof
+diss.log
+diss.lot
+diss.out
+diss.out.pyg
+diss.pdf
+diss.toc
+*.pyc
+JedMacros.tex
+jedbib
+minted.sty
