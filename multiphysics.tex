@@ -95,7 +95,9 @@ For isotropic variable-viscosity Stokes problems, the Schur complement is spectr
 This weighted mass matrix as another auxiliary matrix.
 Time dependence in a generalized Stokes problem with variable viscosity and density can be accommodated by using both the weighted mass matrix and a density-weighted Neumann Laplace operator~\cite{olshanskii2006uniform}.
 For anisotropic viscosity, Navier-Stokes, and other indefinite systems, we no longer have provable spectral equivalence and instead turn to heuristics based on approximate commutator arguments.
-The idea is to find $\tilde A$ operating on the dual space such that $C A^{-1} B \approx L \tilde A^{-1} M$ where $M$ is a mass matrix in the dual space and $L = CM_1^{-1}B$ is, for many problems, a discrete Laplacian with Neumann boundary conditions that can be assembled independently to preserve sparsity.
+The idea is to find $\tilde A$ operating on the dual space (e.g. pressure) such that $C A^{-1} B \approx L \tilde A^{-1} M$ where $L = CM_1^{-1}B$.
+Here, $M_1$ is the mass matrix in the primal space (e.g. velocity) and $M$ is a mass matrix in the dual space.
+For many problems, $L$ is a discrete Laplacian with Neumann boundary conditions that can be assembled independently to preserve sparsity.
 Applying such preconditioners requires solves with $M$ and $L$, but only multiplication by $\tilde A$.
 There are three common approaches to constructing such an approximate commutator.
 
@@ -125,7 +127,7 @@ Therefore, it usually only makes sense to split when there is a clear reward in 
 \subsubsection{Linear algebraic interfaces to facilitate field-split preconditioning}
 PETSc's philosophy involves isolating the user's specification of the discretization and physics from the solution methods and underlying data structures so that solver choices can be delayed until run time.
 The user should not need to write any special code to support a given solver (in some cases auxiliary matrices may still be needed), thus new solvers will automatically be available when added to the library or present in a plugin.
-The seemingly simple matter of interlacing fields for high throughput (see \secref{ssec:throughput}) versus splitting them for certain preconditioners motivates an interface in which ``blocks'' are addressed more abstractly than by number.
+The seemingly simple matter of interlacing fields for high throughput (see \secref{sec:throughput}) versus splitting them for certain preconditioners motivates an interface in which ``blocks'' are addressed more abstractly than by number.
 Instead, PETSc uses the \code{IS} class which represents an arbitrary index set.
 An \code{IS} has an MPI communicator and indices which may be represented more compactly than arrays if they have structure such as a regular stride.
 
@@ -143,10 +145,11 @@ For matrices in the \code{Nest} format, \code{MatGetSubMatrix} returns the subma
 While Schur complements needed by block factorization could be constructed from submatrices, it would be cumbersome for the user to provide problem-specific approximations to the Schur complement this way.
 Instead, \code{PCFieldSplit} uses
 \begin{minted}{c}
-PetscErrorCode MatGetSchurComplement(Mat mat,IS isrow0,IS iscol0,IS isrow1,IS iscol1,
-                                     MatReuse mreuse,Mat *newmat,MatReuse preuse,Mat *newpmat);
+PetscErrorCode MatGetSchurComplement(Mat mat,
+                   IS isrow0,IS iscol0,IS isrow1,IS iscol1,
+                   MatReuse mreuse,Mat *newmat,MatReuse preuse,Mat *newpmat);
 \end{minted}
-to extract the Schur complement and an approximation to be used for preconditioning.
+to extract the Schur complement of $(\cverb|isrow0|,\cverb|iscol0|)$ restricted to $(\cverb|isrow1|,\cverb|iscol1|)$ and an approximation to be used for preconditioning.
 The default implementation returns a matrix of type \code{MatSchurComplement} which applies $S$ according to its definition $D - CA^{-1}B$ by storing the four blocks and, if requested by the caller, the SIMPLE~\cite{patankar1972cph} approximation $D - C\text{diag}(A)^{-1}B$.
 This function can be overridden by the user to return arbitrary problem-specific data.
 
