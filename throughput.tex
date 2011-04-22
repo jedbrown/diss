@@ -146,11 +146,42 @@ Assuming lexicographic ordering, applying the first two parts $A$ and $B$ of the
 This is not possible when applying $C$ because packed loads (and vector arithmetic with memory operands) retrieve consecutive entries.
 The input could be transposed to avoid this constraint, but the cost for small sizes overwhelms the benefit, therefore we are forced to use one \asm{HADDPD} instruction per packed result $y_{i,j,k:k+1}$ and the reduction also creates some unavoidable (without more registers) pipeline stalls.
 Application of $A\otimes B\otimes \bm 1$ achieve nearly 80\% of floating point peak on the Core 2 Duo while $C$ is reduced to near 60\%.
-The full tensor product contraction $A\otimes B\otimes C$ is more than 70\% of floating point peak.
-This should be compared with sparse matrix kernels that rarely exceed 10\% of floating point peak due to low arithmetic intensity.
-The trend in computer architecture is for peak floating point performance to continue to improve via the use of longer registers (AVX), more cores, and GPU-style vectorization while memory bandwidth increases much more slowly.
-This trend which was observed long ago \cite{mccalpin1995mba} and has no end in sight, especially with the modern emphasis on energy efficiency.
+The full tensor product contraction $A\otimes B\otimes C$ achieves more than 70\% of floating point peak on Intel and about 60\% on AMD.
+This performance is comparable to or better than the best autotuned results of \cite{shin2010speeding}, though they achieve slightly higher performance for larger sizes (which have less overhead).
+Note that large size tensor contractions are important for quantum chemistry and have thus received more optimization attention, \eg \cite{kaushik2008improving,hirata2003tensor}.
+Contrast the tensor product performance with sparse matrix kernels that attain less than 10\% of floating point peak due to low arithmetic intensity.
 
+An old \cite{mccalpin2007stream} but continuing trend in computer architecture is for peak floating point performance to continue to improve via the use of longer registers (Intel's AVX and the Blue Gene/Q architecture have packed 32-byte floating point registers), more cores, and GPU-style vectorization while memory bandwidth increases much more slowly~\cite{keyes2011exaflop}.
+An additional feature of upcoming high-performance computing architectures is the prevalance of in-order execution; high power requirements no longer justify the luxury of sophisticated out-of-order execution units common on today's commodity hardware~\cite{seiler2008larrabee,pham2006overview}.
+Achieving high performace on such systems requires decomposing the computation into kernels with high arithmetic intensity (so as not to overload the memory subsystem) and sufficient local structure to utilize vector registers and effectively schedule instructions at compile time.
+We optimized streaming stencil kernels for Blue Gene/P in \cite{malas2011streaming}, including implementation of a static scheduler that we used to rapidly perform loop optimizations with a small assembly-language building block that exploited the available SIMD floating point unit.
+With this approach, we were able to effectively use all the floating point and general purpose registers while hiding instruction latency, delivering 93\% of theoretical FPU peak for the 27-point stencil with problem sizes that fit in level 1 cache and 91\% of bandwidth bandwidth for larger problem sizes (72\% of FPU peak).
+These results are 80\% better than the best previously published for Blue Gene/P.
 
+Since the tensor product kernel has sufficient local structure to utilize vector registers, we can estimate its performance on future architectures by computing its arithmetic intensity.
+For simplicity, suppose that $n = p+1$ is both the number of interpolation nodes and quadrature points on an element in each Cartesian direction, and that $b$ is the number of degrees of freedom per node.
+Then direction of a contraction performs $bn^4$ multiplies and $b(n-1)n^3$ additions on the reference element.
+We approximate the total across all three dimensions $3bn^4$ fused multiply-add (FMA) operations because FMA units are increasingly popular.
+When evaluating both interpolation and gradient (most general form), it is possible to share partial results so that both can be evaluated in $9bn^4$ FMAs.
+Translating the gradient from reference to physical element costs another $9bn^3$ FMAs.
+The Galerkin procedure evaluates these contractions twice per residual or matrix-free Jacobian (once to evaluate the trial function, once more in transpose for the test functions), leading to a total of $18(bn^4 + bn^3) + Qn^3$ FMAs, where $Q$ is the number of operations per quadrature node.
+Typically we do not store the coordinate transformation, so it must also be computed at a cost of $9\cdot 3n^4 + 31n^3$ (assume block size 3 and held in an equal order basis, evaluate only on the reference element, then invert the local Jacobian at every quadrature node at a cost of 30 FMA or multiplies and one division).
+Thus, for a problem with $b$ degrees of freedom per node and no sharing between elements, we have total operation count of $9(3 + 2b)n^4 + (31+18b + Q)n^3$ with $(b+3)n^3$ floating point values coming in and $bn^3$ out.
 
-%While packed arithmetic instructions can have one operand directly referencing memory, the address must be 16-byte aligned.
+To understand these tradeoffs, we consider three block sizes at different approximation orders and plot the memory bandwidth and number of flops (calculated as twice the number of FMAs) required to compute each entry in the output vector.
+The performance model for assembled sparse matrices assumes BAIJ storage and perfect vector reuse within the cache system.
+The model for unassembled storage applied by tensor product assumes a general tensor-product quadrature of equal order, that coordinates are stored in a function space of the same order as the independent variables and are needed to compute the coordinate transformation but do not contribute to a result, that the physics can be represented using stored data equivalent in size to a stored gradient plus stored function values, and that the physics can be applied using an operation similar in structure to Newton-linearization of Navier-Stokes with power-law rheology plus a reaction term coupling all components.
+This is intended to be nearly a worst-case setting for the unassembled tensor product formulation; it is cheaper for simpler physics, simpler coefficients, collocated quadratures, etc.
+The memory and floating point costs are shown in \figref{fig:tensorasm}.
+The unassembled representation is uniformly better in terms of memory use for all orders $p \ge 2$, but has significant floating point overhead for the smallest sizes, especially with small block size.
+Note that both bandwidth and computation requirements improve for the tensor product formulation when the block size inreases (because the overhead of the coordinate transformation is reduced), while they degrade for the assembled representation.
+The arithmetic intensity for unassembled representations is typically around 8 flops/byte with weak dependence on polynomial order, block size, and even details of the physics (unless a great deal of recomputation is required for linearization, or a nonsymmetric high-rank tensor needs to be stored).
+This should be compared to the assembled sparse matrix representation which cannot surpass 1 flop/4 bytes even if column indices were not stored.
+This 30-fold increase in arithmetic intensity while simultaneously reducing memory traffic below even the lowest order representations bodes well for future architectures.
+
+\begin{figure}
+  \centering
+  \includegraphics{TensorVsAssembly}
+  % python2 ./spmvmodel.py --plot --format pdf -o TensorVsAssembly.pdf
+  \caption{Memory and floating point requirements for matrix-free tensor-product application of an operator versus representation as an assembled matrix stored in BAIJ($b$) format.}\label{fig:tensorasm}
+\end{figure}
