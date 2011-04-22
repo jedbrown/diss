@@ -1,0 +1,119 @@
+\ProvidesPackage{JedDiss}
+
+% Here are some symbols and other stuff defined  i need in my thesis.
+% -------------------------------------------------------------------
+
+% packages
+\usepackage{graphicx}
+\usepackage{color}
+%\usepackage[T1]{fontenc}
+%\usepackage{ae,aecompl}
+\usepackage{pslatex}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsfonts}
+%\usepackage{natbib}
+\usepackage{multirow}
+\usepackage{graphicx}
+
+% make chapter titles a little smaller
+\usepackage{sectsty}
+\chapterfont{\huge}
+
+% Page layout
+\usepackage[a4paper,
+            body={16cm,24.7cm},
+            top=2.5cm,
+%            bottom=2.5cm,
+%            nohead, 
+            nofoot,
+            twoside
+]{geometry}
+
+% %***************************************************************
+% %LAYOUT FUER DISSERTATIONEN (Reglement 1991, LaTeX S. 24)
+% \hoffset-2.64cm          %Zuruecksetzen des .dvi-Defaultwertes (S. 350)
+% \voffset-2.00cm          %Teilweise zuruecksetzen des .dvi_default
+% %%\voffset-1.20cm        %Teilweise zuruecksetzen des .dvi_default
+% \oddsidemargin3cm        %Breite des linken Randes
+% \evensidemargin2.25cm    %2.5 fuer 2-Seitig
+% \textwidth16.0cm         %Textbreite
+% \textheight24.7cm        %Textlaenge (Seitenlaenge 29.7cm)
+\flushbottom             %Unterste Zeile immer auf gleicher Hoehe
+\parindent0em            %Kein Einruecken bei neuem Absatz
+\addtolength{\parskip}{0.25\baselineskip}
+
+%\parskip1.5ex plus 0.5ex minus 0.5ex  %Abstand zwischen Absaetzen
+% %***************************************************************
+
+%\renewcommand{\baselinestretch}{1.0}
+
+\sloppy
+\makeatletter
+\renewcommand{\cleardoublepage}
+    {\clearpage\if@twoside \ifodd\c@page\else
+     \hbox{}\thispagestyle{empty}\newpage\if@twocolumn\hbox{}\newpage\fi\fi\fi}
+\makeatother
+
+\numberwithin{equation}{section} 
+\usepackage{setspace}
+
+\newcommand{\FIXME}[1]{{\color{red} (\textbf{#1})}}
+
+% Sizes
+\newlength{\figurewidth}\setlength{\figurewidth}{0.8\textwidth}
+\newlength{\smallfigurewidth}\setlength{\smallfigurewidth}{0.6\textwidth}
+\newlength{\halfpagefigurewidth}\setlength{\halfpagefigurewidth}{0.49\textwidth}
+\newlength{\fullpagefigurewidth}\setlength{\fullpagefigurewidth}{0.99\textwidth}
+
+% Equation numbering
+\setcounter{topnumber}{2}
+\setcounter{bottomnumber}{1}
+\setcounter{totalnumber}{3}
+\newcounter{saveeqn}
+\newcommand{\alpheqn}{\setcounter{saveeqn}{\value{equation}}%
+\addtocounter{saveeqn}{1}
+\setcounter{equation}{0}%
+\renewcommand{\theequation}{\mbox{\arabic{saveeqn}-\alph{equation}}}}
+\newcommand{\reseteqn}{\setcounter{equation}{\value{saveeqn}}%
+\renewcommand{\theequation}{\arabic{equation}}}
+
+% get rid of silly bibliography title
+\renewcommand\bibname{References}
+
+\newcommand{\chapinfo}[1]{#1}
+
+% headers
+\usepackage{fancyhdr}
+\renewcommand{\headrulewidth}{0pt} 
+
+\fancypagestyle{body}{%
+  \fancyhead{}
+  \fancyhead[LE,RO]{\small\slshape\thepage}
+  \fancyhead[LO]{\small\slshape\rightmark} 
+  \fancyhead[RE]{\small\slshape\leftmark}
+  \fancyfoot{}
+} % get rid of headers on plain pages
+
+\fancyhf{} % delete current setting for header and footer
+% \fancyhead[LE,RO]{\small\slshape\thepage}
+% \fancyhead[LO]{\small\slshape\rightmark} 
+% \fancyhead[RE]{\small\slshape\leftmark}
+% \renewcommand{\headrulewidth}{0pt} 
+% \fancyfoot{}
+
+\fancypagestyle{plain}{%
+  \fancyhead{}
+  \fancyfoot{}
+} % get rid of headers on plain pages
+
+\fancypagestyle{contents}{
+  \fancyhead{}
+  \fancyhead[RO,LE]{\small\slshape\thepage}
+  \fancyfoot{}
+} 
+
+% for paper 2
+\usepackage{dcolumn}
+\newcolumntype{d}[1]{D{.}{.}{#1}}
+

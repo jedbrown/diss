@@ -1,9 +1,10 @@
-\documentclass[11pt,pdftex]{article}
+\documentclass[a4paper,twoside,11pt,pdftex]{report}
 
 \usepackage{amsmath,amssymb,bm,graphicx,url,verbatim,slashbox,multirow,hyperref,siunitx}
 \usepackage{microtype,ucs}
 \usepackage[utf8x]{inputenc}
 
+\usepackage{JedDiss}
 \input{JedMacros.tex}
 
 \title{Numerical methods for ice flow modeling}
@@ -15,74 +16,34 @@
 \usepackage{ucs}
 \usepackage[utf8x]{inputenc}
 
-%\setlength\topmargin{.25in}
-\pdfadjustspacing=1
-
-\makeatletter
-% The following gives us a systematic, central way to squeeze whitespace
-% around section and subsection headings.
-\renewcommand\section{\@startsection {section}{1}{\z@}%
-                                   {-1.6ex \@plus -1ex \@minus -.2ex}%
-                                   {1.4ex \@plus.2ex}%
-                                   {\normalfont\Large\bfseries}}
-\renewcommand\subsection{\@startsection{subsection}{2}{\z@}%
-                                     {-1.ex\@plus -1ex \@minus -.2ex}%
-                                     {1.ex \@plus .2ex}%
-                                     {\normalfont\large\bfseries}}
-\renewcommand\subsubsection{\@startsection{subsubsection}{3}{\z@}%
-                            {.5\baselineskip\@plus.7\baselineskip}%
-                            {-.5em}%
-                            {\normalfont\bfseries}}    
-\renewcommand\paragraph{\@startsection{paragraph}{4}{\z@}%
-                                    {1ex \@plus1ex \@minus.2ex}%
-                                    {-1em}%
-                                    {\normalfont\normalsize\slshape}}
-%% \renewcommand\subsubsection{\@startsection{subsubsection}{3}{\z@}%
-%%                                      {-1.ex\@plus -1ex \@minus -.2ex}%
-%%                                      {1.ex \@plus .2ex}%
-%%                                      {\normalfont\normalsize\bfseries}}
-%% \renewcommand\paragraph{\@startsection{paragraph}{4}{\z@}%
-%%                                     {1ex \@plus1ex \@minus.2ex}%
-%%                                     {-1em}%
-%%                                     {\normalfont\normalsize\bfseries}}
-\renewcommand\subparagraph{\@startsection{subparagraph}{5}{\parindent}%
-                                       {1ex \@plus1ex \@minus .2ex}%
-                                       {-1em}%
-                                      {\normalfont\normalsize\bfseries}}
-
-\newcommand{\squishlist}{\vspace{-.12in}\begin{itemize}\addtolength{\itemsep}{-0.5\baselineskip}}
-\newcommand{\squishend}{\end{itemize}}
-
-\newenvironment{squeeze-item}{\vspace{-.5\baselineskip}\begin{itemize}\addtolength{\itemsep}{-0.25\baselineskip}}{\end{itemize}}
-
-\newenvironment{lyxlist}[1]
-  {\vspace*{-1em}\begin{list}{}
-    {\settowidth{\labelwidth}{#1}
-     \setlength{\leftmargin}{\labelwidth}
-     \addtolength{\leftmargin}{\labelsep}
-     \addtolength{\itemsep}{-0.25\baselineskip}
-     \renewcommand{\makelabel}[1]{##1\hfil}}}
-  {\end{list}}
-
-% \renewcommand{\topfraction}{1.00}
-% \renewcommand{\floatpagefraction}{1.00}
-% \renewcommand{\textfraction}{0.00}
-% \renewcommand{\dbltopfraction}{1.00}
-% \renewcommand{\dblfloatpagefraction}{1.00}
-% \makeatother
-
 \begin{document}
 \pagenumbering{roman}
-\maketitle 
-\thispagestyle{empty}
+\pagestyle{plain}
 
-\pagenumbering{arabic}
+\include{front}
+\cleardoublepage
 
-\section{Introduction}
-\label{sec:intro}
+\tableofcontents
+\listoffigures
+\listoftables
+
+\chapter*{Abstract}
+\thispagestyle{contents}
+\addcontentsline{toc}{section}{Abstract}
+\label{sec:abstract}
 % \input{introduction}
 
-\section{Background} \label{sec:background}
+\chapter*{Zusammenfasssung}
+\thispagestyle{contents}
+\addcontentsline{toc}{section}{Zusammenfassung}
+%\input ./frontback/zusammenfassung.tex
+\cleardoublepage
+
+\setcounter{page}{1}
+\pagenumbering{arabic}
+\pagestyle{body}
+
+\chapter{Background}\label{sec:background}
 % \input{background}
 
 %    \subsection{Ice Sheet Physics and Governing Equations}
@@ -152,33 +113,50 @@
 %    \subsection{Model Integration}
 %    \label{subsec:model_integration}
 %    \input{model_integration}
-\section{Efficient nonlinear solvers for nodal high-order finite element methods in 3D}\label{sec:dohp}
+\chapter{Efficient nonlinear solvers for nodal high-order finite element methods in 3D}\label{chap:dohp}
+Paper goes here.
+\cleardoublepage
 
-\section{Textbook multigrid efficiency for hydrostatic ice sheet flow}\label{sec:tme-ice}
+\chapter{Textbook multigrid efficiency for hydrostatic ice sheet flow}\label{chap:tme-ice}
+Paper goes here.
 
-\section{Software}\label{sec:software}
-\subsection{Multiphysics coupling}\label{ssec:multiphysics}
+\cleardoublepage
+\chapter{Software}\label{chap:software}
+\section{Multiphysics coupling}\label{sec:multiphysics}
 \input{multiphysics}
 
-\subsection{High throughput on cache-based architectures}\label{ssec:throughput}
+\section{High throughput on cache-based architectures}\label{sec:throughput}
 \input{throughput}
 
-\section{Discretization minutia}\label{sec:discretization}
-\subsection{Regularity and boundary conditions}\label{ssec:slip}
+\cleardoublepage
+\chapter{Discretization issues}\label{chap:discretization}
+\section{Regularity and approximation}\label{sec:regularity}
+\input{regularity}
+
+\section{Implementation of boundary conditions}\label{sec:slip}
 \input{slip}
 
-\subsection{Boundary layer processes}\label{ssec:boundary-layer}
-\input{boundary-layer}
+\cleardoublepage
+% \subsection{Boundary layer processes}\label{ssec:boundary-layer}
+% \input{boundary-layer}
 
-\subsection{Solving steady-state problems}\label{ssec:steady-state}
-\input{steady-state}
+% \subsection{Solving steady-state problems}\label{ssec:steady-state}
+% \input{steady-state}
 
-\newpage
+\chapter{Jakobshavn}
+\input{jakobshavn}
+\cleardoublepage
+
+\addtocontents{toc}{\vspace{1cm}}  % add a small break
 \addcontentsline{toc}{section}{References}
 \bibliographystyle{amsalpha}
 \bibliography{jedbib/jedbib}
+\cleardoublepage
 
 \appendix
+
+\pagestyle{plain}
+\chapter*{Curriculum Vitae}
 
 \end{document}
 
