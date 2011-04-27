@@ -110,9 +110,30 @@ It is important to recognize that if the pressure space contains the piecwise co
 This local conservation property is important for free surface flows, density-driven flows, and for long time integration.
 Note that although it is possible to solve incompressible flow problems by introducing stabilization (e.g. residual-based~\cite{hughes1986new} or polynomial projection~\cite{dohrmann2004stabilized}), these formulations sacrifice local conservation and perform poorly on problems with sharp structure.
 
-A particularly useful and robust element pair is $\Qk k-\Pkdisc{k-1}$ where $k \ge 2$, for which local conservation holds and the inf-sup constant is uniformly bounded with respect to mesh resolution.
-For smooth solutions, this element produces velocity and pressure errors of order $k$ in $H^1$ and $L^2$ respectively, which is optimal.
-Unfortunately, the inf-sup constant $\beta$ degrades proportional to $\sqrt{\epsilon}$ where $\epsilon$ is the aspect ratio of the mesh.
+In the following, let $d\in \{2,3\}$ be the number of spatial dimensions.
+A particularly useful and robust element pair is $\Qk k-\Pkdisc{k-1}$ where $k \ge 2$, for which local conservation holds and the inf-sup constant is uniformly bounded with respect to mesh resolution and independent of the polynomial degree~\cite{bernardi1999uniform}.
+This result also holds for non-affine $hp$-adaptive meshes under modest adaptivity assumptions~\cite{schieweck2008uniformly}.
+For smooth solutions, the $\Qk k-\Pkdisc{k-1}$ element produces velocity and pressure errors of order $k$ in $H^1$ and $L^2$ respectively, which is optimal.
+
+Unfortunately, the inf-sup constant $\beta$ degrades as $\bigO(\epsilon^{1/2})$ where $\epsilon > 0$ is the aspect ratio of the mesh.
 While this is acceptable for some fluid dynamics problems, it is unusable for those geophysical flows in which extreme aspect ratio is inherent in the problem, as well as for wall-resolved large eddy simulation where boundary layer elements have aspect ratio on the order of $10^{-6}$.
-An alternative is $\Qk k - \Qkdisc{k-2}$ which is locally conservative and has uniform inf-sup stability independent of aspect ratio.
-This element is more ``squishy'' inside elements than $\Pkdisc{k-1}$, and has suboptimal order of accuracy $k-1$ in $H^1$ for velocity and in $L^2$ for pressure.
+An alternative is $\Qk k - \Qkdisc{k-2}$ which is locally conservative and has uniform inf-sup stability independent of aspect ratio~\cite{stenberg1996mixed,schotzau1998mhf}, albeit with $\bigO(k^\frac{1-d}{2})$ dependence on polynomial degree in $d=2$ or $d=3$ dimensions~\cite{maday1992pn}.
+On affine meshes with corners and/or hanging nodes, this $k$-dependence is sharp in 2D~\cite{schotzau1999mhf}, but degrades to $k^{-3/2}$ in 3D~\cite{toselli2003mhf}.
+We are not aware of an analogous result for non-affine meshes.
+This element is more ``squishy'' inside elements than with $\Pkdisc{k-1}$ pressure, and has suboptimal order of accuracy $k-1$ in $H^1$ for velocity and in $L^2$ for pressure due to poor representation of the pressure spacethe rightmost terms in \eqref{eq:slip:apriori}.
+
+For high-aspect ratio meshes around corners, the uniform inf-sup stability of $\Qk k - \Qkdisc{k-2}$ for edge-refined meshes is lost and $\epsilon^{1/2}$ dependence appears~\cite{schotzau1998mhf}.
+In two dimensions, \cite{ainsworth2000smh} propose ways to improve inf-sup stability for edge and corner refinement.
+In the first case, if $\Qk k - \Pkdisc{k-1}$ is augmented by increasing the polynomial degree of the velocity in the direction tangent to the stretched edge element to $k+1$, uniform inf-sup stability is recovered.
+For corners, the $\epsilon^{1/2}$ dependence is due to a single pressure mode which is also critical for representing the solution near the corner, therefore the velocity space must once again be augmented.
+A single velocity mode that stabilizes the problematic pressure mode is identified by \cite{ainsworth2000smh}, thus achieving uniform inf-sup stability independent of aspect ratio and polynomial degree.
+Unfortunately, this mode is only defined for affine corner macroelements and is thus difficult to use in practice.
+The brute-force method of simply raising the polynomial degree with the aspect ratio, $k \sim \epsilon^{-1/2}$, improves the stability to $\beta \sim \epsilon^{1/4}$ (or even to $\beta \sim (1+\log^{1/2}k)^{-1} \min(1,k\sqrt\epsilon)$ if the velocity space is allowed to grow slightly faster than the pressure space, though this result is less practical).
+To our knowledge, this analysis has not been extended to three dimensions, but remains the best known result for highly anisotropic meshes.
+
+``Rotated'' non-conforming elements were proposed in \cite{rannacher1992simple} that have uniform stability on affine meshes~\cite{becker1994finite}.
+These methods are amenable to very efficient coupled multigrid solvers~\cite{rannacher2000finite}.
+Unfortunately, these elements do not satisfy a discrete Korn's inequality and thus need complex edge stabilization techniques~\cite{brenner2004korn,turek2007unified}.
+This stabilization impacts sparsity and makes the multigrid solution process more complicated~\cite{turek2002multigrid,ouazzi2006efficient}.
+Note that stabilization is not required if one uses the ``vector Laplacian'' formulation for viscous stresses instead of the proper formulation in terms of symmetric gradient.
+While it is inexpensive and does not require stabilization, the vector Laplacian formulation cannot be used for variable viscosity and violates objectivity when used with certain boundary conditions~\cite{limache2008objectivity}.
