@@ -1,0 +1,152 @@
+Given the performance of unassembled Jacobian representations in \secref{ssec:tensor} and the availability of inexpensive low-order preconditioners presented in \chapref{chap:dohp}, it is natural to ask how much effort is required to use these methods.
+If the equations or parameters change so that a specific discretization or solution method is no longer working well, how much effort does it take to change the method?
+In this section, we outline the approach taken by the {\Dohp} library to facilitate run-time flexibility without sacrificing performance.
+
+\subsection{Dual order finite elements}
+Standard finite element methods define both the basis functions and the integration method in terms of a single unit known as an element.
+In order to use the dual order methods of \chapref{chap:dohp}, we need to define quadrature on smaller units because the low-order approximation space has more locality and less regularity within elements.
+We will continue to use ``element'' to refer to the maximal units of structure as with $p$-version finite element and spectral element methods, but introduce the new term ``quadrature patch'' for the smaller units.
+There is always at least one quadrature patch per element.
+For conventional methods and for evaluating high-order operators in \Dohp, there is exactly one quadrature patch per element.
+Assembly of a dual-order preconditioning matrix requires evaluating a nonlinearity on quadrature points and then assembling an element matrix depending only on those basis functions with support on the quadrature patch.
+This suggests a specific quadrature rule that is essentially the concatenation of several low-order quadratures that define integration on each quadrature patch, which are sub-elements in this case.
+
+To represent this in software while permitting run-time choice of quadrature method, basis order, and choice of whether to assemble the true operator or low-order approximations, we introduce two small immutable objects, a \cverb|Rule| which represents a quadrature rule which may contain multiple quadrature patches and an ``element function space'' \cverb|EFS|.
+The \cverb|EFS| performs interpolation and differentiation, mapping from the degrees of freedom associated with an element to all the quadrature points of a \cverb|Rule|, and the transpose operation.
+Both \cverb|Rule|s and \cverb|EFS|s are created lazily (as needed) and stored in a cache that is typically shared by all componets of an application, but can be managed independently.
+Because these objects are immutable, they can be safely shared an arbitrary number of times and only a single pointer per element needs to be stored (this can be further compressed for meshes with nearly homogeneous topology).
+It is possible to have multiple function spaces evaluate on the same \cverb|Rule| or to have a single function space evaluate on multiple \cverb|Rule|.
+This flexibility is important for multi-physics problems in which only select pieces are assembled.
+
+An arbitrary amount of specialization is performed when a \cverb|EFS| is created so the resulting kernels can be anywhere from completely unrolled to entirely dynamic, with the choice made as a run-time option.
+Common specialization choices are to unroll completly over the last dimension and to assume even or odd parity in earlier dimensions (for consistent handling of fringes).
+For lowest order elements, the tensor product formulation offers no savings so evaluation can be implemented with the usual dense matrix-vector product.
+Since the \cverb|EFS| evaluates all the basis functions at all the quadrature points, the granularity is large enough to effectively hide function call overhead for all but lowest order (linear) elements.
+
+Evaluating residuals simply requires pointwise operations at quadrature points, using the current trial vector to define coefficients of test functions at quadrature points.
+For example, residual evaluation for an elliptic problem with weak form
+\begin{align*}
+  \vv\cdot \bm f(\uu) \sim \int_\Omega \nabla v \cdot (1+u^2)\bm 1 \cdot \nabla u - v \exp u - v 1 = 0
+\end{align*}
+(the bold symbols on the left represent discrete vectors representing global state, the corresponding continuum formulation is on the right)
+would be implemented as the following pointwise loop where \cverb|Q| is the number of quadrature points.\footnote{C99 variable length array pointers are used to simplify indexing here, \cverb|du[i][j]| is effectively tranlated by the compiler to \cverb|du[i*3+j]| so there is no pointer indirection.}
+\begin{minted}{c}
+  for (i=0; i<Q; i++) {
+      v[i] = -weight[i] * (exp(u[i]) - 1.);
+      for (j=0; j<3; j++)
+          dv[i][j] = -weight[i] * (1 + u[i]*u[i]) * du[i][j];
+  }
+\end{minted}
+Matrix-free application of the Jacobian $\vv \cdot J(\uu) \ww$ can be implemented as a similar loop, but it requires knowledge of the state $\uu$ evaluated at quadrature points.
+The Jacobian is only required after residual evaluation so this state was recently available; suppose that $u$ and $\nabla u$ were stashed in the residual evaluation above.
+In \Dohp's implementation, storage for the stash is typically managed by the iterator which associates a user-provided number of bytes with each quadrature point and/or each element.
+With $\uu$ and $\nabla\uu$ provided inside \cverb|stash[]|, Jacobian application would look like
+\begin{minted}{c}
+  for (i=0; i<Q; i++) {
+      v[i] = -weight[i] * exp(stash[i].u) * w[i];
+      for (j=0; j<3; j++)
+          dv[i][j] = -weight[i] * (2 * stash[i].u * w[i] * stash[i].du[j]
+                                   + (stash[i].u * stash[i].u) * dw[i][j]);
+  }
+\end{minted}
+
+We can break the above process into three pieces, \cverb|PointwiseStash| which may be as simple as saving $u$ and/or $\nabla u$, \cverb|PointwiseResidual| which may use the just-computed stashed values, and \cverb|PointwiseJacobian| which necessarily uses stashed values to apply the action of the continuous Jacobian.
+The key to the ability to split the problem up like this is that discretization and linearization commute for Galerkin methods.
+This is not generally true for non-Galerkin methods, and not easily rectifiable for methods involving nonlinear reconstruction such as high resolution\footnote{In the hyperbolic community, ``high resolution'' refers to methods that have a high order of accuracy in regions where the solution is smooth. The actual solutions usually contain discontinuities in which case genuine high \emph{order} accuracy is not possible.} finite volume schemes.
+
+For preconditioning purposes, we typically also need to assemble some approximation to the Jacobian.
+The dual order method defines this matrix by modifying the high order basis functions to have more local support (thus improving sparsity), using a quadrature that respects the reduced continuity these more local basis functions, and exploiting the improved sparsity by assembling a separate element stiffness matrix for each of these smaller quadrature patches.
+This traversal has a natural interpretation in \Dohp's language.
+A \cverb|Rule| is defined that represents all the quadrature patches on an element.
+The actual storage retains the tensor product structure on the full element so we create an \cverb|EFS| that evaluates the trial function and its gradient on the quadrature points using the true basis functions, and it will be implemented by efficient tensor product kernel.
+These values are used to evaluate nonlinearities at quadrature points, coefficient filtering and other techniques can also be done.
+The true basis functions are also used to define geometry, thus the geometry can reside in an arbitrarily high order space without impacting the fidelity of gradients or volumes.\footnote{Higher order quadratures would be required to evaluate the isoparametrically mapped elements, but we typically do not raise the integration order. This has not yet posed a difficulty and is standard practice in isogeometric analysis and extended finite element methods, neither of which use exact integration.}
+
+We create another \cverb|EFS| that evaluates the low-order basis functions at the quadrature points in the patch.
+While this \cverb|EFS| is capable of all the same operations described above, we do not typically use that functionality.
+Instead, we get an explicit representation of the basis functions and derivatives for each quadrature patch, as well as the node indices needed to insert values into the matrix using the \cverb|EFSGetExplicitSparse| function.
+This is exactly what is needed for matrix assembly, but it is messy to make the user roll the loop over quadrature patches and manage associated memory, therefore we hide the hierarchy in our iterator.
+The assembly loop for any scalar second-order equation is
+\begin{minted}{c}
+  for (dInt q=0; q<Q; q++) {                      // Loop over quadrature points
+    struct UserStash stash;
+    PointwiseStash(param,x[q],u[q],du[q],&stash); // u[q] and du[q] are high-order values of the current state
+    for (dInt j=0; j<P; j++) {                    // Loop over trial functions
+      dScalar v,dv[3];                            // To hold coefficients of test functions
+      PointwiseJacobian(param,&stash,weight[q],interp[q][j],deriv[q][j],&v,dv);
+      for (dInt i=0; i<P; i++) {                  // Loop over test functions
+        K[i][j] += (interp[q][i] * v
+                    + deriv[q][i][0] * dv[0]
+                    + deriv[q][i][1] * dv[1]
+                    + deriv[q][i][2] * dv[2]);
+      }
+    }
+  }
+  FSMatSetValuesLocal(fs,Jp,P,lidx,P,lidx,&K[0][0],ADD_VALUES);
+\end{minted}
+where \cverb|PointwiseJacobian| applies the action of the continuous Jacobian at the current ``stashed'' state to perturbations $w = \cverb|interp[q][j]|$ and $\nabla w = \cverb|deriv[q][j][:]|$.
+This generalizes readily to vector problems and an arbitrary number of function spaces, see the examples in the {\Dohp} source tree.
+
+With this software design, the physics is isolated from the discretization, therefore a great deal of run-time flexibility can be provided.
+Some possible choices that are automatically supported by client applications of {\Dohp} include
+\begin{itemize}
+\item Use the high-order method for everything including the assembled Jacobian.
+  This is the typical method used by $p$-version finite element methods.
+\item Define residuals and the assembled matrix using the high-order method.
+  Use the assembled matrix to form a preconditioner, but apply the action of the Jacobian by tensor product because it is cheaper (see \figref{fig:tensorasm}).
+\item Define residuals with the high-order method, assemble preconditioning matrix with low-order (and either low- or high-order definition of nonlinearity), apply the true Jacobian matrix-free.
+  This is the method promoted in \chapref{chap:dohp}.
+\item As above, but use the low-order assembled matrix as the ``Jacobian'' inside of a defect correction scheme.
+  This is a sort of modified Newton method which has relatively poor convergence properties (certainly not quadratic).
+\item Define residuals and the matrix in terms of the low-order approximation.
+  This does not have high-order convergence properties, but has local structure which reduces the overhead of a fully unstructured mesh and permits vectorization.
+  It is practical for problems where coefficients are rough on a finer scale than geometric features in the domain.
+\item Standard low-order finite element method on an unstructured mesh.
+  This is practical for problems where the geometry of the domain has finer structure than coefficients.
+\end{itemize}
+
+To demonstrate that this generic formulation does not severely degrade performance for low-order approximations, we compare assembly cost to the {\libmesh}~\cite{libmesh} and {\dealii}~\cite{bangerth2007deal} libraries.
+\todo{Is the 4x improvement real? I don't know because Deal.II is still compiling.}
+
+For multi-physics problems and mixed finite element formulations, there are multiple function spaces and perhaps several quadrature rules in use at once.
+{\Dohp} always stores coordinates in a bona fide function space so the mesh geometry can naturally be made a part of the solution or not.
+The order of approximation can be chosen independently for each function space, including for coordinates.
+When an iterator is created, an arbitrary number of function spaces can be added.
+When the iterator is started, one input vector and one output vector per function space may be provided (either one can be \cverb|NULL|).
+For each vector, the user secifies whether it should reside in a function space with homogeneous Dirichlet conditions or an affine function space with inhomogeneous Dirichlet conditions.
+Dirichlet conditions are typically enforced by the library on a user-specified part of the boundary using \eqref{eq:slip:dirichlet}.
+The API to start an iterator and to evaluate test and trial functions uses variadic functions so it is easy to add more spaces without needing to use an excessively verbose or fine-grained API.
+
+Finally, we mention that this software design naturally supports isogeometric analysis (IGA) \cite{cottrell2009isogeometric} which replaces the Lagrange interpolants with splines, usually non-rational splines (NURBS).
+Advantages of IGA relative to conventional finite element methods include higher order continuity (especially important for equations beyond second order such as shell elements for structural mechanics or the Cahn-Hilliard equation for separation), the ability to represent certain geometries exactly (especially those created by computer-aided design software, thus simplifying the meshing process), and non-negative basis functions which enable robust definitions of normals for conservative slip and better control over positivity.
+Disadvantages include more nonzero entries in the assembled matrices and more complex implementation.
+To support IGA under the framework above, we identify a ``NURBS patch'' with \Dohp's ``element'' and IGA's ``element'' with \Dohp's ``quadrature patch''.
+The implementation in {\Dohp} will work after definition of the spline bases, though it would require additional code to support especially large NURBS patches, such as those spanning multiple processors.
+
+\subsection{Input/output and visualization for high-order mixed spaces}
+Although there has been some work visualizing high-order basis functions~\cite{schroeder2005framework,schroeder2006methods,ueffinger2010interactive}, the code has not been released and it is not supported by the popular visualization tools such as VTK~\cite{schroeder1998visualization}, Paraview~\cite{henderson2004paraview}, and VisIt~\cite{childs2006beyond}.
+Visualization of a model that uses high order elements requires losing the high-order information by either representing each element as a structured grid or by replacing it with many smaller unstructured elements.
+Experience from other high-order projects~\cite{fischer2008nek5000} indicated that VisIt (and presumably other software) had poor scaling when thousands or millions of ``grids'' were defined, therefore {\Dohp} chose to simply represent everything using unstructured low-order elements.
+It is simple for an application to write it's entire state into an unstructured file, but the connectivity for lowest order elements is expensive to store and it is no longer possible to recover the high-order state.
+Because there were no extensible formats for storing high-order mesh data, {\Dohp} defined its own HDF5-based~\cite{hdf5} format, with read and write functionality for function spaces and vectors using PETSc's Viewer framework.
+The intent is for the format to be simultaneously usable as checkpoints in forward simulation, as part of time-dependent adjoint solves, and for visualization, without the need for custom support for each application.
+
+This format stores unstructured time-dependent multi-domain multi-field data.
+The mesh topology is contained in MOAB's format~\cite{moab}, although any iMesh implementation would, in principle, be sufficient.
+The tags defining the function space are stored only once, unless the conectivity or distribution changes.
+A function space has a reference to the geometry it is defined on.
+For problems with moving meshes, the geometry evolves, but not the topology (unless remeshing is needed, this is not yet implemented), so we avoid storing duplicate copies.
+Similarly, for arbitrary vectors defined on function spaces, only the vector values are stored at each step.
+The actual output for vectors is typically done using collective MPI-IO~\cite{corbett1995overview} accessed through HDF5.
+
+For each scalar or vector field, function spaces keep track of the name, units, and an arbitrary scaling factor.
+The scaling factor is needed for bitwise exact recovery of serialized state when the model works with non-dimensionalized fields, otherwise rounding error contaminates the low bits.
+
+A reader plugin for VisIt was implemented to read this format.
+It works by reading in the function space and vector state (as requested by the VisIt client) and placing the topology and field data in VTK data structures.
+The implementation is a very thin C++ layer atop the standard C library.
+If at some point in the future, VisIt adds native support for high-order elements, the storage format will not need to be changed and the VisIt plugin would need only minor changes to support the new API.
+The field and mesh names are visible in the VisIt graphical user interface.
+Determining what fields are defined on a given part of the domain at a given time is not an especially simple task using HDF5's hierarchical structure.
+In particular, it involves walking the hierarchy in different ways to determine what is fundamentally \emph{relational} data.
+Since these queries could be answered faster and more extensibly in one-line SQL queries instead of about a page of C code, it seems likely that a simpler, more user-friendly, and possibly more performant format could be defined using a small relational database for relational metadata and plain binary blobs for everything else.
