@@ -105,8 +105,37 @@ Some possible choices that are automatically supported by client applications of
   This is practical for problems where the geometry of the domain has finer structure than coefficients.
 \end{itemize}
 
-To demonstrate that this generic formulation does not severely degrade performance for low-order approximations, we compare assembly cost to the {\libmesh}~\cite{libmesh} and {\dealii}~\cite{bangerth2007deal} libraries.
-\todo{Is the 4x improvement real? I don't know because Deal.II is still compiling.}
+To demonstrate that this generic formulation does not severely degrade performance for low-order approximations, we compare \Dohp's assembly cost to that of the well-known finite element libraries {\libmesh}~\cite{libmesh} and {\dealii}~\cite{bangerth2007deal}.
+\tabref{tab:dohpasm} shows the assembly time for a Laplacian on a cube using all three libraries.
+Example 4 was used from the latest versions of both {\libmesh} and {\dealii}.
+For \dealii, constants in the code needed to be changed to change the mesh resolution and element order, and timing calls (using \cverb|clock_gettime(2)|) needed to be added.
+For {\Dohp}, the \verb|ellip.c| example was used unmodified, therefore the Laplacian is actually solved as a special case of the nonlinear ``$p$-Bratu'' equation
+\begin{align*}
+  -\divrg \big(\abs{\grad u}^{p-2} \grad u \big) - \lambda \exp u = f
+\end{align*}
+where $f$ is a manufactured forcing term and $p=2, \lambda=0$ is chosen at run-time.
+In earlier tests, the time to assemble the plain Laplacian is only a couple percent faster.
+Additionally, prior benchmarks with an older version of {\Dohp} that was hard-coded for $Q_1$ operators indicate that the generic assembly API costs at most 10 to 15 percent.
+It is clear that {\Dohp} is faster than {\libmesh} and {\dealii} for everything but the assembled $Q_2$ case, including 35\% faster than {\dealii} for unstructured $Q_1$ elements.
+This was a surprise considering that {\Dohp} has no special handling for unstructured $Q_1$ elements.
+{\Dohp} also has no optimization for the $Q_k, k>1$ case and we consider assembly (and solves) for such elements to be excessively expensive unless it is absolutely necessary for an application.
+
+\begin{table}
+  \centering
+  \begin{tabular}{l|ccc|cc}
+    Library & Mesh & Connectivity & Discretization & Assembly Time (s) \\
+    \libmesh & $64^3$ & $Q_1$ & $Q_1$ & 38.0 \\
+    \libmesh & $32^3$ & $Q_2$ & $Q_2$ & 16.7 \\
+    \dealii & $64^3$ & $Q_1$ & $Q_1$ & 17.6 \\
+    \dealii & $32^3$ & $Q_2$ & $Q_2$ & 10.9 \\
+    \Dohp & $64^3$ & $Q_1$ & $Q_1$ & 11.5 \\
+    \Dohp & $32^3$ & $Q_2$ & $Q_1$ & 7.7 \\
+    \Dohp & $32^3$ & $Q_2$ & $Q_2$ & 19.3 \\
+    \Dohp & $16^3$ & $Q_4$ & $Q_1$ & 7.1 \\
+  \end{tabular}
+  \caption{Assembly time for different element types using different libraries.
+  All cases have the same number of degrees of freedom $65^3 = 274625$.}\label{tab:dohpasm}
+\end{table}
 
 For multi-physics problems and mixed finite element formulations, there are multiple function spaces and perhaps several quadrature rules in use at once.
 {\Dohp} always stores coordinates in a bona fide function space so the mesh geometry can naturally be made a part of the solution or not.
