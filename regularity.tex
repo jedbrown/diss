@@ -30,7 +30,10 @@ See \cite{iverson1998ring} for empirical support of the Coulomb limit and \cite{
 Some continuum models for basal hydrology are discussed in \cite{flowers2002multicomponent1,flowers2002multicomponent1,johnson2002nhg}, but basal processes are poorly understood and outside the scope of the present work, see \cite{clarke2004subglacial} for a review.
 
 % Weak form
-The strong form \eqref{eq:slip:stokes-strong} is not suitable for discussing regularity issues at boundaries or our discretization so we need the weak form which is obtained by introducing test functions $\vv,q$ and integrating by parts.
+Classical solutions to the linear constant-coefficient Stokes problem with frictional slip boundary conditions do not exist in general.
+For example, in addition to $C^2$ continuity on Dirichlet boundaries, \cite{saito2004stokes} required much higher $C^4$ continuity for slip surfaces; see also the analysis by \cite{fujita2002coherent}.
+Since the boundaries of interest for our problems are merely Lischitz and change type abruptly, we cannot use the strong form \eqref{eq:slip:stokes-strong}.
+To discuss regularity issues at boundaries and our discretization, we need the weak form which is formally obtained by introducing test functions $\vv,q$ and integrating by parts.
 Given a Lipschitz domain $\Omega \subset \R^3$ and a nonempty open subset $\Gamma$ of the boundary $\partial\Omega$ which we identify as ``not frozen'', the problem is to find $(\uu,p) \in \bm W_D^{1,\pp}(\Omega) \times L^2(\Omega)$ such that
 \begin{multline}\label{eq:slip:stokes-weak}
   \int_\Omega D\vv\tcolon \eta\bm 1 \tcolon D\uu - q\div\uu - p\div\vv - \vv\cdot\bm f
