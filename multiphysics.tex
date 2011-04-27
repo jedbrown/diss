@@ -2,21 +2,24 @@ Ice flow and more generally, earth system models, involve many physical processe
 An important challenge in computational science is how to couple models of these processes in a maintainable way without sacrificing accuracy and analysis capability.
 The traditional method of splitting in time and integrating each process independently has been shown to result in low-order splitting errors~\cite{knoll2003bat,mousseau2002inc} for many problems of interest, as well as fundamentally different results regarding the stability of the system \cite{estep2008posteriori} and existence of steady states versus limit cycle behavior~\cite{jardin20081d}.
 Tightly coupled multiphysics software should enable the use of robust IMEX or fully implicit methods while permitting different physics modules to be managed independently.
-
-There are essentially two scalable approaches to tightly coupled multiphysics, perform coupled multigrid or multilevel domain decomposition with all the fields lumped together or split the system into blocks that are each reasonably well understood and can be treated effectively.
+There are essentially two scalable approaches to tightly coupled multiphysics: field-splitting and coupled multilevel methods such as domain decomposition or multigrid.
+Field splitting is most effective when it decomposes the coupled problem into separate `blocks' of equations that are well-understood and for which known methods perform well.
+Coupled multilevel methods are favored when local spectral structure and compatibility conditions of the equations are well-understood so that effective smoothers and grid transfer operators can be defined.
 
 In many cases \cite{rannacher2000finite,jameson2001many,adams2010toward}, the monolithic coupling approach has potential to offer the best possible performance.
-The general guidelines are to define the smoother in terms of low-order discretization and to smooth all components at any node or element of the grid at the same time, usually either by block Gauss-Seidel relaxation or by block incomplete LU factorization, the former permits a nonlinear smoother which has higher arithmetic intensity, but the latter tends to be more robust, especially to strong anisotropy.
+The general guidelines are to define the smoother in terms of low-order discretization and to smooth all components at any node or element of the grid at the same time, usually either by block Gauss-Seidel relaxation or by block incomplete LU factorization.
+The former permits a nonlinear smoother which has higher arithmetic intensity, but the latter tends to be more robust, especially to strong anisotropy.
 The purpose of the low-order discretization (first-order upwind for hyperbolic terms) is to retain $h$-ellipticity, a necessary and sufficient condition for the existence of a pointwise smoother~\cite{brandt1979multigrid,trottenberg2001multigrid}.
 When an operator fails to satisfy $h$-ellipticity, there are high-frequency error components that are poorly corrected by the smoother.
 
 For multi-compenent problems, the relative scaling between fields is important for good solver performance, and this can be difficult to achieve when different parts of the domain are in different regimes.
 When the problem is indefinite, the smoother and restriction operators need to be chosen to be compatible with the inf-sup condition.
-Such restriction operators are usually defined geometrically, but it has also been done algebraically for the special case of contact problems~\cite{adams2004amm}.
-The associated smoothers~\cite{vanka1986block} are relatively more expensive than for definite problems and it is difficult to handle anisotropy because incomplete factorization becomes problematic.
+Such restriction operators are usually defined geometrically, though they also have been defined algebraically for contact problems~\cite{adams2004amm}.
+The associated smoothers~\cite{vanka1986block} are relatively more expensive than for definite problems, and it is difficult to handle anisotropy because incomplete factorization as a smoother becomes problematic due to zero or negative pivots~\cite{higham2002accuracy,deniet2007solving}.
 
-It is difficult to write generic software for coupled multigrid because many fine-grained operations require physics- and discretization-dependent choices.
-Additionally, very little theory is available for coupled multi-physics and defining smoothers for multi-domain problems or surface-volume coupled problems is unclear.
+It is difficult to write generic software for coupled multigrid because many fine-grained operations, especially the definition of the local smoother, require physics- and discretization-dependent choices.
+Additionally, very little theory is available for coupled multi-physics and it is unclear how to define smoothers for multi-domain problems or surface-volume coupled problems.
+
 A different approach is to apply a Newton iteration on the coupled problem and solve the linear system with a Krylov method using a preconditioner defined in terms of some operator splitting such that each split can be understood and efficient solvers can be provided.
 This approach~\cite{knoll2004jfn} has proven successful at reusing software, with many papers accessing such methods through PETSc~\cite{petsc-web-page}.
 However, until recent additions to PETSc, it was cumbersome to package separate physics separately without compromising which methods are available, and decisions about using field-split versus monolithic methods were typically required up-front.
