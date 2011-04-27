@@ -25,8 +25,8 @@ Additionally, the hardware prefetcher does not resolve minor TLB misses which is
 Software prefetch can hide these latencies and resolve TLB misses in advance, providing roughly 20\% improvement in our STREAM benchmarks~\cite{mccalpin2007stream}.
 In addition to improving overall bandwidth, software prefetch instructions can set a ``non-temporal access'' (NTA) policy such that lines evicted from L1D will not subsequently reside in higher level caches.
 
-We consider four matrix formats with increasing amounts of structure: \AIJ, \AIJInode, \BAIJ, and \SBAIJ.
-\AIJ is a standard compressed row format that stores a column index for each nonzero entry.
+We consider four matrix formats with increasing amounts of structure: {\AIJ}, {\AIJInode}, {\BAIJ}, and {\SBAIJ}.
+{\AIJ} is a standard compressed row format that stores a column index for each nonzero entry.
 A matrix-vector product $y \gets A x$ is characterized by the kernel
 \begin{minted}{c}
   for (i=0; i<m; i++) {
@@ -35,41 +35,41 @@ A matrix-vector product $y \gets A x$ is characterized by the kernel
           y[i] += aa[j] * x[aj[j]];
   }
 \end{minted}
-Assuming perfect cache reuse with $m$ rows and an average of $n$ nonzeros per row, \cverb|MatMult| has an arithmetic intensity of
+Assuming perfect cache reuse with $m$ rows and an average of $n$ nonzeros per row, {\MatMult} has an arithmetic intensity of
 \begin{align*}
   \I_{\text{AIJ}} = \frac{2n}{(n+1)\texttt{sizeof(Scalar)} + (n+1)\texttt{sizeof(Int)}} \xrightarrow{n\to\infty} 0.167 \text{flops/byte}
 \end{align*}
 where the long-row limit is calculated for \cverb|double| precision and 32 bit integers.
 In practice, the vector will not reuse cache perfectly so some entries of $x$ will need to be loaded into cache more than once.
 Choosing a low-bandwidth ordering such as Reverse Cuthill-McKee~\cite{cuthill1969reducing} (RCM) improves cache reuse which reduces end-to-end run time substantially (speeding up matrix-free operations such as residual evaluation in addition to sparse matrix kernels), e.g. by more than a factor of 2~\cite{gropp2000pmt}.
-Our optimization for \AIJ consisted of inserting software prefetch instructions to initiate loads of every cache line holding entries in the row after the current one.
+Our optimization for {\AIJ} consisted of inserting software prefetch instructions to initiate loads of every cache line holding entries in the row after the current one.
 The L1D cache line length is detected during configuration so only one prefetch instruction per line is issued (it is 64 bytes on the x86-64 microarchitectures considered here).
 Sparse matrix-vector products for PDEs can be thought of as a stencil operation combined with a high-volume stream of matrix entries and column indices (the weights and shape of the stencil).
 Without the NTA policy, the high-volume stream flushes the vector $x$ out of caches prematurely.
 
-The \AIJInode format simply augments the \AIJ format by marking clusters of consecutive rows ``Inodes'' that have the same nonzero pattern, then matrix kernels unroll over the Inodes.
-Use of the \AIJInode format is automatic if the matrix has consecutive rows with the same nonzero pattern.
-The column indices are \emph{not} copied out of the standard \AIJ storage so matrix kernels skip over $b-1$ rows of identical entries in each Inode of size $b$.
+The {\AIJInode} format simply augments the {\AIJ} format by marking clusters of consecutive rows ``Inodes'' that have the same nonzero pattern, then matrix kernels unroll over the Inodes.
+Use of the {\AIJInode} format is automatic if the matrix has consecutive rows with the same nonzero pattern.
+The column indices are \emph{not} copied out of the standard {\AIJ} storage so matrix kernels skip over $b-1$ rows of identical entries in each Inode of size $b$.
 Skipping over these rows of column indices is especially inefficient with hardware prefetch because entries are eagerly brought into cache and then skipped, followed by a full DRAM stall as the kernel jumps over many skipped ahead in \cverb|aj| and starts $b-1$ new streams from \cverb|aa| that are not predicted by the prefetch unit.
-Software prefetch for \AIJInode avoids bringing in the redundant column entries and prevents the stalls due to jumping over column indices and starting new \cverb|aa| streams.
+Software prefetch for {\AIJInode} avoids bringing in the redundant column entries and prevents the stalls due to jumping over column indices and starting new \cverb|aa| streams.
 The prefetch logic assumes that the next Inode and row lengths will be approximately the same size as the current one since this is the typical case for PDE-like problems.
 If no redundant column entries are brought in, the arithmetic intensity is
 \begin{align*}
-  \I_{\AIJInode} = \frac{2nb}{(n+1)b\texttt{sizeof(Scalar)} + (n+2)\texttt{sizeof(Int)}} \xrightarrow[b=3]{n\to\infty} 0.214 \text{flops/byte}
+  \I_{{\AIJInode}} = \frac{2nb}{(n+1)b\texttt{sizeof(Scalar)} + (n+2)\texttt{sizeof(Int)}} \xrightarrow[b=3]{n\to\infty} 0.214 \text{flops/byte}
 \end{align*}
 where the example Inode size of 3 is representative of 3D elasticity or the viscous part of a Stokes problem.
-We expect this performance model to be somewhat less sharp than for \AIJ because it is not possible to load less than a cache line, therefore redundant column indices are unavoidable unless all rows naturally align with cache line boundaries.
+We expect this performance model to be somewhat less sharp than for {\AIJ} because it is not possible to load less than a cache line, therefore redundant column indices are unavoidable unless all rows naturally align with cache line boundaries.
 
-The \BAIJ format optimizes for constant block size by storing only one column index per $b\times b$ block.
+The {\BAIJ} format optimizes for constant block size by storing only one column index per $b\times b$ block.
 With this format, the problems of skipping ahead in \cverb|aj| and \cverb|aa| go away, but issues of peak bandwidth and enabling the vector to reuse cache remain.
 The arithmetic intensity
 \begin{align*}
-  \I_{\BAIJ} = \frac{2nb}{(n+1)b\texttt{sizeof(Scalar)} + (n/b+1)\texttt{sizeof(Int)}} \to \xrightarrow[b=3]{n\to\infty} 0.237 \text{flops/byte}
+  \I_{{\BAIJ}} = \frac{2nb}{(n+1)b\texttt{sizeof(Scalar)} + (n/b+1)\texttt{sizeof(Int)}} \to \xrightarrow[b=3]{n\to\infty} 0.237 \text{flops/byte}
 \end{align*}
 is very close to the dense limit of $0.25$.
-In practice, \BAIJ achieves a higher fraction of the bandwidth peak due its more regular memory access and unrolled kernels.
+In practice, {\BAIJ} achieves a higher fraction of the bandwidth peak due its more regular memory access and unrolled kernels.
 
-The symmetric block format \SBAIJ which stores only the upper-triangular part in compressed row format has a more involved memory access pattern.
+The symmetric block format {\SBAIJ} which stores only the upper-triangular part in compressed row format has a more involved memory access pattern.
 Each matrix entry is only loaded once where it is used for both upper and lower triangular contributions.
 The contribution from the lower-triangular part has multiple destinations effectively doubling the number of stencil-like streams that must be sustained, with all the new streams read-write as opposed to the read-only streams of nonsymmetric row formats.
 In return, the storage and arithmetic intensity is almost double that of nonsymmetric formats
@@ -95,35 +95,35 @@ Because the primary backward-moving streams are prefetched by software, this cau
 As an estimate of the peak usable bandwidth, we use the STREAM Triad benchmark with a moderately tuned implementation (software prefetch, SSE2 arithmetic, non-temporal stores, unrolled over cache lines).
 We consider two test systems, a Core 2 Duo (P8700) clocked at 2.53 GHz with a single DDR2-800 memory channel (theoretical bandwidth of 6.4 GB/s) and a two-socket Opteron 2356 (quad core) clocked at 2.3 GHz with two channels of DDR2-677 memory per socket (theoretical peak of 5.3 GB/s per channel).
 The achieved bandwidth for Triad on the Intel system was 5.4 GB/s for a single thread.
-On Opteron, the single-threaded Triad achieved 5.8 GB/s, increasing to XXX GB/s for 4 processes (2 per socket) and XXX GB/s for 8 processes.
+On Opteron, the single-threaded Triad achieved 5.8 GB/s, increasing to \todo{XXX} GB/s for 4 processes (2 per socket) and \todo{XXX} GB/s for 8 processes.
 
 Table~\ref{tab:throughput:baij} shows the performance of the three primary sparse matrix kernels with each storage format on both test machines.
 With prefetch enabled, the sparse matrix kernels obtain a remarkably high fraction of theoretical peak bandwidth, especially on Intel processors.
-Indeed, the scalar format performance is competitive with the best \MatMult results of \cite{williams2007osm} and block formats are consistently faster by a factor of 20 to 30 percent.
-Block formats provide greater benefit for \MatSolve than for \MatMult, with \BAIJ \MatSolve frequently outperforming the corresponding \MatMult.
-We are not aware of previous reports of this effect and speculate that it is due to \MatSolve having fewer read streams and using only one vector at a time (\MatMult reads from one vector and writes to another, \MatSolve is in-place).
+Indeed, the scalar format performance is competitive with the best {\MatMult} results of \cite{williams2007osm} and block formats are consistently faster by a factor of 20 to 30 percent.
+Block formats provide greater benefit for {\MatSolve} than for {\MatMult}, with {\BAIJ} {\MatSolve} frequently outperforming the corresponding {\MatMult}.
+We are not aware of previous reports of this effect and speculate that it is due to {\MatSolve} having fewer read streams and using only one vector at a time ({\MatMult} reads from one vector and writes to another, {\MatSolve} is in-place).
 
 \begin{table}
   \centering
   \begin{tabular}{l|c|c|c|c}
     \multirow{2}{*}{\backslashbox{Kernel}{Format}} & \multicolumn{4}{c}{Core 2, 1 process}            \\
-                                                   & \AIJ       & \AIJInode & \BAIJ      & \SBAIJ     \\ \hline
+                                                   & {\AIJ}       & {\AIJInode} & {\BAIJ}      & {\SBAIJ}     \\ \hline
     \MatMult                                       & 916(103\%) & 855(81\%) & 1013(86\%) & 1429(62\%) \\
     \MatSolve/ILU                                  & 799        & 742       & 1078       & ---        \\
     \MatSolve/ICC                                  & 741        & 737       & 1011       & 1007       \\ \hline
                                                    & \multicolumn{4}{c}{Opteron, 1 process}           \\
-                                                   & \AIJ       & \AIJInode & \BAIJ      & \SBAIJ     \\ \hline
+                                                   & {\AIJ}       & {\AIJInode} & {\BAIJ}      & {\SBAIJ}     \\ \hline
     \MatMult                                       & 506(53\%)  & 592(52\%) & 735(58\%)  & 744(30\%)  \\
     \MatSolve/ILU                                  & 460        & 572       & 845        & ---        \\
     \MatSolve/ICC                                  & 426        & 427       & 815        & 814        \\ \hline
                                                    & \multicolumn{4}{c}{Opteron, 4 processes}         \\
-                                                   & \AIJ       & \AIJInode & \BAIJ      & \SBAIJ     \\ \hline
+                                                   & {\AIJ}       & {\AIJInode} & {\BAIJ}      & {\SBAIJ}     \\ \hline
 %% FIXME: STREAM performance using MPI
     \MatMult                                       & 1673       & 1978      & 2450       & 3089       \\
     \MatSolve/ILU                                  & 1621       & 1896      & 2766       & ---        \\
     \MatSolve/ICC                                  & 1519       & 1522      & 2700       & 2710       \\
                                                    & \multicolumn{4}{c}{Opteron, 8 processes}         \\ \hline
-                                                   & \AIJ       & \AIJInode & \BAIJ      & \SBAIJ     \\ \hline
+                                                   & {\AIJ}       & {\AIJInode} & {\BAIJ}      & {\SBAIJ}     \\ \hline
 %% FIXME: STREAM performance using MPI
     \MatMult                                       & 2374       & 2408      & 2897       & 4331       \\
     \MatSolve/ILU                                  & 2321       & 1954      & 2913       & ---        \\
@@ -132,7 +132,7 @@ We are not aware of previous reports of this effect and speculate that it is due
   \caption{Throughput (Mflop/s) and percentage of STREAM Triad bandwidth, assuming optimal vector reuse, for different matrix formats on Core 2 Duo (P8700) and Opteron 2356 (two sockets). The test problem is a $Q_1$ finite element discretization with block size of 2 on a 3D mesh (essentially a 27-point stencil) in which each process has $64\times 64\times 63$ nodes.}\label{tab:throughput:baij}
 \end{table}
 
-\subsection{Small dense tensor product kernels}
+\subsection{Small dense tensor product kernels}\label{ssec:tensor}
 A fundamental operation for computing with high order finite element and spectral element methods is application of a 3D tensor product kernel operations $y \gets (A\otimes B\otimes C) x$, or, in index notation,
 \begin{equation}\label{eq:tensor:kernel}
   y_{ijk} \gets A_{i\alpha} B_{b\beta} C_{c\gamma} x_{\alpha\beta\gamma} .
@@ -161,7 +161,7 @@ An old \cite{mccalpin2007stream} but continuing trend in computer architecture i
 An additional feature of upcoming high-performance computing architectures is the prevalance of in-order execution; high power requirements no longer justify the luxury of sophisticated out-of-order execution units common on today's commodity hardware~\cite{seiler2008larrabee,pham2006overview}.
 Achieving high performace on such systems requires decomposing the computation into kernels with high arithmetic intensity (so as not to overload the memory subsystem) and sufficient local structure to utilize vector registers and effectively schedule instructions at compile time.
 We optimized streaming stencil kernels for Blue Gene/P in \cite{malas2011streaming}, including implementation of a static scheduler that we used to rapidly perform loop optimizations with a small assembly-language building block that exploited the available SIMD floating point unit.
-With this approach, we were able to effectively use all the floating point and general purpose registers while hiding instruction latency, delivering 93\% of theoretical FPU peak for the 27-point stencil with problem sizes that fit in level 1 cache and 91\% of bandwidth bandwidth for larger problem sizes (72\% of FPU peak).
+With this approach, we were able to effectively use all the floating point and general purpose registers to hide instruction latency, delivering 93\% of theoretical FPU peak for the 27-point stencil with problem sizes that fit in level 1 cache and 91\% of bandwidth for larger problem sizes (72\% of FPU peak).
 These results are 80\% better than the best previously published for Blue Gene/P.
 
 Since the tensor product kernel has sufficient local structure to utilize vector registers, we can estimate its performance on future architectures by computing its arithmetic intensity.
@@ -175,20 +175,23 @@ Typically we do not store the coordinate transformation, so it must also be comp
 Thus, for a problem with $b$ degrees of freedom per node and no sharing between elements, we have total operation count of $9(3 + 2b)n^4 + (31+18b + Q)n^3$ with $(b+3)n^3$ floating point values coming in and $bn^3$ out.
 
 To understand these tradeoffs, we consider three block sizes at different approximation orders and plot the memory bandwidth and number of flops (calculated as twice the number of FMAs) required to compute each entry in the output vector.
-The performance model for assembled sparse matrices assumes \BAIJ storage and perfect vector reuse within the cache system.
+The performance model for assembled sparse matrices assumes {\BAIJ} storage and perfect vector reuse within the cache system.
 The model for unassembled storage applied by tensor product assumes a general tensor-product quadrature of equal order, that coordinates are stored in a function space of the same order as the independent variables and are needed to compute the coordinate transformation but do not contribute to a result, that the physics can be represented using stored data equivalent in size to a stored gradient plus stored function values, and that the physics can be applied using an operation similar in structure to Newton-linearization of Navier-Stokes with power-law rheology plus a reaction term coupling all components.
 This is intended to be nearly a worst-case setting for the unassembled tensor product formulation; it is cheaper for simpler physics, simpler coefficients, collocated quadratures, etc.
+
+\begin{figure}
+  \centering
+  \includegraphics{TensorVsAssembly}
+  % python2 ./spmvmodel.py --plot --format pdf -o TensorVsAssembly.pdf
+  \caption{Memory and floating point requirements for matrix-free tensor-product application of an operator versus representation as an assembled matrix stored in \BAIJ[b] format.
+    The same operation $y \gets A x$ is applied in both cases, the storage is just different.
+    A ``result'' is a single scalar entry in $y$, regardless of the block size $b$.}\label{fig:tensorasm}
+\end{figure}
+
 The memory and floating point costs are shown in \figref{fig:tensorasm}.
 The unassembled representation is uniformly better in terms of memory use for all orders $p \ge 2$, but has significant floating point overhead for the smallest sizes, especially with small block size.
 Note that both bandwidth and computation requirements improve for the tensor product formulation when the block size inreases (because the overhead of the coordinate transformation is reduced), while they degrade for the assembled representation.
 The arithmetic intensity for unassembled representations is typically around 8 flops/byte with weak dependence on polynomial order, block size, and even details of the physics (unless a great deal of recomputation is required for linearization, or a nonsymmetric high-rank tensor needs to be stored).
 This should be compared to the assembled sparse matrix representation which cannot surpass 1 flop/4 bytes even if column indices were not stored.
 As noted in \secref{ssec:sparsekernels}, modern hardware balances computation with memory when the arithmetic intensity is between about 2 and 6 flops/byte and expected to increase.
-The 30-fold increase in arithmetic intensity while simultaneously reducing memory traffic below even the lowest order representation bodes well for the importance of unassembled Jacobian representations on future architectures.
-
-\begin{figure}
-  \centering
-  \includegraphics{TensorVsAssembly}
-  % python2 ./spmvmodel.py --plot --format pdf -o TensorVsAssembly.pdf
-  \caption{Memory and floating point requirements for matrix-free tensor-product application of an operator versus representation as an assembled matrix stored in \BAIJ[b] format.}\label{fig:tensorasm}
-\end{figure}
+The 30-fold increase in arithmetic intensity while simultaneously reducing memory traffic below even the lowest order representation bodes well for the relevance of unassembled Jacobian representations on future architectures.

@@ -179,7 +179,7 @@ PetscErrorCode MatGetLocalSubMatrix(Mat A,IS rows,IS cols,Mat *submat);
 \end{minted}
 which returns a submatrix with local indices defined by the index sets.
 This function is not collective and makes only weak guarantees about the functionality implemented by the returned submatrix.
-In particular, the communicator is not specified and collective operations like \cverb|MatMult| may not be defined.
+In particular, the communicator is not specified and collective operations like {\MatMult} may not be defined.
 If the matrix storage format is \cverb|MatNest|, this function simply returns the appropriate submatrix which usually lives on a parallel communicator and has full functionality.
 For matrix formats that do not implement \cverb|MatGetLocalSubMatrix|, a proxy matrix is set up on \cverb|PETSC_COMM_SELF| that implements \cverb|MatSetValuesLocal| and similar functions by translating sub-physics local indices to coupled local or global (best choice depending on what is explicitly supported) indices and setting values in the parent matrix.
 If the row and column index sets have matching block size attribute, \cverb|MatSetValuesBlockedLocal| is also implemented regardless of whether the underlying storage format uses blocks.
