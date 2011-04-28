@@ -1,10 +1,24 @@
-An example model output is show in \figref{fig:elastexact}.
+How reliable are the results of a numerical simulation?
+Under what circumstances can decisions by made based on the results of a calculation?
+Answering these questions involves two distinct steps known as Verification and Validation~\cite{babuska2004vav,roache1998verification}.
+Verification is the purely mathematical endeavor of determining if a computational model obtained by discretizing a mathematical model of a physical process can be used to represent the mathematical model with sufficient accuracy---\emph{solving the equations right}.
+It is an essential prerequisite for Validation which is the process of assessing whether a mathematical model is a sufficiently accurate model of a physical process---\emph{solving the right equations}~\cite{roache1998verification}.
+To quote \cite{babuska2004vav},``any validation exercise that is based on a computational model in which discretization error is not quantified is futile, because modeling and approximation error are then intertwined in an indecipherable way.''
+The distinction, and uncertainty quantification in general, has been largely overlooked by numerical modeling efforts in glaciology.
+Many problems in geophysics, and especially in glaciology, lack accurate observations of material parameters, boundary conditions, or geometry, and thus, can only rigorously be modeled as stochastic processes.
+The field of stochastic PDEs~\cite{deb2001ssp,ghanem2003sfe,chow2007stochastic} is however, quite young, and despite promising work on challenging prototype application problems~\cite{asokan2006stochastic,ganapathysubramanian2007sgc,zabaras2008scalable,mishra2011mlmcfvm}, is not yet mature enough for analysis of ice flow problems.
+Therefore, we are limited to deterministic models in which uncertainty in material parameters, boundary conditions, and geometry are handled in a more heuristic way.
+Inability to measure and/or control these sources of uncertainty, as well as the diversity of measurement types, each with its own (often sparse) spatial and temporal distribution, makes validation an ongoing process that can never truly be completed.
+Verification of a deterministic numerical model for a known class of input parameters, on the other hand, is a process that can be completed.
 
-\todo{brief background}\cite{babuska2004vav} \\
+It is useful to distinguish between verification of code and verification of a calculation~\cite{roache2002cvm}.
 
-\todo{method of manufactured solutions}\cite{roache2002cvm,roache2004bpc,salari2000code,knupp2003verification} \\
+We focus primarily on the Method of Manufactured Solutions~\cite{roache2002cvm}, and design the code to be readily verifiable~\cite{roache2004bpc}.
+
+\todo{method of manufactured solutions}\cite{salari2000code,knupp2002verification} \\
 
 \todo{explain the $Q_5$ problem, give convergence plots too}
+An example model output is shown in \figref{fig:elastexact}.
 
 \begin{figure}
   \centering\includegraphics[width=0.8\textwidth]{elast-b4q5}
