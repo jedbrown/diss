@@ -35,10 +35,10 @@ For example, in addition to $C^2$ continuity on Dirichlet boundaries, \cite{sait
 Since the boundaries of interest for our problems are merely Lischitz and change type abruptly, we cannot use the strong form \eqref{eq:slip:stokes-strong}.
 To discuss regularity issues at boundaries and our discretization, we need the weak form which is formally obtained by introducing test functions $\vv,q$ and integrating by parts.
 Given a Lipschitz domain $\Omega \subset \R^3$ and a nonempty open subset $\Gamma$ of the boundary $\partial\Omega$ which we identify as ``not frozen'', the problem is to find $(\uu,p) \in \bm W_D^{1,\pp}(\Omega) \times L^2(\Omega)$ such that
-\begin{multline}\label{eq:slip:stokes-weak}
+\begin{equation}\label{eq:slip:stokes-weak}
   \int_\Omega D\vv\tcolon \eta\bm 1 \tcolon D\uu - q\div\uu - p\div\vv - \vv\cdot\bm f
   - \int_\Gamma \vv\cdot (\eta D\uu - p\bm 1)\cdot\nn = 0
-\end{multline}
+\end{equation}
 for all $(\vv,q)\in \bm W_0^{1,\mathfrak{q}}(\Omega) \times L^2(\Omega)$, where $\mathfrak q$ satisfies $1/\mathfrak p + 1/\mathfrak q = 1$.
 Readers unfamiliar with Sobolev spaces may think of $W^{1,\pp}$ simply as the space with sufficiently well-behaved first derivatives.
 The subscripts in $W_D^{1,\mathfrak{q}},W_0^{1,\mathfrak{q}}$ indicate that inhomogeneous and homogenous Dirichlet boundary conditions respectively are built into the space.
