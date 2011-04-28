@@ -121,7 +121,7 @@ The ``least squares commutator'' is available in PETSc using \code{PCLSC}.
 The third method is to define $\tilde A$ using sparse approximate commutators~\cite{elman2006bpb} which is a similar method to the sparse approximate inverse~\cite{grote1997parallel}.
 This approach has the attractive property of requiring only one solve per iteration without the need for additional user-provided auxiliary matrices.
 
-There are several important variants of the methods above including the augmented Lagrangian~\cite{awanou2005convergence,dohrmann2006pbp,deniet2007tps} which accelerates convergence by penalizing $A$ using a multiple of $B M^{-1} C$ which is singular (thus making the inner problem more difficult to solve with most methods) as well as the use of pivoting for preconditioning full-space iteration in PDE-constrained optimization~\cite{biros2005pln1,biros2005pln2,akcelik2006pap}.
+There are several important variants of the methods above including the augmented Lagrangian~\cite{awanou2005convergence,dohrmann2006pbp,deniet2007tps} which accelerates convergence by penalizing $A$ using a multiple of $B M^{-1} C$ which is singular (thus making the inner problem more difficult to solve with most methods) as well as the use of pivoting for preconditioning full-space iteration in PDE-constrained optimization~\cite{biros2005pln1,biros2005pln2,akcelik2006parallel}.
 See \cite{benzi2005nss} for a review of methods for saddle point problems.
 
 As a practical and architectural concern, we warn that that excessive splitting leads to lower arithmetic intensity and more synchronization points which reduces the utilization of modern hardware.
