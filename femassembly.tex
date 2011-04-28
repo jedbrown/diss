@@ -109,32 +109,39 @@ To demonstrate that this generic formulation does not severely degrade performan
 \tabref{tab:dohpasm} shows the assembly time for a Laplacian on a cube using all three libraries.
 Example 4 was used from the latest versions of both {\libmesh} and {\dealii}.
 For \dealii, constants in the code needed to be changed to change the mesh resolution and element order, and timing calls (using \cverb|clock_gettime(2)|) needed to be added.
-For {\Dohp}, the \verb|ellip.c| example was used unmodified, therefore the Laplacian is actually solved as a special case of the nonlinear ``$p$-Bratu'' equation
+The {\Dohp} results use the \verb|ellip.c| example which solves the ``$p$-Bratu'' equation
 \begin{align*}
   -\divrg \big(\abs{\grad u}^{p-2} \grad u \big) - \lambda \exp u = f
 \end{align*}
-where $f$ is a manufactured forcing term and $p=2, \lambda=0$ is chosen at run-time.
-In earlier tests, the time to assemble the plain Laplacian is only a couple percent faster.
-Additionally, prior benchmarks with an older version of {\Dohp} that was hard-coded for $Q_1$ operators indicate that the generic assembly API costs at most 10 to 15 percent.
-It is clear that {\Dohp} is faster than {\libmesh} and {\dealii} for everything but the assembled $Q_2$ case, including 35\% faster than {\dealii} for unstructured $Q_1$ elements.
-This was a surprise considering that {\Dohp} has no special handling for unstructured $Q_1$ elements.
-{\Dohp} also has no optimization for the $Q_k, k>1$ case and we consider assembly (and solves) for such elements to be excessively expensive unless it is absolutely necessary for an application.
+where $f$ is a manufactured forcing term.
+The Laplace equation is the special case $p=2, \lambda=0$, which is chosen at run-time in the example and produces the timing results shown in the $p$-Bratu column.
+Timing with a modified version of \verb|ellip.c| specialized for the homogeneous Laplacian is also included so that the overhead of including nonlinearity can be seen.
+It is clear that {\Dohp} is faster than {\libmesh} and {\dealii} for everything but the assembled $Q_2$ case, including more than three times faster than {\dealii} and seven times faster than {\libmesh} for unstructured $Q_1$ elements.
+This was a surprise considering that {\Dohp} has no special optimization for unstructured $Q_1$ elements.
+{\Dohp} uses a very naive method for assembly of $Q_k$ elements when $k>1$, so there remains significant opportunity for optimizing the assembly of $Q_2$ discretization.
+However, we consider assembly (and solves) for such elements to be excessively expensive unless it is absolutely necessary for an application.
+The overhead of using an unstructured mesh can be seen by comparing to the \cverb|DMDA| column which uses a structured grid and is written specifically for $Q_1$ elements.
+The unstructured $Q_1$ case requires 30\% overhead, and drops below 7\% when using a structured representation for each block of $4^3$ $Q_1$ elements ($Q_4$ connectivity).
 
 \begin{table}
   \centering
-  \begin{tabular}{l|ccc|cc}
-    Library & Mesh & Connectivity & Discretization & Assembly Time (s) \\
-    \libmesh & $64^3$ & $Q_1$ & $Q_1$ & 38.0 \\
-    \libmesh & $32^3$ & $Q_2$ & $Q_2$ & 16.7 \\
-    \dealii & $64^3$ & $Q_1$ & $Q_1$ & 17.6 \\
-    \dealii & $32^3$ & $Q_2$ & $Q_2$ & 10.9 \\
-    \Dohp & $64^3$ & $Q_1$ & $Q_1$ & 11.5 \\
-    \Dohp & $32^3$ & $Q_2$ & $Q_1$ & 7.7 \\
-    \Dohp & $32^3$ & $Q_2$ & $Q_2$ & 19.3 \\
-    \Dohp & $16^3$ & $Q_4$ & $Q_1$ & 7.1 \\
+  \begin{tabular}{l|ccc|r@{.}lr@{.}l}
+    Library      & Mesh   & Connectivity & Discretization & \multicolumn{2}{c}{Laplace (s)} & \multicolumn{2}{c}{$p$-Bratu (s)} \\
+    \hline
+    \libmesh     & $64^3$ & $Q_1$        & $Q_1$          & 16&5        & \multicolumn{2}{l}{---}           \\
+    \libmesh     & $32^3$ & $Q_2$        & $Q_2$          & 7&4         & \multicolumn{2}{l}{---}           \\
+    \dealii      & $64^3$ & $Q_1$        & $Q_1$          & 7&8         & \multicolumn{2}{l}{---}           \\
+    \dealii      & $32^3$ & $Q_2$        & $Q_2$          & 4&9         & \multicolumn{2}{l}{---}           \\
+    \Dohp        & $64^3$ & $Q_1$        & $Q_1$          & 2&32        & 2&58          \\
+    \Dohp        & $32^3$ & $Q_2$        & $Q_1$          & 2&06        & 2&35          \\
+    \Dohp        & $32^3$ & $Q_2$        & $Q_2$          & 5&44        & 5&78          \\
+    \Dohp        & $16^3$ & $Q_4$        & $Q_1$          & 1&91        & 2&22          \\
+    \cverb|DMDA| & $64^3$ & structured   & $Q_1$          & 1&79        & \multicolumn{2}{l}{---}           \\
   \end{tabular}
-  \caption{Assembly time for different element types using different libraries.
-  All cases have the same number of degrees of freedom $65^3 = 274625$.}\label{tab:dohpasm}
+  \caption{Assembly time for the Laplace and $p$-Bratu problems with different element types and libraries.
+    All cases have the same number of degrees of freedom, $65^3 = 274625$.
+    The structured problem is treated as unstructured by \libmesh, \dealii, and {\Dohp}, with granularity shown in the Connectivity column.
+    \cverb|DMDA| uses a structured grid and is specialized for $Q_1$ assembly.}\label{tab:dohpasm}
 \end{table}
 
 For multi-physics problems and mixed finite element formulations, there are multiple function spaces and perhaps several quadrature rules in use at once.
