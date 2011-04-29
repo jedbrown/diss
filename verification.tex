@@ -12,15 +12,133 @@ Inability to measure and/or control these sources of uncertainty, as well as the
 Verification of a deterministic numerical model for a known class of input parameters, on the other hand, is a process that can be completed.
 
 It is useful to distinguish between verification of code and verification of a calculation~\cite{roache2002cvm}.
+The first is concerned with demonstration that all terms, including boundary conditions and source terms, are implemented correctly and exhibit the designed order of accuracy for the method.
+It is a check for consistency between the analysis and the implementation.
+Verification of a calculation involves the estimation of uncertainty for a particular problem, usually by demonstrating mesh independence and the use of a posteriori error estimators~\cite{ainsworth1997pee}.
+The former can be done using exact solutions (provided they exercise all terms and options in the code), but exact solutions are generally not available for the latter.
 
-We focus primarily on the Method of Manufactured Solutions~\cite{roache2002cvm}, and design the code to be readily verifiable~\cite{roache2004bpc}.
+This section is devoted to code verification and in particular, the design of software so that the model is readily verifiable.
+We focus on the method of manufactured solutions (MMS)~\cite{roache2002cvm} which has been shown to be an extremely robust methodology.
+The method relies on the simple observation that the correctness of a numerical method for discretizing and solving a nonlinear system
+\begin{align*}
+  F(u) = b
+\end{align*}
+must be independent of the source term $b(x,y,z,t)$, and in particular, that there is no requirement that $b$ have physical significance.
+Therefore, for the purpose of code verification, we need not obtain analytical solutions with physical realizable source terms.
+This is fortuitous because such solutions are nearly impossible to find for complex problems.
+Instead, MMS chooses a \emph{solution} $u(x,y,z,t)$, independent of the domain and even the physics $F$.
+There is no need for $u$ to have any similarity to reality, but it should possess a sufficient number of derivatives for the strong form of the PDE or variational problem $F$ to be valid.
+Ideal candidates involve transcendental functions such as $\tanh$ and $\log$, shifted or scaled so as to break any possible symmetries.
+Once $u$ has been chosen, a compatible forcing term $b$ is found using analytical methods.
+This does not involve discretization and can be readily performed with symbolic algebra systems.
+With the chosen $u$ and symbolically computed $b$ in hand, we have an analytic solution to $F(u) = b$ that has no degeneracies and no symmetries, thus exercising all terms in the equations.
 
-\todo{method of manufactured solutions}\cite{salari2000code,knupp2002verification} \\
+At this point, we choose a domain and boundary conditions, and a sequence of discrete approximation spaces.
+The discrete problem is solved using the manufactured forcing term $b$ and the discrete solution is compared to the exact solution in whichever norms the user is interested in.
+If the numerical approximation converges at the rate predicted by the analysis, the code has been verified and the process moves on to verification of calculations and validation.
+The only requirements MMS imposes on the code is that it be possible to solve with arbitrary user-provided forcing terms and inhomogeneous boundary conditions, and to evaluate the error as compared to a user-provided solution~\cite{roache2004bpc}.
 
-\todo{explain the $Q_5$ problem, give convergence plots too}
-An example model output is shown in \figref{fig:elastexact}.
+It is argued by \cite{roache2002cvm} that this methodology constitutes an ``engineering proof'' to the extent that the chance of a computer program delivering correct orders of convergence with even one manufactured solution, whilst possessing implementation errors affecting the quality of solution is vanishingly small.
+Indeed, \cite{knupp2002verification} conducted a blind study in which one author sabotaged a previously verified Navier-Stokes solver (compressible and incompressible, steady and unsteady) developed by the other.
+Every introduced error affecting quality of solution was detected by MMS.
+A pointwise error degrading the order of a boundary condition at a single corner node a domain is still visible in the global error and correspondingly degrades the global error.
+For the purpose of verifying a calculation (in which the answer is not known), MMS provides confidence in the assertion that if a the code is self-convergent under grid refinement, then it is converging to the correct solution.
+In other words, numerical evidence that a sequence of computational results on successively refined approximation spaces is \emph{Cauchy} becomes a convincing argument that the sequence converges to the correct solution of the governing equations, and even at the rate predicted by the theory.
+
+As an example, we consider large deformation elasticity and implement the weak form in Python using the SymPy~\cite{sympy-web-page} symbolic algebra package as
+\begin{minted}{python}
+  def weak_form(u, du, v, dv):
+    I = eye(3)                      # Identity tensor
+    F = I - du                      # Deformation gradient
+    E = (F.T*F - I)/2               # Green-Lagrange tensor
+    S = lmbda*E.trace()*I + 2*mu*E  # Second Piola-Kirchoff tensor
+    Pi = F * S                      # First Piola-Kirchoff tensor
+    return dv.dot(Pi)
+\end{minted}
+where \pyverb|lmbda| and \pyverb|mu| are material parameters and a St. Venant-Kirchoff constitutive model has been used (neo-Hookean and other models are handled simply by changing the definition of \pyverb|S|).
+The homogeneous weak form above is symbolically differentiated to produce a strong form of the governing equations.
+A manufactured solution is defined in Python as
+\begin{minted}{python}
+  def solution(x,y,z, a,b,c):
+    return Matrix([cos(a*x) * exp(b*y) * z + sin(c*z),
+                   sin(a*x) * tanh(b*y) + x * cosh(c*z),
+                   exp(a*x) * sinh(b*y) + y * log(1+(c*z)**2)])
+\end{minted}
+with free parameters \pyverb|a|, \pyverb|b|, and \pyverb|c|.
+The strong form of the governing equations is then applied to this exact solution, with spatial differentiation performed symbolically, and a forcing term is generated.
+The forcing term for this model involves more than a thousand transcendental functions, but C code for its evaluation is automatically generated and does not need to be examined.
+The same governing equations are discretized by the C code, the manufactured forcing term is incorporated in the residual, and errors in several norms are computed once the nonlinear solve has converged.
+This methodology is implemented for all PDE examples in {\Dohp}.
+
+We continue with the large-deformation elasticity problem using manufactured solution described above and solve the problem on a sequence of refined meshes with different orders.
+Continuous norms of the discrete errors $\bm e = \uu_h - \uu$ are shown in \tabref{tab:elastverif}.
+These norms are estimated using a standard quadrature, as was used to integrated the manufactured forcing term.
+The expected convergence rate for a $Q_k$ discretization of this problem is of order $k+1$ in $L^p$ and of order $k$ for the gradients.
+The noisiness in the $\sup$ norms are due to the inexact quadrature since neither the exact solution nor the manufactured forcing term can reasonably be integrated exactly.
+The highest order cases are also sensitive to iterative solver tolerance and floating point rounding error, but it is clear in each case that the expected order of accuracy is being attained.
+The computed solution on the $4^3$ mesh with $Q_5$ elements is shown in \figref{fig:elastexact}.
+We note that the attained accuracy of this method for $\norm{\nabla \bm e}_2$, which is equivalent to the strain, of $2.59\cdot 10^{-5}$ would require a $100000^3$ mesh with $Q_1$ elements ($10^{15}$ nodes) and a $400^3$ mesh with $Q_2$ elements (half a billion nodes), but the computation runs in a few seconds on a single core with $Q_5$ elements.
+
+\begin{table}
+  \centering\caption{Convergence rates for the large-deformation elasticity problem with manufactured solution.}\label{tab:elastverif}
+  \begin{tabular}{lrr|rr|rr|rr|rr}
+    \multicolumn{2}{c}{Mesh} & \# Nodes & $\norm{\bm e}_2$ & \bigO & $\norm{\bm e}_\infty$ & \bigO & $\norm{\nabla\bm e}_2$ & \bigO &  $\norm{\nabla \bm e}_\infty$ & \bigO \\
+    \hline % output below is generated with verif.py in this directory
+$Q_1$ & $1^3$ & 8 & 1.79e+00 & --- & 6.50e-01 & --- & 3.70e+00 & --- & 1.08e+00 & --- \\
+$Q_1$ & $2^3$ & 27 & 5.49e-01 & 1.71 & 3.40e-01 & 0.93 & 1.61e+00 & 1.20 & 6.92e-01 & 0.64 \\
+$Q_1$ & $4^3$ & 125 & 1.53e-01 & 1.84 & 1.26e-01 & 1.43 & 8.01e-01 & 1.01 & 4.51e-01 & 0.62 \\
+$Q_1$ & $8^3$ & 729 & 3.94e-02 & 1.96 & 3.73e-02 & 1.76 & 3.98e-01 & 1.01 & 2.81e-01 & 0.68 \\
+$Q_1$ & $16^3$ & 4913 & 9.95e-03 & 1.99 & 1.01e-02 & 1.88 & 1.98e-01 & 1.01 & 1.57e-01 & 0.84 \\
+$Q_1$ & $32^3$ & 35937 & 2.49e-03 & 2.00 & 2.61e-03 & 1.95 & 9.92e-02 & 1.00 & 8.32e-02 & 0.92\\
+\hline
+$Q_2$ & $1^3$ & 27 & 2.44e-01 & --- & 1.82e-01 & --- & 9.48e-01 & --- & 4.60e-01 & --- \\
+$Q_2$ & $2^3$ & 125 & 3.71e-02 & 2.72 & 4.47e-02 & 2.03 & 2.86e-01 & 1.73 & 1.54e-01 & 1.58 \\
+$Q_2$ & $4^3$ & 729 & 4.48e-03 & 3.05 & 6.23e-03 & 2.84 & 6.94e-02 & 2.04 & 4.34e-02 & 1.83 \\
+$Q_2$ & $8^3$ & 4913 & 5.60e-04 & 3.00 & 9.31e-04 & 2.74 & 1.74e-02 & 2.00 & 1.29e-02 & 1.75 \\
+$Q_2$ & $16^3$ & 35937 & 7.01e-05 & 3.00 & 1.23e-04 & 2.92 & 4.34e-03 & 2.00 & 3.52e-03 & 1.87\\
+\hline
+$Q_3$ & $1^3$ & 64 & 4.14e-02 & --- & 2.71e-02 & --- & 2.90e-01 & --- & 1.63e-01 & --- \\
+$Q_3$ & $2^3$ & 343 & 2.06e-03 & 4.33 & 2.06e-03 & 3.72 & 2.39e-02 & 3.60 & 1.14e-02 & 3.84 \\
+$Q_3$ & $4^3$ & 2197 & 1.81e-04 & 3.51 & 2.06e-04 & 3.32 & 4.23e-03 & 2.50 & 2.88e-03 & 1.98 \\
+$Q_3$ & $8^3$ & 15625 & 1.22e-05 & 3.89 & 1.87e-05 & 3.46 & 5.79e-04 & 2.87 & 5.84e-04 & 2.30\\
+\hline
+$Q_5$ & $1^3$ & 216 & 3.76e-03 & --- & 2.90e-03 & --- & 4.69e-02 & --- & 3.16e-02 & --- \\
+$Q_5$ & $2^3$ & 1331 & 7.58e-05 & 5.63 & 5.92e-05 & 5.61 & 1.62e-03 & 4.86 & 1.05e-03 & 4.91 \\
+$Q_5$ & $4^3$ & 9261 & 7.33e-07 & 6.69 & 6.61e-07 & 6.48 & 2.59e-05 & 5.97 & 1.76e-05 & 5.90\\
+\hline
+$Q_7$ & $1^3$ & 512 & 4.46e-04 & --- & 3.59e-04 & --- & 8.15e-03 & --- & 5.83e-03 & --- \\
+$Q_7$ & $2^3$ & 3375 & 2.95e-06 & 7.24 & 2.95e-06 & 6.93 & 8.21e-05 & 6.63 & 6.05e-05 & 6.59 \\
+$Q_7$ & $4^3$ & 24389 & 7.65e-09 & 8.59 & 1.07e-08 & 8.11 & 4.09e-07 & 7.65 & 3.95e-07 & 7.26\\
+\hline
+$Q_9$ & $1^3$ & 1000 & 5.81e-05 & --- & 5.04e-05 & --- & 1.42e-03 & --- & 1.05e-03 & --- \\
+$Q_9$ & $2^3$ & 6859 & 6.27e-08 & 9.86 & 7.59e-08 & 9.38 & 1.63e-06 & 9.77 & 1.60e-06 & 9.36
+  \end{tabular}
+\end{table}
 
 \begin{figure}
   \centering\includegraphics[width=0.8\textwidth]{elast-b4q5}
-  \caption{Solution of a large-deformation nonlinear elasticity problem with exact solution on a $Q_5$ mesh.}\label{fig:elastexact}
+  \caption{Solution of the large-deformation nonlinear elasticity problem with manufactured solution on a $Q_5$ mesh.}\label{fig:elastexact}
 \end{figure}
+
+There are some implementation errors that MMS will not detect.
+Such mistakes do not affect the quality of the solution, but they may affect the speed at which convergence is achieved.
+This is especially clear when one considers the recommended way to write a new PDE code in which implicit methods are used.
+The first step is to implement the nonlinear residual.
+This nonlinear system is solved by matrix-free Newton-Krylov methods and the solution can be verified using MMS.
+At this point, the residual will never be modified again, therefore programming and/or mathematical in pursuit of \emph{getting a solution fast} will not affect the quality of the solution that is eventually obtained.
+If the nonlinear solve converges, the solution will have whatever accuracy the underlying discretization provides.
+Of course unpreconditioned methods are not fast so practical simulation requires further effort, which is typically the most complicated and error-prone part of an application.
+This is not tested by MMS, but consistency can be checked in other ways, such as by comparing to an explicit Jacobian computed using finite differences, by confirming that application of an ``exact preconditioner'' results in convergence in one or two or three iterations as predicted by theory (e.g. \cite{murphy2000npi,ipsen2001note}), or by confirming that a Newton method is converging quadratically.
+
+Finally, a note on automation.
+The Python function \pyverb|weak_form| contains the governing equations, therefore it need not be necessary to manually write the same equations in C.
+Indeed, it would be very little effort to automatically generate C code from a weak form written in Python, in much the same spirit as has been done by the FEniCS project~\cite{fenicsproject}.
+In particular, it would be possible to use physical models implemented in the ``unified form language'' (UFL)~\cite{alnaes2009unified}, but generate pointwise physics kernels for {\Dohp} instead of the assembly code used by DOLFIN~\cite{logg2010dolfin}.
+UFL is based on Python and looks very similar to the symbolic \pyverb|weak_form| above, but includes specification of the function space.
+The FEniCS project considers that to be an advantage because it permits optimizations that involve mixing the discretization with the physics, such as tabulation of element matrices on the reference element and mapping them to physical elements by dense matrix-matrix product~\cite{kirby2005optimizing}.
+While such methods can provide substantial speedup for simple physics on affine elements (DOLFIN only handles simplicial meshes), the method becomes untenable for more general nonlinear problems on non-affine meshes, and a quadrature representation must be adopted.
+As seen by comparing the matrix assembly performance of {\Dohp} to the structured grid with inlined $Q_1$ discretization in \tabref{tab:dohpasm}, there is very little benefit to mixing physics with discretization when using a quadrature representation.
+Separating physics from discretization, as \Dohp's interface encourages, has the benefit that element types can be changed at run-time (skipping possibly time-consuming compilation steps) and that meshes of mixed topology and/or element order can be handled transparently.
+Automation is frequently convenient, but it is the author's opinion that in order to manage complexity and maintain extensibility, that the automation process must be as transparent as possible.
+Furthermore, the C API for which code is to be automatically generated must be sufficiently clean that a human can easily use it.
+The ability to ``get dirty'' and incrementally explore the entire software stack is important.
