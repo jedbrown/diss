@@ -1,1 +1,12 @@
-\todo{I now have a mesh, yay!}
+\todo{Explain problem and background}
+
+\begin{figure}
+  \centering\includegraphics[width=\textwidth]{jako-clip0-q3}
+  \caption{Velocity color plot of part of Jakobshavn Isbr{\ae} using $Q_3$ velocity elements and a graded mesh. This is only a placeholder because of incorrect boundary conditions (need to sample from Ian Joughin's files which are in a non-standard format and projection so GDAL does not read them.)}\label{fig:jako-clip}
+\end{figure}
+
+% Boundary sets:
+% 1: Bottom
+% 2: Surface
+% 3: Cuts at horizontal margins
+% src/fs/tests/stokes -dmesh_in ~/dl/he6.h5m -snes_max_it 1 -snes_monitor_short -ksp_type preonly -pc_type fieldsplit -pc_fieldsplit_type schur -pc_fieldsplit_real_diagonal -fieldsplit_p_ksp_monitor_short -fieldsplit_p_ksp_type cg -fieldsplit_u_ksp_converged_reason -stokes_Ap_mat_type sbaij -const_bdeg 3 -pressure_codim 1 -gravity -1. -dirichlet 1,3 -viewdhm -dmesh_intermediate_adjacencies -stokes_case jako -jako_surface_velocity foo
