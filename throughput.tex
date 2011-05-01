@@ -1,3 +1,7 @@
+\begin{quote}
+  \emph{The easiest way to make software scalable is to make it sequentially inefficient.}~\cite{gropp1999exploiting}
+\end{quote}
+
 \subsection{Sparse matrix kernels}\label{ssec:sparsekernels}
 
 This section briefly describes some optimizations that improved PETSc's matrix kernels by about 30\% on Intel and AMD architectures, bringing them quite close to the memory bandwidth limits.
@@ -15,7 +19,7 @@ AMD has a 2-cycle latency penalty for memory operands, Intel has no latency pena
 This means that L1D is almost as good as a register, compared to L2 with roughly 10-cycle latency and DRAM with approximately 250-cycle latency.
 
 Assuming a 2.5 GHz clock, one packed load and store per cycle means a bandwidth to L1 of 24 GB/s each way (48 GB/s each way for newer architectures supporting 32-byte AVX registers).
-We can compare this to per-core memory bandwidth ranging from 1.75 GB/s (6-core with 2-channel DDR2-667, found on Cray XT-5) to 9.6 GB/s (4-core with 3-channel DDR3-1600, found on the newest Sandy Bridge processors).
+We can compare this to per-core memory bandwidth ranging from 1.75 GB/s (6-core with 2-channel DDR2-667, found on Cray XT-5) to 9.6 GB/s (4-core with 3-channel DDR3-1600, found on Intel's newest ``Sandy Bridge'' processors).
 With four (SSE2) or eight (AVX) double precision floating point operations possible per cycle, it becomes clear that memory will be the bottleneck unless many floating point operations can be performed per value loaded.
 The ratio of flops per byte for a computational kernel is known as arithmetic intensity.
 The systems above balance computation with memory when the arithmetic intensity is between 2 and 6 flops/byte.
