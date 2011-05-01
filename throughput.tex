@@ -109,31 +109,35 @@ We are not aware of previous reports of this effect and speculate that it is due
 
 \begin{table}
   \centering
-  \begin{tabular}{l|c|c|c|c}
-    \multirow{2}{*}{\backslashbox{Kernel}{Format}} & \multicolumn{4}{c}{Core 2, 1 process}            \\
-                                                   & {\AIJ}       & {\AIJInode} & {\BAIJ}      & {\SBAIJ}     \\ \hline
+  \begin{tabular}{l c c c c}
+    \toprule
+                                                   & \multicolumn{4}{c}{Core 2, 1 process}            \\
+                                                   & {\AIJ}       & {\AIJInode} & {\BAIJ}      & {\SBAIJ}     \\ \cmidrule{2-5}
     \MatMult                                       & 916(103\%) & 855(81\%) & 1013(86\%) & 1429(62\%) \\
     \MatSolve/ILU                                  & 799        & 742       & 1078       & ---        \\
-    \MatSolve/ICC                                  & 741        & 737       & 1011       & 1007       \\ \hline
+    \MatSolve/ICC                                  & 741        & 737       & 1011       & 1007       \\ \midrule
                                                    & \multicolumn{4}{c}{Opteron, 1 process}           \\
-                                                   & {\AIJ}       & {\AIJInode} & {\BAIJ}      & {\SBAIJ}     \\ \hline
+                                                   & {\AIJ}       & {\AIJInode} & {\BAIJ}      & {\SBAIJ}     \\ \cmidrule{2-5}
     \MatMult                                       & 506(53\%)  & 592(52\%) & 735(58\%)  & 744(30\%)  \\
     \MatSolve/ILU                                  & 460        & 572       & 845        & ---        \\
-    \MatSolve/ICC                                  & 426        & 427       & 815        & 814        \\ \hline
+    \MatSolve/ICC                                  & 426        & 427       & 815        & 814        \\ \midrule
                                                    & \multicolumn{4}{c}{Opteron, 4 processes}         \\
-                                                   & {\AIJ}       & {\AIJInode} & {\BAIJ}      & {\SBAIJ}     \\ \hline
+                                                   & {\AIJ}       & {\AIJInode} & {\BAIJ}      & {\SBAIJ}     \\ \cmidrule{2-5}
 %% FIXME: STREAM performance using MPI
     \MatMult                                       & 1673       & 1978      & 2450       & 3089       \\
     \MatSolve/ILU                                  & 1621       & 1896      & 2766       & ---        \\
-    \MatSolve/ICC                                  & 1519       & 1522      & 2700       & 2710       \\
-                                                   & \multicolumn{4}{c}{Opteron, 8 processes}         \\ \hline
-                                                   & {\AIJ}       & {\AIJInode} & {\BAIJ}      & {\SBAIJ}     \\ \hline
+    \MatSolve/ICC                                  & 1519       & 1522      & 2700       & 2710       \\ \midrule
+                                                   & \multicolumn{4}{c}{Opteron, 8 processes}         \\
+                                                   & {\AIJ}       & {\AIJInode} & {\BAIJ}      & {\SBAIJ}     \\ \cmidrule{2-5}
 %% FIXME: STREAM performance using MPI
     \MatMult                                       & 2374       & 2408      & 2897       & 4331       \\
     \MatSolve/ILU                                  & 2321       & 1954      & 2913       & ---        \\
     \MatSolve/ICC                                  & 2214       & 1854      & 2892       & 2877       \\
+    \bottomrule
   \end{tabular}
-  \caption{Throughput (Mflop/s) and percentage of STREAM Triad bandwidth, assuming optimal vector reuse, for different matrix formats on Core 2 Duo (P8700) and Opteron 2356 (two sockets). The test problem is a $Q_1$ finite element discretization with block size of 2 on a 3D mesh (essentially a 27-point stencil) in which each process has $64\times 64\times 63$ nodes.}\label{tab:throughput:baij}
+  \caption{Throughput (Mflop/s) and percentage of STREAM Triad bandwidth, assuming optimal vector reuse, for three matrix kernels and different matrix formats.
+    The test machines are a Core 2 Duo (P8700) and an Opteron 2356 (two sockets).
+    The test problem is a $Q_1$ finite element discretization with block size of 2 on a 3D mesh (essentially a 27-point stencil) in which each process has $64\times 64\times 63$ nodes.}\label{tab:throughput:baij}
 \end{table}
 
 \subsection{Small dense tensor product kernels}\label{ssec:tensor}
