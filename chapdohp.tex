@@ -1,0 +1,618 @@
+\textsf{This chapter is published as:\\
+  Brown, J. (2010). Efficient nonlinear solvers for nodal high-order finite element methods in 3D. \emph{J. Scientific Computing}, 45(1):48--63.}
+
+\vspace{0.5cm}
+
+\textbf{Abstract.}
+  Conventional high-order finite element methods are rarely used for industrial problems because the Jacobian rapidly
+  loses sparsity as the order is increased, leading to unaffordable solve times and memory requirements.  This effect
+  typically limits order to at most quadratic, despite the favorable accuracy and stability properties offered by
+  quadratic and higher order discretizations.  We present a method in which the action of the Jacobian is applied
+  matrix-free exploiting a tensor product basis on hexahedral elements, while much sparser matrices based on $Q_1$
+  sub-elements on the nodes of the high-order basis are assembled for preconditioning.  With this ``dual-order'' scheme,
+  storage is independent of spectral order and a natural taping scheme is available to update a full-accuracy
+  matrix-free Jacobian during residual evaluation.  Matrix-free Jacobian application circumvents the memory bandwidth
+  bottleneck typical of sparse matrix operations, providing several times greater floating point performance and better
+  use of multiple cores with shared memory bus.  Computational results for the $p$-Laplacian and Stokes problem, using
+  block preconditioners and AMG, demonstrate mesh-independent convergence rates and weak (bounded) dependence on order,
+  even for highly deformed meshes and nonlinear systems with several orders of magnitude dynamic range in coefficients.
+  For spectral orders around 5, the dual-order scheme requires half the memory and similar time to assembled quadratic
+  ($Q_2$) elements, making it very affordable for general use.
+
+\section{Introduction}
+High order spatial discretization has significant advantages over low order when high accuracy is required, especially
+when the solution is smooth.  When the solution is only piecewise smooth, $hp$ finite element
+methods~\cite{demkowicz1989tuh,oden1989tuh,rachowicz1989tuh,schwab1998pah} are capable of exponential
+convergence, but high order discretization may yield higher quality results before asymptotic convergence rates are
+realized.  Optimal $hp$ meshes are usually defined in terms of minimizing the discretization error for a given number of
+degrees of freedom, and effective refinement strategies (e.g. \cite{ainsworth1998ars,demkowicz2002fah}) have been
+developed relative to this metric.
+
+Due to rapid loss of sparsity in the Jacobian under $p$-refinement, the total number of degrees of freedom is only
+weakly related to the practical performance metrics, computational time and storage requirements.  For linear constant
+coefficient problems, this can be avoided by choosing special hierarchical bases that preserve
+sparsity~\cite{karniadakis2005she}.  When the spectral element method (a special case of nodal $p$-FEM which reuses the
+interpolation nodes for quadrature) is used with (nearly) affine elements, linear constant coefficient problems can be
+very efficiently solved using the fast diagonalization method combined with a multilevel coarse
+solve~\cite{lottes2005hms}.
+
+For nonlinear and variable coefficient problems in 3D, the element matrices are necessarily dense and fast
+diagonalization is not available.  For order $p$ tensor product bases on hexahedral elements, there are $n = (p+1)^3$
+degrees of freedom per element, but the dense element matrices contribute $(p+1)^6$ nonzeros to the global matrix.
+Since most sparse matrix operations scale linearly with the number of nonzeros, both time and memory costs scale as
+$\bigO(n^2)$ under $p$-refinement.  A popular method for reducing linear algebra costs is static condensation which
+removes the interior degrees of freedom.  This method is effective at moderate to high order in 2D because a large
+portion of the nodes are interior, but in 3D less than half the nodes are interior when $p<9$.  For a scalar problem
+with $p=9$, condensation requires manipulating a dense $1000\times 1000$ matrix for each element.  This is very
+expensive in time and memory for only $1000$ degrees of freedom, and still contributes a dense $488\times 488$ matrix to
+the global system.  An additional bottleneck of traditional $hp$-FEM is integration of element matrices.  Na\"ive
+assembly of the true Jacobian using a $p$-point quadrature rule is $\bigO(p^9)$ although it can be improved to
+$\bigO(p^7)$ by exploiting the tensor product structure using sum factorization.  The cost incurred by forming and
+manipulating these dense matrices is the primary reason why high order (even quadratic) elements are not more popular in
+applications where extremely high accuracy is not needed.
+
+If extremely high accuracy is desired, conventional high-order methods are attractive because the extra cost is more
+than made up for by improved convergence rate in the asymptotic range.  For practical simulations, the asymptotic range
+is typically only mildly realized because an acceptable accuracy is obtained shortly after the solution is
+\emph{resolved}.  This effect is illustrated in Figure~\ref{fig:resolve}.  High-order methods must have comparable cost
+\emph{per degree of freedom} to be competitive with low-order methods unless the desired level of accuracy is well into
+the asymptotic range.
+
+\begin{figure}
+  \centering\includegraphics[width=\textwidth]{jscfigures/resolve}
+  \caption{The left panel shows truncation error as a function of total degrees of freedom for a 3D Poisson problem with
+    smooth but rapidly varying solution.  The thick horizontal line represents an acceptable accuracy and is only
+    modestly within the asymptotic range for all approximation orders.  The right panel shows the total number of
+    nonzeros in the Jacobian which is an optimistic lower bound for the flops required for the solve.}
+  \label{fig:resolve}
+\end{figure}
+
+To develop efficient solvers for high order elements, we examine the bottlenecks present in nonlinear solvers, and
+design the discretization to eliminate as many of these bottlenecks as possible.  Our approach to preconditioning
+involves the method proposed by \cite{orszag1980smp} and further investigated by
+\cite{deville1985cps,deville1990fep,heys2005amh,kim2007pbp}, resulting in a scheme with storage costs equivalent to
+$Q_1$ (piecewise trilinear) elements independent of $p$ and total CPU time which is mesh independent and only weakly
+dependent on $p$.  The principle contributions of this paper are a formulation of this preconditioner that is applicable
+to general nonlinear systems, a matrix-free representation of the Jacobian, and observation of a much lower
+``crossover'' order $p$ at which this class of methods is to be preferred over conventional methods.
+
+\section{Newton-Krylov}\label{sec:jfnk}
+Jacobian-free Newton-Krylov (JFNK) methods combine Newton-type methods for superlinearly convergent solution of
+nonlinear equations with Krylov subspace methods for solving the Newton step without actually forming the true
+Jacobian~\cite{knoll2004jfn}.  In this section, we introduce the method and highlight the performance bottlenecks.
+\subsection{The Newton iteration}
+The Newton iteration for the nonlinear system $F(x) = 0$ with state vector $x$ involves solving the sequence of linear
+systems
+\begin{equation}
+  J(x^{k}) s^k = - F(x^k), \quad x^{k+1} \gets x^k + s^k, \qquad k=0,1,\dotsc\label{eq:newton}
+\end{equation}
+until convergence which is frequently measured as a relative tolerance
+\begin{equation*}
+ \norm{\frac{F(x^k)}{F(x^0)}} < \epsilon_{\mathrm{tol}} .
+\end{equation*}
+The structure and conditioning of the Jacobian $J(x) = \frac{\partial F(x)}{\partial x}$ is dependent on the equations
+and discretization, but for second order elliptic operators, the condition number $\kappa(J) = \norm{J}\norm{J^{-1}}$
+scales as $\bigO(h^{-2} p^4)$ where $h$ is the mesh size and $p$ is the approximation order.
+
+\subsection{Krylov methods}\label{sec:jfnk:krylov}
+Krylov methods solve $J x = b$ using the Krylov subspaces
+\begin{equation*}
+  \mathcal K_j = \sspan \{\tilde b,\tilde{J} \tilde b, \tilde J^2 \tilde b, \dotsc, \tilde J^{j-1}\tilde b \}
+\end{equation*}
+where $\tilde J = P^{-1}J$, $\tilde b = P^{-1}b_0$ for left preconditioning and $\tilde J = J P^{-1}$, $\tilde b = b$
+for right preconditioning.  The convergence rate of various Krylov methods (e.g. CG, MINRES, GMRES, BiCGStab, QMR)
+depend in diverse ways on the spectral properties of $\tilde J$ (see \cite{nachtigal1992fnm} for matrices where each
+nonsymmetric iteration beats all others by a large margin) but a useful heuristic is that the iteration count scales as
+the square root of $\kappa(\tilde J)$.  When solving the Newton step \eqref{eq:newton} we rely on $P^{-1}$ to overcome
+the $\bigO(h^{-2}p^4)$ conditioning of the spatial discretization.  Our preconditioners are obtained by applying an
+algorithm $\Ppc$ to data $J_p$ provided by the discretization of the equations, i.e. $P^{-1} = \Ppc(J_p)$.  Concretely,
+$J_p$ almost always contains one or more assembled matrices, but may contain auxiliary information such as a multilevel
+hierarchy.  The fundamental preconditioners $\Ppc$ are relaxation (e.g. SOR) and (incomplete) factorization, which are
+used to build scalable and problem-specific preconditioners such as multigrid, domain decomposition, and
+Schur-complement.  The notation $P^{-1}$ comes from incomplete factorization in which $P = LU$ is available, but
+multiplication by $P$ is never needed in the Krylov iteration and indeed is rarely available.  A complete solver for $J
+x = b$ is $\mathsf K(J,\Ppc(J_p))$ which represents a choice of Krylov accelerator $\mathsf K$, preconditioning method $\Ppc$, and
+preconditioning data $J_p$.
+
+As discussed in the introduction, the Jacobian in \eqref{eq:newton} loses sparsity for high order methods so we will
+never form it explicitly.  The finite difference representation
+\begin{equation*}
+J(x) y = \frac{F(x+\epsilon y) - F(x)}{\epsilon}
+\end{equation*}
+for appropriately chosen $\epsilon$ is attractive because it requires no additional storage and no coding beyond
+function evaluation, however the adjoint $J^T$ is not available, its accuracy is at best
+$\sqrt{\epsilon_{\text{machine}}}$, and it performs unnecessary computation if function evaluation involves costly
+fractional powers or transcendental functions.  The inaccuracy can lead to stagnation due to a poor quality Krylov
+basis, especially when restarts are needed.  Automatic differentiation (AD) offers a full accuracy alternative and can
+produce adjoints in reverse mode, but such evaluations, especially in reverse mode, are usually more expensive than
+function evaluation due to suboptimal taping\footnote{This is a slight abuse of terminology, ``taping'' in the AD
+  context refers to intermediate values stored in memory (as opposed to checkpoints which are typically written to disk)
+  during reverse-mode computation.  We use the term more loosely to refer to any intermediate storage that makes
+  multiplication by $J(u)$ and $J^T(u)$ more efficient than only storing the state vector $u$.} strategies.  In
+section~\ref{sec:jac-rep} we detail an alternative with several advantages over finite differencing and which is similar
+to AD with optimal taping.
+
+\subsection{Performance}\label{sec:jfnk:bottlenecks}
+The most expensive parts of the Newton-Krylov iteration are assembling matrices for the preconditioner and subsequently
+solving for the Newton step.  Most preconditioners require a setup phase after the matrices (and whatever else goes into
+$J_p$) are assembled.  Scalable preconditioners require a globally coupled coarse level solve and we take multigrid as
+the canonical example.  With geometric multigrid the coarse level can be provided by the application by rediscretizing
+the governing equations while algebraic multigrid must analyze the matrix structure to determine the coarse component
+and then compute the Galerkin coarse operator (involving relatively expensive matrix-matrix products and producing a
+denser coarse operator).  The coarse operator needs to be factored, a task that is often done redundantly.  Finally, the
+solve involves matrix multiplication and smoothers on each level.
+
+The relative cost of these three phases (assembly, setup, solve) is highly problem dependent, but we offer some general
+guidelines for perspective; see \cite{gropp2000pmt,knoll2004jfn,knoll1998eni} for more detailed analysis of these
+issues.  Matrix assembly in finite element methods involves pointwise operations at quadrature points and is typically
+limited by instruction level parallelism and scheduling (especially for high-order methods).  The setup and solve phases
+are limited by memory bandwidth on the fine levels and by network latency on the coarse levels.  An important issue is
+simultaneously keeping the number of levels small so that relatively little work is done on the less efficient coarse
+levels while keeping the coarse operator small enough and sparse enough that it is cheap to factor.  When strong
+preconditioners are used so to keep the iteration count low, setup can be much more expensive than the solve.  Direct
+solvers are an extreme case of this, but multigrid can also have an expensive setup step, especially with many
+processors and Galerkin coarse operators.
+
+Efficient linear solvers involve a tradeoff between many iterations with cheap preconditioners and fewer iterations with
+expensive preconditioners.  With JFNK, the setup costs can be reduced by \emph{lagging} the preconditioner (not
+recomputing it on every Newton step) at the expense of additional Krylov iterations.  If matrix-free Jacobian
+application is inexpensive, the cost of these extra iterations may be affordable, making lagging appealing.  On the
+other hand, if matrix assembly and preconditioner setup is cheap, there is no need to work with a stale preconditioner.
+Note that use of a stale Jacobian compromises quadratic convergence of the Newton method while a stale preconditioner
+only affects the convergence rate of the Krylov iteration.
+
+Most of the time required to solve strongly nonlinear equations is spent before entering the neighborhood where Newton
+methods are quadratically convergent.  Until the final phase, it is not important to solve the Newton step to high
+accuracy.  In particular, $J(x^{k}) s^k = - F(x^k)$ may be ``solved'' so that
+\begin{equation*}
+  \norm{J(x^{k}) s^k + F(x^k)} \le \eta^k \norm{F(x^k)} .
+\end{equation*}
+and the method converges $q$-superlinearly as long as $\eta^k \to 0$, and $q$-quadratically if $\eta^k \in
+\bigO(\norm{F(x^k)})$.  Various heuristics have been developed to automatically adjust the ``forcing term'' $\eta^k$ to
+avoid oversolving without sacrificing quadratic convergence in the terminal phase, see \cite{eisenstat1996cft} for
+further discussion and a particularly useful heuristic which we use in the numerical examples.
+
+\section{High order finite element methods}\label{sec:hpfem}
+
+\subsection{Discretization}
+Let $\{\hat x_i\}_{i=0}^p$ denote the Legendre-Gauss-Lobatto (LGL) nodes of degree $p$ in ascending order on the
+interval $[-1,1]$, with the corresponding Lagrange interpolants $\{\hat\phi_i^p\}_{i=0}^p$.  Choose a quadrature rule
+with nodes $\{r_i^q\}_{i=0}^q$ and weights $\{w_i^q\}$.  The basis evaluation, derivative, and integration matrices are
+$\hat B_{ij}^{qp} = \hat\phi_j^p(r_i^q)$, $\hat D_{ij}^{qp} = \partial_x \hat\phi_j^p(r_i^q)$, and $\hat W^q_{ij} =
+w_i^q\delta_{ij}$.  In the following, we use index-free notation and suppress the superscripts for clarity.
+
+We extend these definitions to 3D via tensor product
+\begin{equation}\label{eq:tprod}
+  \begin{split}
+    \hat{\bm B} &= \hat B \otimes \hat B \otimes \hat B \\
+    \hat{\bm D}_0 &= \hat D \otimes \hat B \otimes \hat B \\
+    \hat{\bm D}_1 &= \hat B \otimes \hat D \otimes \hat B \\
+    \hat{\bm D}_2 &= \hat B \otimes \hat B \otimes \hat D
+  \end{split}
+\end{equation}
+with the diagonal weighting matrix $\hat{\bm W} = \hat W \otimes \hat W \otimes \hat W$.  With isotropic basis order $p$
+and quadrature order $q$, these tensor product operations cost $2(p^3 q + p^2 q^2 + pq^3)$ flops and touch only
+$\bigO(p^3 + q^3)$ memory.  It should be noted that in the special case of the spectral element method where the same
+LGL points are reused for quadrature, $B$ is the identity and differentiation reduces to $2p^4$ operations.  In the
+present work, we prefer to use more accurate Gauss quadrature and do not find the extra floating point operations in
+basis evaluation to be prohibitively expensive.  Every other required operation will be $\bigO(p^3)$ or $\bigO(q^3)$ so
+the performance of the operation \eqref{eq:tprod} is crucial to the success of the method, see
+\S\ref{sec:mat-perf} for further discussion.
+
+Let $\hat K = [-1,1]^3$ be the reference element and partition the domain $\Omega$ into hexahedral elements
+$\{K^e\}_{e=1}^E$ with coordinate map $x^e : \hat K \to K^e$ and Jacobian $J^e_{ij} = \partial x_i^e/\partial \hat x_j$.
+The Jacobian must be invertible at every quadrature point so we have $(J^e)^{-1} = \partial \hat x/\partial x^e$ and can
+express the element derivative in direction $i$ as
+\begin{equation*}
+  \bm D^e_i = \Lambda\left(\frac{\partial \hat x_0}{\partial x_i}\right) \hat{\bm D}_0
+  + \Lambda\left(\frac{\partial \hat x_1}{\partial x_i}\right) \hat{\bm D}_1
+  + \Lambda\left(\frac{\partial \hat x_2}{\partial x_i}\right) \hat{\bm D}_2
+\end{equation*}
+where we have used the notation $\Lambda(x)_{ij} = x_i \delta_{ij}$ for expressing pointwise multiplication as a
+diagonal matrix.  Note that forming $\bm D^e$ would ruin the tensor product structure so multiplication by $\bm D^e_i$
+is done using the definition \eqref{eq:tprod} followed by pointwise multiplication and sum.  The transpose is defined
+similarly
+\begin{equation*}
+  (\bm D^e_i)^T = \hat{\bm D}_0^T \Lambda\left(\frac{\partial \hat x_0}{\partial x_i}\right)
+  + \hat{\bm D}_1^T \Lambda\left(\frac{\partial \hat x_1}{\partial x_i}\right)
+  + \hat{\bm D}_2^T \Lambda\left(\frac{\partial \hat x_2}{\partial x_i}\right) .
+\end{equation*}
+
+With the element integration matrix $\bm W^e = \hat{\bm W} \Lambda(\abs{J^e(\bm r)})$, we are prepared to evaluate weak
+forms over arbitrary elements.  The global problem is defined using the element assembly matrix $\EE = [\EE^e]$ where
+each $\EE^e$ extracts the degrees of freedom associated with element $e$ from the global vector.  In the special case of
+a conforming mesh and equal approximation order on every element, $\EE$ will have a single unit entry per row.  When the
+mesh is $h$- or $p$-nonconforming, a global basis can be chosen by using minimum order on the largest faces and edges,
+then the element basis can be constrained by writing it as a linear combination of global basis
+functions~\cite{demkowicz1989tuh}.
+
+\subsection{Residual evaluation}\label{sec:res-eval}
+We now turn to evaluation of the discrete residual statement $F(u) = 0$ in weak form.  Since the weak form is always
+linear in the test functions, it can be expressed as a pointwise algebraic operation taking values and derivatives of
+the current iterate $(u,\nabla u)$ to the coefficients of the test functions and derivatives $(v,\nabla v)$, i.e. the
+Dirichlet problem is to find $u$ in a suitable space $V_D$ such that
+\begin{equation}\label{eq:feval}
+  \ip{v}{f(u)} = \int_\Omega v \cdot f_0(u,\nabla u) + \nabla v \tcolon f_1(u,\nabla u) = 0
+\end{equation}
+for all $v$ in the corresponding homogeneous space $V_0$ where $f_0$ and $f_1$ contain any possible sources.  For an
+$n$-component problem in $d$ dimensions, $f_0 \in \R^n$ and $f_1 \in \R^{nd}$.  Inhomogeneous Neumann, Robin, and
+nonlinear boundary conditions will add similar terms integrated over boundary faces.  The fully discrete form is
+\begin{equation}
+  \label{eq:sum}
+  \sum_e \EE_e^T \Big[ (\bm B^e)^T \bm W^e \Lambda(f_0(u^e,\nabla u^e))
+  + \sum_{i=0}^d(\bm D_i^e)^T \bm W^e \Lambda(f_1(u^e,\nabla u^e)) \Big] = \bm 0
+\end{equation}
+where $u^e = \bm B^e \EE^e u$ and $\nabla u^e = \{\bm D_i^e \EE^e u\}_{i=0}^2$.  Note that all physics is contained in
+the pointwise operation $(u,\nabla u) \mapsto (f_0,f_1)$.
+
+\subsection{Jacobian representation}\label{sec:jac-rep}
+Jacobian application $w \mapsto J(u) w$ can be performed in the same way as residual evaluation.  The associated
+bilinear form is expressible as
+\begin{equation}\label{eq:Jeval}
+  \ip{v}{J(u) w} = \int_\Omega \begin{bmatrix} v^T & \nabla v^T \end{bmatrix}
+  \begin{bmatrix} f_{0,0} & f_{0,1} \\ f_{1,0} & f_{1,1} \end{bmatrix} 
+  \begin{bmatrix} w \\ \nabla w \end{bmatrix}
+\end{equation}
+with the notation $f_{i,0} = \frac{\partial f_i}{\partial u} (u,\nabla u)$ and $f_{i,1} = \frac{\partial f_i}{\partial
+  \nabla u} (u,\nabla u)$.  This construction is completely general and applies to any $H^1$ Galerkin or Petrov-Galerkin
+method.  The application of $J(u)$ and $J^T(u)$ can clearly be performed if $f_{i,j}(u,\nabla u)$ is stored at
+quadrature points (including similar terms at boundary quadrature points where boundary integrals are required).
+
+There are two extreme cases for the storage of $f_{i,j}(u,\nabla u)$.  The first is to simply store $(u,\nabla u)$ which
+requires $n(d+1)$ storage per quadrature point for an $n$-component system in $d$ dimensions, but all the physics must
+be reevaluated in each Jacobian application.  This option is slightly faster than standard use of automatic
+differentiation since the finite element mechanics to reevaluate $(u,\nabla u)$ is not needed.  The other extreme is to
+fully evaluate $f_{i,j}(u,\nabla u)$ which requires $[n(d+1)]^2$ storage per quadrature point.  Compare to
+$n^2(p+1)^{d}$ per node for the $Q_p$ element matrices and (asymptotically) for globally assembled matrices.
+
+For many physical systems, $f_{i,j}(u,\nabla u)$ possesses structure (e.g. sparsity, symmetry, isotropic plus rank-1
+update) such that compared to the na\"ive representation, it is both cheap to store and cheap to multiply by.  Such
+representations may be constructed from any form between $(u,\nabla u)$ and $f_{i,j}$.  It is common for this efficient
+representation to be available at low cost during residual evaluation, and it may be stored cheaply since the memory bus
+is relatively unstressed at this time.  The process from \eqref{eq:feval} to \eqref{eq:Jeval} is mechanical and is
+easily performed using symbolic algebra.  Also note that AD may be used as a complementary technique, well-isolated to
+pointwise operations so that it doesn't interfere with global software design.
+
+Note that with this representation, the adjoint of $\eqref{eq:Jeval}$ is readily available with no additional
+programming effort, at exactly the same cost as the Jacobian itself.  A worked example is given in \S\ref{sec:ppoisson},
+we find that our matrix-free Jacobian application is significantly faster than function evaluation.  Since it is full
+accuracy and provides adjoints, this representation is clearly superior to finite difference Jacobians.  Note that
+na\"ive automatic differentiation of $F$ would not be aware of this efficient intermediate form, thus an AD Jacobian
+$J(u)$ would need to re-evaluate the base vector at quadrature points and compute $f_{i,j}\left[\begin{smallmatrix}w \\
+    \nabla w\end{smallmatrix}\right]$ using $(u,\nabla u)$.  The intermediate form is roughly equivalent to an optimal
+taping strategy.
+
+\subsection{Preconditioning}\label{sec:preconditioning}
+To precondition $J$, we assemble a matrix by rediscretizing the governing equations on $Q_1$ sub-elements defined by the
+LGL interpolation nodes as shown in Figure~\ref{fig:q1pc}.  In the notation of \S\ref{sec:jfnk}, this matrix is $J_p$
+and any preconditioner $\Ppc$ for assembled matrices can be used in the Krylov iteration.  This could be a direct solve,
+but that is rarely the most economical choice.  When multigrid works well, such as for elliptic problems with smooth
+coefficients, we find that $\Ppc = MG$ requires very few extra iterations compared to a direct solve $\Ppc = LU$.  This
+preconditioner has received substantial attention in the collocation and spectral element contexts
+(e.g. \cite{orszag1980smp,deville1985cps,deville1990fep,heys2005amh,kim2007pbp}), but is not widely used for Galerkin
+discretization with independent quadrature.
+
+\begin{figure}
+  \centering\includegraphics[width=0.25\textwidth]{jscfigures/q1pc}
+  \caption{A patch of four $Q_5$ elements with one $Q_1$ subelement shaded.}\label{fig:q1pc}
+\end{figure}
+
+\subsection{Performance of matrix operations}\label{sec:mat-perf}
+Our test platform is a 2.5 GHz Intel Core 2 Duo (T9300) which can issue one packed double precision (two 64-bit values
+packed in each 128-bit register) add and one packed multiply per clock cycle with a latency of 3 and 5 cycles
+respectively.  If there are no data dependencies and both execution units can be kept busy, it is possible to perform 4
+flops per clock cycle resulting in a theoretical peak of 10 Gflop/s.  The memory controller has a peak read throughput
+of 5.3 GB/s implying that dual core performance for matrix-vector products cannot exceed 900 Mflop/s, ignoring access
+costs for the vector (each matrix entry is 8 bytes plus 4 bytes for the column index, and supplies only 2 flops for an
+arithmetic intensity of 1 flop / 6 bytes).  Note that this is less than 5\% of the theoretical dual-core peak 20
+Gflop/s.  Even if the column indices were known, the operation cannot exceed 4 bytes per flop, despite the system being
+capable of performing nearly 4 flops for each byte loaded from memory.
+
+For multi-component problems, we can exploit structural blocking to reduce the bandwidth required for column indices.
+For example, a 3-component problem with full coupling only needs to store one index per $3\times 3$ block, improving
+arithmetic intensity to almost 1 flop / 4 bytes.  In addition, it is advantageous to reorder the unknowns owned by each
+processor to reduce the matrix bandwidth (e.g. with reverse Cuthill-McKee), thus improving cache reuse by the vector
+during matrix-vector multiplication and preconditioning kernels (relaxation and solves with factors), and also the
+effectiveness of these preconditioning kernels.  On our 3D elasticity test, these two optimizations combined for a 75\%
+speedup relative to scalar formats in the natural ordering, see \cite{gropp2000pmt} for further analysis of blocking and
+reordering.
+
+High order methods allow much more effective utilization of today's multicore hardware.  An implementation of the tensor
+product operation \eqref{eq:tprod} operates entirely within L1 cache for practical basis orders and attains 5.7 Gflops
+for $Q_3$ on a single core.  (This was written using SSE3 intrinsics since the author was unable to find a compiler that
+produced competitive code for this operation.)  Since this kernel puts no pressure on the shared memory bus, all cores
+are completely independent and limited only by instruction scheduling and data dependence.  Although only the
+tensor-product operation has been vectorized, multiplication by the matrix-free $Q_3$ Jacobian for a scalar-valued
+problem is only 2.5 times slower than the assembled $Q_2$ Jacobian when using one core of an otherwise idle socket.
+
+\section{Numerical examples}\label{sec:examples}
+All examples with dual-order preconditioning were implemented as part of a new C library named \emph{Dohp}, available
+from the author, which is tightly integrated with PETSc~\cite{petsc-user-ref} and uses the ITAPS~\cite{itapsproject}
+interfaces for mesh and geometry services.  In particular, we use the MOAB~\cite{moab} and CGM~\cite{cgm}
+implementations of the \emph{iMesh} and \emph{iGeom} interfaces.  In the examples using algebraic multigrid, we use
+smoothed aggregation from ML~\cite{ml-guide} and classical multigrid from BoomerAMG~\cite{henson2002bpa}, all accessed
+through the common PETSc interface.  The ML interface is designed to only produce aggregates which PETSc uses to
+construct the multigrid hierarchy and thus exposes all PETSc preconditioners as smoothers, while BoomerAMG is
+essentially a black-box preconditioner.  Smoothed aggregation is known to scale slightly superlinearly, but in our tests
+ML was always significantly faster and less memory consuming than the typically more robust BoomerAMG.  We use
+PETSc-3.0.0, ML-6.2\footnote{We have observed that ML-6.2 produces much higher quality aggregates than ML-5.0 for the
+  assembled $Q_2$ case, leading to a 50\% speedup and significantly lower memory usage.}, and BoomerAMG from
+Hypre-2.4.0b.
+
+The \texttt{libMesh}~\cite{libmesh} library is used to provide a reference for conventional methods (based on assembling
+the true Jacobian).  Since \texttt{libMesh} also uses PETSc for linear algebra, identical solver parameters are used so
+that the results are representative.
+
+\subsection{$p$-Poisson}\label{sec:ppoisson}
+The inhomogeneous $\pfrak$-Laplacian is
+\begin{equation*}
+  -\nabla \cdot (\abs{\nabla u}^{\pfrak-2} \nabla u) - f = 0
+\end{equation*}
+where $1 \le \pfrak \le \infty$ (see \cite{evans2007lol} for discussion of these limiting cases).  This equation is
+singular at $\nabla u = 0$ when $\pfrak<2$ and degenerate when $\pfrak>2$, so we solve a regularized variant with weak
+form: find $u \in V_D$ such that
+\begin{equation}\label{eq:ppoisson}
+  \ip{v}{F(u)} = \int_\Omega \eta \nabla v \cdot \nabla u - f v = 0
+\end{equation}
+for all $v \in V_0$ where $V_D = H^1_D(\Omega)$ includes inhomogeneous Dirichlet conditions, $V_0 = H^1_0(\Omega)$ is
+the corresponding homogeneous space, and $\eta(\gamma) = ( \epsilon + \gamma )^{\frac{\pfrak-2}{2}}$ is effective
+viscosity with regularization $\epsilon > 0$ and $\gamma = \frac 1 2 \abs{\nabla u}^2 $.  We manufacture the forcing
+term $f$ so that
+\[ u(x,y,z) = \cos(ax) \sin(by) \exp(cz) \] solves \eqref{eq:ppoisson} in $\Omega = [-1,1]^3$.  Figure~\ref{fig:resolve}
+shows convergence rates for the linear ($\pfrak = 2$) case $a,b,c=(16,15,14)$ with $1 \le p \le 7$.  The expected
+$\bigO(h^{p+1})$ is indeed observed in the asymptotic range, but in this section we are concerned with the time and
+memory needed for solution.
+
+The Newton step for \eqref{eq:ppoisson} corresponds to the weak form: find $w \in V_0$ such that
+\begin{equation*}
+  \ip{v}{J(u) w} = \int_\Omega \eta \nabla v \cdot\nabla w + \eta' (\nabla v\cdot\nabla u)(\nabla u\cdot\nabla w) = - (v,F(u))
+\end{equation*}
+for all $v \in V_0$, where $J(u)$ is the Jacobian of $F$ at $u$.  It is informative to rewrite the integrand as
+\begin{equation*}
+  \nabla v \tcolon \big[\eta\bm 1 + \eta' \nabla u \otimes \nabla u\big] \tcolon \nabla w
+\end{equation*}
+to clarify the effect of the Newton linearization.  Since $\eta' < 0$ for $\pfrak < 2$, the (heterogeneous) isotropic
+conductivity tensor $\eta\bm 1$ is being squished in the direction $\nabla u$.  In the singular limit $\mathfrak p \to
+1$, it flattens completely which has the effect of allowing diffusion only in level sets of $u$.
+
+To illustrate the taping strategy of \S\ref{sec:jac-rep} for the $\pfrak$-Laplacian, first note that it is
+desirable to store $\nabla u$ at each quadrature point in order to avoid it's expensive recomputation.  Fractional
+powers are one of the more expensive mathematical operations so we would also like to avoid recomputing them.  This
+suggests taping $(\eta,\nabla u)$ which are explicitly available during residual evaluation \eqref{eq:ppoisson}.  If a
+few Krylov iterations will be required, it becomes beneficial to amortize computation of
+\begin{equation*}
+  \eta' = \frac{\partial \eta}{\partial \gamma} = \frac{\pfrak-2}{2} \frac{\eta}{\epsilon + \gamma}
+\end{equation*}
+which involves one multiplication and one division when taped during function evaluation, very cheap compared to the
+fractional power, and less expensive than recomputing $\gamma$ on the first Krylov iteration.
+
+A further enhancement\footnote{\texttt{sqrt} requires the same number of cycles as division} to taping
+$(\eta,\eta',\nabla u)$ is $(\eta,\sqrt{-\eta'}\nabla u)$ which is both compact and minimizes the operations necessary
+to apply the Jacobian.
+
+Figure~\ref{fig:libmesh} shows linear solve performance compared to conventional methods for quadratic elements.  The
+matrices for conventional $Q_2$ elements were assembled using the \texttt{libMesh} library and the solver in all cases was
+conjugate gradients preconditioned by ML.  The time spent in each phase for the largest problem size is shown in
+Table~\ref{tab:libmesh}.  Note the greatly reduced assembly time compared to conventional $Q_2$ elements.
+
+\begin{figure}
+  \centering\includegraphics[width=0.8\textwidth]{jscfigures/Poisson}
+  \caption{Linear solve time for 3D Poisson with relative tolerance of $10^{-8}$ using assembled $Q_2$ elements and
+    unassembled $Q_3$, $Q_5$, and $Q_7$ elements preconditioned by an assembled $Q_1$ operator.}\label{fig:libmesh}
+\end{figure}
+
+\begin{table}
+  \centering
+  \begin{tabular}{l rrrr}
+    \toprule
+    Event        & \texttt{libMesh} $Q_2$ & Dohp $Q_3$ & Dohp $Q_5$ & Dohp $Q_7$ \\
+    \midrule
+    Assembly     & 41            & 25         & 24         & 23         \\
+    Krylov       & 111           & 73         & 119        & 117        \\
+    MF MatMult   & ---           & 36         & 55         & 55         \\
+    PCSetUp      & 16            & 10         & 12         & 9          \\
+    PCApply      & 82            & 27         & 51         & 52         \\
+    \midrule
+    CG its       & 34            & 23         & 41         & 49         \\
+    Mat nonzeros & 111 M         & 44.7 M     & 44.7 M     & 44.3 M     \\
+    \bottomrule
+  \end{tabular}
+  \caption{Assembly and solve time (seconds) for a 3D Poisson problem with $121^3$ degrees of freedom ($120^3$ for
+    $Q_7$), relative tolerance of $10^{-8}$.}\label{tab:libmesh}
+\end{table}
+
+\subsubsection{Poor-quality meshes}
+Figure~\ref{fig:quality} shows two low-quality meshes, \texttt{twist} and \texttt{random}.  The first was generated by
+stretching and twisting a mesh of the reference cube and the second generated using the ``random'' feature of
+Cubit~\cite{blacker1994cmg}.  Additionally, we consider \texttt{flat}, a uniform Cartesian mesh with dimensions $1\times
+1 \times 10^{-5}$.  These should be compared to \texttt{brick}, an $8^3$ mesh of the reference cube.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=0.18\textwidth]{jscfigures/twist-mayavi-bw-2}
+  \includegraphics[width=0.8\textwidth]{jscfigures/random-mayavi-bw-2}
+  \caption{Two all-hexahedral meshes, \texttt{twist} and \texttt{random}, containing nearly degenerate elements.
+    \todo{Convert these figures to PDF if necessary, \shell{epstopdf} is crashing.}}
+  \label{fig:quality}
+\end{figure}
+
+While the approximation properties of these meshes are poor, the preconditioner is still effective provided a good
+preconditioner for the low-order system is available.  The iteration count to oversolve the second Newton iteration to a
+relative tolerance of $10^{-8}$ for a $\pfrak=1.5$ case is shown in Table~\ref{tab:quality}.  With the exception of ML
+on \texttt{twist} and \texttt{flat}, the mesh has a limited impact on performance.
+
+\begin{table}
+  \centering
+  \begin{tabular}{l rr rr rr rr}
+    \toprule
+    Mesh & \multicolumn{2}{c}{\texttt{brick}}
+    & \multicolumn{2}{c}{\texttt{twist}}
+    & \multicolumn{2}{c}{\texttt{random}}
+    & \multicolumn{2}{c}{\texttt{flat}} \\
+    \cmidrule(r){1-1} \cmidrule(rl){2-3} \cmidrule(rl){4-5} \cmidrule(rl){6-7} \cmidrule(l){8-9}
+    Element & ML & BMG & ML & BMG & ML & BMG & ML & Chol \\
+    \midrule
+    $Q_1$ & 4&4  & 4&4   & 8&--   & 4&1 \\
+    $Q_2$ & 24&24 & 25&23 & 27&27 & 29&26 \\
+    $Q_3$ & 24&24 & 29&27 & 28&27 & 38&34 \\
+    $Q_4$ & 29&28 & 39&30 & 34&33 & 47&37 \\
+    $Q_5$ & 35&27 & 47&34 & 42&35 & 58&40 \\
+    $Q_6$ & 35&29 & 60&40 & 43&41 & 80&44 \\
+    \bottomrule
+  \end{tabular}
+  \caption{Iteration counts for four different meshes using ML, BoomerAMG (BMG), and Cholesky (Chol) preconditioning.
+    For $Q_1$ \texttt{random}, BoomerAMG failed, producing NaN.  ML on the \texttt{flat} mesh was run with stronger
+    smoothers as described in the text.  Note that the problem size increases with element order.}
+  \label{tab:quality}
+\end{table}
+
+Anisotropic meshes such as \texttt{flat} require semi-coarsening and/or line smoothers for multigrid performance.
+Convergence on this mesh is poor with both algebraic multigrid packages.  BoomerAMG allows little flexibility in
+smoothers, and although some semi-coarsening was evident in the hierarchy, coarse spaces suitable for the builtin
+smoothers were not produced.  ML's coarse spaces were less precisely semi-coarsened, and iteration counts could only be
+marginally controlled through the use of very strong smoothers (8-block overlap-1 additive Schwarz with direct subdomain
+solves).
+
+\subsubsection{Nonlinearities}
+For strongly nonlinear problems, the majority of the solve time is spent in the pre-asymptotic range.  Since a
+high-accuracy solve is not needed, it is very important to consider matrix assembly and preconditioner setup time when
+developing an efficient solver.  We consider the $\pfrak=1.2, \epsilon=10^{-8}$ case with an initial guess of zero (the
+state at which the system is most nearly singular) which requires a fair number of Newton steps.
+Table~\ref{tab:nonlinear} shows the time spent in various stages of the solve for $20^3$ $Q_3$ elements (226981 degrees
+of freedom).  In the most efficient configuration, roughly one third of the time is spent in matrix-free Jacobian
+application with a similar amount spent in assembly.  This problem demonstrates a situation where low-accuracy linear
+solves slow the nonlinear convergence, but it is still not cost effective to perform high accuracy linear solves.
+Lagging the preconditioner was not found to be effective for this problem, therefore only limited returns would be
+provided by a method with higher assembly costs, even if that setup enabled the use of a stronger preconditioner.  We
+have computed a fourth order accurate solution with essentially the same memory requirements and modest cost increase
+over a second order scheme ($Q_1$).  This solution is less expensive in both space and time than a conventional third
+order ($Q_2$) scheme, the reduced assembly costs offer more flexibility in nonlinear solver, and the sparser matrix
+offers more preconditioning choices.
+
+\begin{table}
+  \centering
+  \begin{tabular}{l rr rr}
+    \toprule
+    Tolerance & \multicolumn{2}{l}{$10^{-4}$ relative tolerance} & \multicolumn{2}{l}{Eisenstat-Walker} \\
+    \cmidrule(r){2-3} \cmidrule(l){4-5}
+    Event & ILU(0) & ILU(1) & ILU(0) & ILU(1) \\
+    \midrule
+    Residual    & 35       & 29       & 57       & 51       \\
+    Assembly    & 78       & 68       & 127      & 110      \\
+    Krylov      & 295      & 274      & 187      & 166      \\
+    \quad MF MatMult  & 259      & 190      & 155      & 110      \\
+    \quad PCSetup     & 2        & 11       & 5        & 17       \\
+    \quad PCApply     & 26       & 67       & 27       & 39       \\
+    \midrule                  
+    Total time  & 413      & 374      & 377      & 333      \\
+    \midrule
+    Newton \#   & 15       & 13       & 24       & 21       \\
+    Residual \# & 25       & 20       & 40       & 36       \\
+    Krylov \#   & 911      & 667      & 545      & 386      \\
+    \bottomrule
+  \end{tabular}
+  \caption{Time (seconds) spent in various stages of a nonlinear solve for $Q_3$ elements preconditioned by ILU(0) and
+    ILU(1) applied to the corresponding $Q_1$ matrix.  The first columns solve the linear system
+    to a relative tolerance of $10^{-4}$ with a maximum of 60 Krylov iterations per Newton, the latter use the
+    Eisenstat-Walker method for adjusting solver tolerances \cite{eisenstat1996cft} with a maximum of 30 Krylov iterations.
+    The events \emph{MF MatMult} (matrix-free Jacobian application), \emph{PCSetup}, and \emph{PCApply} are part of the
+    \emph{Krylov} iteration.  Additional \emph{Residual} evaluations are needed when the line search is activated.}
+\label{tab:nonlinear}
+\end{table}
+
+\subsection{Stokes}
+The weak form of the Dirichlet Stokes problem is: find $(u,p) \in \bm V_D \times P$ such that
+\begin{equation*}
+  \int_\Omega \eta Dv \tcolon Du - p \nabla\cdot v - q\nabla\cdot u - f\cdot v = 0
+\end{equation*}
+for all $(v,q) \in \bm V_0 \times P$ where $Du = \frac 1 2 \big(\nabla u + (\nabla u)^T \big)$ is the symmetric
+gradient, $\bm V_D = \bm H^1_D(\Omega)$ is the inhomogeneous velocity space with $\bm V_0$ the corresponding homogeneous
+space, and $P = \{p \in L^2_0(\Omega) : \int_\Omega p = 0 \}$ is the pressure space.  Stability requires satisfaction of
+the discrete inf-sup condition
+\begin{equation*}
+  \inf_{p} \sup_{u} \frac{\int_\Omega p \nabla \cdot u}{\norm{p}_{0} \norm{u}_1} \ge \beta > 0 .
+\end{equation*}
+The finite element space $Q_k-Q_{k-2}$ is stable with $\beta \in \bigO(k^{-(d-1)/2})$ in $d$ dimensions (see
+\cite{schotzau1998mhf}) and is thus quite usable for the modest orders we propose.
+
+\subsubsection{Indefinite preconditioning}
+Standard preconditioners perform poorly or fail completely when applied to indefinite problems.  Block factorization
+provides a general framework for constructing effective preconditioners for the Stokes problem.  They are based on
+factoring the Jacobian as
+\begin{equation}\label{eq:schur}
+  J(u) = \begin{bmatrix} A(u) & B^T \\ B & \end{bmatrix} =
+  \begin{bmatrix} 1 & \\ BA^{-1} & 1 \end{bmatrix}
+  \begin{bmatrix} A & \\ & S \end{bmatrix}
+  \begin{bmatrix} 1 & A^{-1}B^T \\ & 1 \end{bmatrix}
+\end{equation}
+where $S = -BA^{-1}B^T$ is the Schur complement which is dense and must be preconditioned by other means.  When GMRES is
+used with left (right) preconditioning, the upper (lower) block is typically dropped (since the resulting exactly
+preconditioned operator has minimal degree 2, see \cite{murphy2000npi}), and all occurrences of $A^{-1}$ are replaced by
+a suitable preconditioner.  There are numerous ways to precondition $S$ (e.g. \cite{benzi2005nss,elman2008tcp}), here we
+use only the classic pressure mass matrix $M_p$, but more sophisticated methods are needed for strongly heterogeneous or
+anisotropic problems (see \cite{may2008pim}), for Navier-Stokes with non-vanishing Reynolds number, and for short time
+steps in a time-dependent simulation.  With the dual-order method, it is only necessary to assemble matrices to
+precondition $A$ and $S$ (the latter via a diagonal approximation to the mass matrix $M_p$), all ``matrix multiplies''
+are performed matrix-free.
+
+For the Dirichlet Stokes problem, constant pressure is in the null space of $J$ and $S$.  This does not impact solver
+performance as long as the right hand side is consistent and the solver removes the null space from the Krylov basis.
+Table~\ref{tab:stokes} shows iteration counts for a variety of elements and meshes using right-preconditioned GMRES and
+the right-triangular preconditioner resulting from the factorization \eqref{eq:schur} with $S^{-1}$ approximated by the
+diagonal of $M_p$ and $A^{-1}$ approximated by one V-cycle of ML with inter-component coupling dropped.  The iteration
+count is scalable with resolution, but deteriorates much more rapidly with element order than for the definite problem.
+The corresponding solve times, shown in Figure~\ref{fig:stokes}, confirm the asymptotics under $h$-refinement with each
+element type.  More sophisticated preconditioners for $S$ were able to reduce the iteration count, but did not reliably
+reduce solve time across the range of element orders.  Further investigation of indefinite preconditioner performance
+under $p$-refinement is needed.
+
+\begin{table}
+  \centering
+  \begin{tabular}{l rr rr rr rr}
+    \toprule
+     & \multicolumn{2}{c}{$Q_3-Q_1$} & \multicolumn{2}{c}{$Q_5-Q_3$} & \multicolumn{2}{c}{$Q_7-Q_5$} \\
+     \cmidrule(r){2-3} \cmidrule(lr){4-5} \cmidrule(l){6-7}
+     Mesh & dofs & its & dofs & its & dofs & its \\
+     \midrule
+    $4^3$ &  4118 & 38    &    22774 &   79 &        68310 &   92 \\ 
+    $8^3$ &  37230 & 38   &   193582 &   75 &       568046 &   92 \\ 
+    $12^3$ & 130822 & 38  &   666790 &   76 &      1942342 &   95 \\
+    $16^3$ & 316382 & 40  &  1596766 &   77 &              &      \\
+    $20^3$ & 625398 & 40  &          &      &              &      \\
+    $24^3$ & 1089358 & 40 &          &      &              &      \\
+    $30^3$ & 2144698 & 41 &          &      &              &      \\
+    \bottomrule
+  \end{tabular}
+  \caption{Problem size and Krylov iterations to solve the Stokes problem to a relative tolerance of $10^{-6}$ with
+    elements of different orders using right-preconditioned GMRES(30) and field-split ML on the $A$ block.  Each restart
+    caused an approximately 2-iteration stall.}
+  \label{tab:stokes}
+\end{table}
+
+\begin{figure}
+  \centering\includegraphics[width=0.8\textwidth]{jscfigures/Stokes2}
+  \caption{Linear solve time for 3D Stokes with relative tolerance of $10^{-6}$.  For $Q_2-Q_1$ and $Q_3-Q_2$ elements,
+    convergence is significantly slower than with $Q_k-Q_{k-2}$, but apparently scalable despite being somewhat erratic.}
+  \label{fig:stokes}
+\end{figure}
+
+\section{Discussion}
+We have presented a practical method of obtaining high-order accuracy with cost similar to conventional methods for
+lower order accuracy.  It is robust on highly deformed meshes and nonlinear problems provided an effective
+preconditioner is available for the associated $Q_1$ matrix.  The computational kernels remove significant pressure on
+the memory bus enabling more effective use of floating point units, especially in multicore environments.
+
+The extra structure imposed by high-order methods provides natural coarsening which suggests the use of one or more
+levels of geometric multigrid.  This avoids the cost of computing interpolation operators in algebraic multigrid and
+enables the use of rediscretized coarse operators which preserve sparsity in comparison to Galerkin operators.
+Integration with PETSc's geometric multigrid framework is underway.
+
+Since solve time is only weakly dependent on element order, the dual-order scheme is well-suited for use in an
+$hp$-adaptive simulation where existing refinement strategies for minimizing degrees of freedom will more accurately
+represent computational cost.  Relative to conventional $Q_2$ and higher elements, the dual-order scheme significantly
+reduces the cost of matrix assembly and preconditioner setup, while maintaining competitive iteration counts when used
+with preconditioners such as algebraic multigrid.
+
+% \nonumber\section{Acknowledgments} We thank the PETSc team for support and a framework in which this work could be
+% naturally expressed.  Thanks also to Tim Tautges for explaining numerous mesh and geometry issues and providing the MOAB
+% and CGM libraries.  This work was supported by Swiss National Science Foundation Grant 200021-113503/1.

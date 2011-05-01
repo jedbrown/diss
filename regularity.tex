@@ -34,17 +34,17 @@ Classical solutions to the linear constant-coefficient Stokes problem with frict
 For example, in addition to $C^2$ continuity on Dirichlet boundaries, \cite{saito2004stokes} required much higher $C^4$ continuity for slip surfaces; see also the analysis by \cite{fujita2002coherent}.
 Since the boundaries of interest for our problems are merely Lischitz and change type abruptly, we cannot use the strong form \eqref{eq:slip:stokes-strong}.
 To discuss regularity issues at boundaries and our discretization, we need the weak form which is formally obtained by introducing test functions $\vv,q$ and integrating by parts.
-Given a Lipschitz domain $\Omega \subset \R^3$ and a nonempty open subset $\Gamma$ of the boundary $\partial\Omega$ which we identify as ``not frozen'', the problem is to find $(\uu,p) \in \bm W_D^{1,\pp}(\Omega) \times L^2(\Omega)$ such that
+Given a Lipschitz domain $\Omega \subset \R^3$ and a nonempty open subset $\Gamma$ of the boundary $\partial\Omega$ which we identify as ``not frozen'', the problem is to find $(\uu,p) \in \bm W_D^{1,\pfrak}(\Omega) \times L^2(\Omega)$ such that
 \begin{equation}\label{eq:slip:stokes-weak}
   \int_\Omega D\vv\tcolon \eta\bm 1 \tcolon D\uu - q\div\uu - p\div\vv - \vv\cdot\bm f
   - \int_\Gamma \vv\cdot (\eta D\uu - p\bm 1)\cdot\nn = 0
 \end{equation}
 for all $(\vv,q)\in \bm W_0^{1,\mathfrak{q}}(\Omega) \times L^2(\Omega)$, where $\mathfrak q$ satisfies $1/\mathfrak p + 1/\mathfrak q = 1$.
-Readers unfamiliar with Sobolev spaces may think of $W^{1,\pp}$ simply as the space with sufficiently well-behaved first derivatives.
+Readers unfamiliar with Sobolev spaces may think of $W^{1,\pfrak}$ simply as the space with sufficiently well-behaved first derivatives.
 The subscripts in $W_D^{1,\mathfrak{q}},W_0^{1,\mathfrak{q}}$ indicate that inhomogeneous and homogenous Dirichlet boundary conditions respectively are built into the space.
 That is, all components of velocity are specified in regions where the bed is frozen and normal components are specified at places where sliding may take place.
 The implementation of Dirichlet conditions is somewhat different from its definition here and will be discussed later.
-In general circumstances, the true solution is actually only $W^{1,\pp}$, but we always assume that there is regularization which permits us to only use Hilbert spaces.
+In general circumstances, the true solution is actually only $W^{1,\pfrak}$, but we always assume that there is regularization which permits us to only use Hilbert spaces.
 For well-posedness, it remains to specify $(D\uu - p\bm 1)\cdot\nn$ on $\Gamma$ as an algebraic function $\bm g(\uu)$ to enforce stress conditions on tangent components at slip surfaces and on all components at free surfaces in which case $\bm g$ is independent of $\uu$.
 
 Although it is not used directly in our work, \eqref{eq:slip:stokes-weak} corresponds to the minimization of the viscous energy $\int_\Omega \half D\uu\tcolon \eta\bm 1 \tcolon D\uu$ over the subspace where $\div\uu = 0$.
@@ -56,8 +56,8 @@ These conditions are easily satisfied by the continuum spaces, but they place im
 \subsection{Singularities in the continuum formulation}
 The transition from no-slip to slip boundary conditions is exactly analogous to mode II and III fatigue in nonlinear elasticity theory, transition from no-slip to an unconstrained stress condition (e.g. floating) is the mode I case.
 In the case of linear rheolgy, this is the classical inverse square root stress singularity $\sigma \sim r^{-1/2}$ in fracture mechanics~\cite{anderson2005fracture}, where $r$ is the distance from the transition, see \cite{erdogan1973two} for two bonded materials.
-For nonlinear rheology, the same energy estimates~\cite{rice1968path} apply and the singularity becomes $\abs{\sigma} \sim r^{(1-\pp)/\pp}$ and $\abs{D\uu} \sim r^{-1/\pp}$ as shown by \cite{rice1968plane,hutchinson1968singular}. 
-These functions are all integrable and the singularity does not pose a fundamental regularity problem for the continuum equations, but the velocity in this latter case behaves as $\abs{\uu} \sim r^{(\pp-1)/\pp}$ which is a fourth root for the typical $\pp = 4/3$, thus difficult to approximate with a polynomial basis.
+For nonlinear rheology, the same energy estimates~\cite{rice1968path} apply and the singularity becomes $\abs{\sigma} \sim r^{(1-\pfrak)/\pfrak}$ and $\abs{D\uu} \sim r^{-1/\pfrak}$ as shown by \cite{rice1968plane,hutchinson1968singular}. 
+These functions are all integrable and the singularity does not pose a fundamental regularity problem for the continuum equations, but the velocity in this latter case behaves as $\abs{\uu} \sim r^{(\pfrak-1)/\pfrak}$ which is a fourth root for the typical $\pfrak = 4/3$, thus difficult to approximate with a polynomial basis.
 Note that in reality, there is not a true singularity because of friction and plastic failure in the immediate vicinity of the transition, but micro-scale physical processes are fundamentally different, therefore the meso-scale asymptotics are most relevant when designing an approximation space.
 
 The singularity is stronger for the heat production term $\sigma\tcolon D\uu$, of order $1/r$ regardless of rheology.
@@ -72,7 +72,7 @@ Nonlinear rheology is analogous and indeed, the singularity for flow past a reen
 Although not considered here, viscoelastic flows have the further difficulty that the Weissenberg number blows up at viscous stress singularities, see \cite{lipscomb1987implications,davies1988reentrant,hinch1993flow,owens2002cr}.
 
 \subsection{Approximation spaces}\label{sssec:approximation}
-While the Banach space $W^{1,\pp}$ in \eqref{eq:slip:stokes-weak} has the correct regularity for investigating the singularities discussed in the last section, approximation spaces in the present work will always be piecewise polynomial, and since we desire a symmetric formulation, we switch to the Hilbert space $H^1$.
+While the Banach space $W^{1,\pfrak}$ in \eqref{eq:slip:stokes-weak} has the correct regularity for investigating the singularities discussed in the last section, approximation spaces in the present work will always be piecewise polynomial, and since we desire a symmetric formulation, we switch to the Hilbert space $H^1$.
 Such polynomial bases are a conventional and proven approach, but there are promising alternatives including the rational bases used in isogeometric analysis~\cite{hughes2005isogeometric,cottrell2009isogeometric} and physics-adapted bases in extended finite element methods~\cite{belytschko2009review,mohammadi2008extended}.
 
 Finite element methods choose a discrete subspace $\VV_D,\QQ$ of the continuous trial space $\bm H_D^1 \times L^2$ from \eqref{eq:slip:stokes-weak}, discrete spaces for the test functions, and a way of approximately\footnote{Inexact quadrature is a ``variational crime'' \cite{brenner2008mathematical}, but nonlinear rheology produces terms that cannot reasonably be integrated exactly.} evaluating integrals.
