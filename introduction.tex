@@ -1,0 +1,50 @@
+A large amount of scientific effort worldwide is focused on understanding and predicting the advance and consequences of climate change, due to its potentially disastrous affects on human society.
+Increasingly, the results of numerical models are being used to influence decisions regarding energy policy, water rights, property values, geoengineering projects, and many more.
+Thus climate science, once an academic pursuit, is transforming into an engineering project of the grandest scale, the success of which will affect the entire planet.
+However, in stark contrast to other engineering disciplines, the ``product development'' latency for climate is a human lifetime or more, observations are difficult to obtain, and experimental perturbation is nearly impossible.
+This contributes to an environment in which the people creating and using numerical models never have direct feedback to assess the quality of the numerical results.
+Additionally, there is no direct financial incentive to produce quality results.
+Indeed, the quality of the results may never be known within the lifetime of the scientist who creates them.
+
+The situation is very different in the industrial setting.
+If a computer program is used to design a plane that malfunctions, a bridge or dam that collapses, an engine with poor efficiency, or a reservoir engineering plan that results in poor recovery, there is process of accountability.
+Poor numerical results have direct financial and/or political consequences for the company or organization responsible.
+In such fields, it was learned early on that the process of verification and validation~\cite{roache1998verification,babuska2004vav} is of paramount importance.
+Numerical and computational issues cannot be merely an afterthought, and short cuts generally lead to incorrect results and poor understanding of complex phenomena.
+
+This philosophy was summarized well in the 1986 Editorial Policy Statement on the Control of Numerical Accuracy for the Journal of Fluids Engineering~\cite{roache1986editorial}.
+This statement was unequivocal that the time for less rigorous analysis and testing of methods had long passed, and announced that the jouarnal ``will not accept for publication any paper reporting the numerical solution of a fluids engineering problem that fails to address the task of systematic truncation error testing and accuracy estimation.''
+In particular, ``a single calculation in a fixed grid will not be acceptable'' and ``the editors will not consider a reasonable agreement with experimental data to be sufficient proof of accuracy, especially if any adjustable parameters are involved.''
+This policy was strengthened and extended in 1993 to its current form~\cite{jfe2004numaccuracy} which defines a list of ten criteria that must be used to assess the accuracy, robustness, efficiency, and proper documentation of a numerical method in order for it to be considered by the journal.
+Many other engineering journals have since adopted similar editorial policies.
+It is clear from the list, and has been confirmed by numerous colleagues in each discipline of climate modeling, that there does not exist a single climate component in any discipline that comes close to satisfying these publication criteria.
+This must change if the results of numerical models are to be taken seriously in the future.
+
+Unfortunately, careful study of spatial discretization and grid convergence is not sufficient to enable the next generation of scientific inquiry for multiphysics systems such as climate or even ice dynamics in isolation.
+The state of current methods and a means 
+As elucidated by a recent Department of Energy panel~\cite{simon2007modeling}, current models invariably rely on ``first-order accurate operator-splitting, semi-implicit and explicit time integration methods, and decoupled nonlinear solution strategies.
+Such methods have not provided the stability properties needed to perform accurate simulations over the dynamical time-scales of interest.
+Moreover, in most cases, numerical errors and means for controlling such errors are understood heuristically at best.''
+This and a related report~\cite{washington2009scientific} prioritize further research in fast, robust linear and nonlinear solvers because these ``will directly determine the scope of feasible problems to be solved'' as, inevitably, implicit formulations and advanced analysis techniques such as optimization, uncertainty quantification, and stability and sensitivity analysis assume a central role.
+
+Ice dynamics was identified by the fourth assessment report of the IPCC~\cite{lemk2007ar4wg1} as a crucial source of uncertainty in sea level rise estimates, with no existing models capable of simulating the physical processes responsible for the large uncertainty.
+The underlying source of this uncertainty is a dynamical instability identified by \cite{weertman1974sji} and made rigorous by \cite{schoof2007isg}.
+This problem of grounding line stability is fundamentally three dimensional, constant factors are important, and the overall stability is determined by multi-scale behavior such as heat flux from the ocean through thin boundary layers and small bed features that can stabilize an unstable state.
+The ``full'' grounding line stability problem is on the frontier of computational science in many ways.
+It involves coupling physical processes in multiple domains interacting on multiple time scales through boundary layer processes, with material and geometric anisotropy, strong nonlinearity and heterogeneity, mixed characteristic PDEs, four varieties of interacting contact problems, and uncertainty in the geometry, coefficients, and constitutive models.
+
+This thesis attempts to bring a more rigorous understanding of numerical and computational issues in ice flow modeling, with a focus on robust, extensible methods that scale to large problem sizes with efficient use of current and future hardware.
+An overarching theme is the development of extensible software that can be used to solve increasingly complex problems with minimal development time, while using the best possible methods.
+Much of this software has been added to the {\PETSc}~\cite{petsc-user-ref} library and is in production use by many external groups.
+Components which are not part of {\PETSc} are available under a BSD-style open source license.
+
+\chapref{chap:dohp} investigates efficient nonlinear solvers for high-order finite element methods in a rather general setting.
+High order methods have accuracy benefits, but they are also capable of better utilizing modern hardware, and are necessary for certain conservation and stability properties that are necessary for robust methods on practical meshes for ice flow problems.
+\chapref{chap:tme-ice} presents an especially robust and scalable multigrid method for the hydrostatic equations of ice flow.
+These equations are considered to be an important intermediate description of the ice flow and were previously thought to be very expensive to solve.
+Our implementation improves by several orders of magnitude on the best previous results, both in time to solution and in maximum problem size.
+The code is available as a tutorial in {\PETSc}.
+
+\chapref{chap:software} discusses several of the software components that were implemented to facilitate efficient solvers, high throughput, flexible and performant finite element methods for multi-physics problems, and designing code for easy verification.
+\chapref{chap:discretization} investigates several relatively unique discretization requirements for ice flow problems.
+Finally, \chapref{chap:jakobshavn} has applications to the ice stream at Jakobshavn Isbr{\ae}.
