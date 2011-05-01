@@ -7,7 +7,7 @@
 This section briefly describes some optimizations that improved PETSc's matrix kernels by about 30\% on Intel and AMD architectures, bringing them quite close to the memory bandwidth limits.
 This was implemented subsequent to the new data structures for factored matrices described in \cite{smith2010sparse} and thus represents an additional improvement.
 
-The following hardware descriptions generally hold across Intel Core, Core 2, and Core i7 as well as AMD K8 and K10 michoarchitectures.
+The following hardware descriptions generally hold across Intel Core, Core 2, and Core i7 as well as AMD K8 and K10 microarchitectures.
 Most variation is due to different prefetch and TLB semantics as well as different latencies for vector instructions.
 Details can be found in the optimization reference manuals~\cite{intel2011optimization,amd2009optimization} as well as Agner Fog's excellent resources~\cite{fog2011michoarchitecture,fog2011instruction}.
 See \cite{drepper2007memory} for a more accessible introduction to the memory hierarchy.
@@ -162,8 +162,8 @@ Note that large size tensor contractions are important for quantum chemistry and
 Contrast the tensor product performance with sparse matrix kernels that attain less than 10\% of floating point peak due to low arithmetic intensity.
 
 An old \cite{mccalpin2007stream} but continuing trend in computer architecture is for peak floating point performance to continue to improve via the use of longer registers (Intel's AVX and the Blue Gene/Q architecture have packed 32-byte floating point registers), more cores, and GPU-style vectorization while memory bandwidth increases much more slowly~\cite{keyes2011exaflop}.
-An additional feature of upcoming high-performance computing architectures is the prevalance of in-order execution; high power requirements no longer justify the luxury of sophisticated out-of-order execution units common on today's commodity hardware~\cite{seiler2008larrabee,pham2006overview}.
-Achieving high performace on such systems requires decomposing the computation into kernels with high arithmetic intensity (so as not to overload the memory subsystem) and sufficient local structure to utilize vector registers and effectively schedule instructions at compile time.
+An additional feature of upcoming high-performance computing architectures is the prevalence of in-order execution; high power requirements no longer justify the luxury of sophisticated out-of-order execution units common on today's commodity hardware~\cite{seiler2008larrabee,pham2006overview}.
+Achieving high performance on such systems requires decomposing the computation into kernels with high arithmetic intensity (so as not to overload the memory subsystem) and sufficient local structure to utilize vector registers and effectively schedule instructions at compile time.
 We optimized streaming stencil kernels for Blue Gene/P in \cite{malas2011streaming}, including implementation of a static scheduler that we used to rapidly perform loop optimizations with a small assembly-language building block that exploited the available SIMD floating point unit.
 With this approach, we were able to effectively use all the floating point and general purpose registers to hide instruction latency, delivering 93\% of theoretical FPU peak for the 27-point stencil with problem sizes that fit in level 1 cache and 91\% of bandwidth for larger problem sizes (72\% of FPU peak).
 These results are 80\% better than the best previously published for Blue Gene/P.
@@ -194,7 +194,7 @@ This is intended to be nearly a worst-case setting for the unassembled tensor pr
 
 The memory and floating point costs are shown in \figref{fig:tensorasm}.
 The unassembled representation is uniformly better in terms of memory use for all orders $p \ge 2$, but has significant floating point overhead for the smallest sizes, especially with small block size.
-Note that both bandwidth and computation requirements improve for the tensor product formulation when the block size inreases (because the overhead of the coordinate transformation is reduced), while they degrade for the assembled representation.
+Note that both bandwidth and computation requirements improve for the tensor product formulation when the block size increases (because the overhead of the coordinate transformation is reduced), while they degrade for the assembled representation.
 The arithmetic intensity for unassembled representations is typically around 8 flops/byte with weak dependence on polynomial order, block size, and even details of the physics (unless a great deal of recomputation is required for linearization, or a nonsymmetric high-rank tensor needs to be stored).
 This should be compared to the assembled sparse matrix representation which cannot surpass 1 flop/4 bytes even if column indices were not stored.
 As noted in \secref{ssec:sparsekernels}, modern hardware balances computation with memory when the arithmetic intensity is between about 2 and 6 flops/byte and expected to increase.

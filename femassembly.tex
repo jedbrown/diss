@@ -13,13 +13,13 @@ This suggests a specific quadrature rule that is essentially the concatenation o
 
 To represent this in software while permitting run-time choice of quadrature method, basis order, and choice of whether to assemble the true operator or low-order approximations, we introduce two small immutable objects, a \cverb|Rule| which represents a quadrature rule which may contain multiple quadrature patches and an ``element function space'' \cverb|EFS|.
 The \cverb|EFS| performs interpolation and differentiation, mapping from the degrees of freedom associated with an element to all the quadrature points of a \cverb|Rule|, and the transpose operation.
-Both \cverb|Rule|s and \cverb|EFS|s are created lazily (as needed) and stored in a cache that is typically shared by all componets of an application, but can be managed independently.
+Both \cverb|Rule|s and \cverb|EFS|s are created lazily (as needed) and stored in a cache that is typically shared by all components of an application, but can be managed independently.
 Because these objects are immutable, they can be safely shared an arbitrary number of times and only a single pointer per element needs to be stored (this can be further compressed for meshes with nearly homogeneous topology).
 It is possible to have multiple function spaces evaluate on the same \cverb|Rule| or to have a single function space evaluate on multiple \cverb|Rule|.
 This flexibility is important for multi-physics problems in which only select pieces are assembled.
 
 An arbitrary amount of specialization is performed when a \cverb|EFS| is created so the resulting kernels can be anywhere from completely unrolled to entirely dynamic, with the choice made as a run-time option.
-Common specialization choices are to unroll completly over the last dimension and to assume even or odd parity in earlier dimensions (for consistent handling of fringes).
+Common specialization choices are to unroll completely over the last dimension and to assume even or odd parity in earlier dimensions (for consistent handling of fringes).
 For lowest order elements, the tensor product formulation offers no savings so evaluation can be implemented with the usual dense matrix-vector product.
 Since the \cverb|EFS| evaluates all the basis functions at all the quadrature points, the granularity is large enough to effectively hide function call overhead for all but lowest order (linear) elements.
 
@@ -29,7 +29,7 @@ For example, residual evaluation for an elliptic problem with weak form
   \vv\cdot \bm f(\uu) \sim \int_\Omega \nabla v \cdot (1+u^2)\bm 1 \cdot \nabla u - v \exp u - v 1 = 0
 \end{align*}
 (the bold symbols on the left represent discrete vectors representing global state, the corresponding continuum formulation is on the right)
-would be implemented as the following pointwise loop where \cverb|Q| is the number of quadrature points.\footnote{C99 variable length array pointers are used to simplify indexing here, \cverb|du[i][j]| is effectively tranlated by the compiler to \cverb|du[i*3+j]| so there is no pointer indirection.}
+would be implemented as the following pointwise loop where \cverb|Q| is the number of quadrature points.\footnote{C99 variable length array pointers are used to simplify indexing here, \cverb|du[i][j]| is effectively translated by the compiler to \cverb|du[i*3+j]| so there is no pointer indirection.}
 \begin{minted}{c}
   for (i=0; i<Q; i++) {
       v[i] = -weight[i] * (exp(u[i]) - 1.);
@@ -149,7 +149,7 @@ For multi-physics problems and mixed finite element formulations, there are mult
 The order of approximation can be chosen independently for each function space, including for coordinates.
 When an iterator is created, an arbitrary number of function spaces can be added.
 When the iterator is started, one input vector and one output vector per function space may be provided (either one can be \cverb|NULL|).
-For each vector, the user secifies whether it should reside in a function space with homogeneous Dirichlet conditions or an affine function space with inhomogeneous Dirichlet conditions.
+For each vector, the user specifies whether it should reside in a function space with homogeneous Dirichlet conditions or an affine function space with inhomogeneous Dirichlet conditions.
 Dirichlet conditions are typically enforced by the library on a user-specified part of the boundary using \eqref{eq:slip:dirichlet}.
 The API to start an iterator and to evaluate test and trial functions uses variadic functions so it is easy to add more spaces without needing to use an excessively verbose or fine-grained API.
 
@@ -169,7 +169,7 @@ The intent is for the format to be simultaneously usable as checkpoints in forwa
 
 This format stores unstructured time-dependent multi-domain multi-field data.
 The mesh topology is contained in MOAB's format~\cite{moab}, although any iMesh implementation would, in principle, be sufficient.
-The tags defining the function space are stored only once, unless the conectivity or distribution changes.
+The tags defining the function space are stored only once, unless the connectivity or distribution changes.
 A function space has a reference to the geometry it is defined on.
 For problems with moving meshes, the geometry evolves, but not the topology (unless remeshing is needed, this is not yet implemented), so we avoid storing duplicate copies.
 Similarly, for arbitrary vectors defined on function spaces, only the vector values are stored at each step.
