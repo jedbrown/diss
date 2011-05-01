@@ -1,0 +1,10 @@
+\newcommand\citep[1]{\cite{#1}}
+\textsf{This chapter is in review at the SIAM Journal of Scientific Computing: Brown, J., Smith, B., and Ahmadia, A. (2011) Achieving textbook multigrid efficiency for hydrostatic ice sheet flow.}
+\vspace{0.5cm}
+
+\graphicspath{{/home/jed/tme-ice/figures/}}
+
+\textbf{Abstract.}
+The hydrostatic equations for ice sheet flow offer improved fidelity compared to the shallow ice approximation and shallow stream approximation (SSA) popular in today's ice sheet models. Nevertheless, they present a serious bottleneck because they require the solution of a 3D nonlinear system, as opposed to the 2D system present in SSA.  This 3D system is posed on high-aspect domains with strong anisotropy and variation in coefficients, making it expensive to solve using current methods.  This paper presents a Newton-Krylov multigrid solver for the hydrostatic equations that demonstrates textbook multigrid efficiency (an order of magnitude reduction in residual per iteration and solution of the fine-level system at a small multiple of the cost of a residual evaluation).  Scalability on Blue Gene/P is demonstrated, and the method is compared to various algebraic methods that are in use or have been proposed as viable approaches.
+
+\input{tme-body}
