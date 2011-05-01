@@ -11,6 +11,7 @@ diss.out
 diss.out.pyg
 diss.pdf
 diss.toc
+front.aux
 *.pyc
 JedMacros.tex
 jedbib
