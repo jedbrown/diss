@@ -66,13 +66,13 @@ We create another \cverb|EFS| that evaluates the low-order basis functions at th
 While this \cverb|EFS| is capable of all the same operations described above, we do not typically use that functionality.
 Instead, we get an explicit representation of the basis functions and derivatives for each quadrature patch, as well as the node indices needed to insert values into the matrix using the \cverb|EFSGetExplicitSparse| function.
 This is exactly what is needed for matrix assembly, but it is messy to make the user roll the loop over quadrature patches and manage associated memory, therefore we hide the hierarchy in our iterator.
-The assembly loop for any scalar second-order equation is
-\begin{minted}{c}
+The ``patch'' assembly loop for any scalar second-order equation is
+\begin{ccode}
   for (dInt q=0; q<Q; q++) {                      // Loop over quadrature points
     struct UserStash stash;
-    PointwiseStash(param,x[q],u[q],du[q],&stash); // u[q] and du[q] are high-order values of the current state
+    PointwiseStash(param,x[q],u[q],du[q],&stash); // Full accuracy nonlinearity
     for (dInt j=0; j<P; j++) {                    // Loop over trial functions
-      dScalar v,dv[3];                            // To hold coefficients of test functions
+      dScalar v,dv[3];                            // Test function coefficients
       PointwiseJacobian(param,&stash,weight[q],interp[q][j],deriv[q][j],&v,dv);
       for (dInt i=0; i<P; i++) {                  // Loop over test functions
         K[i][j] += (interp[q][i] * v
@@ -83,7 +83,7 @@ The assembly loop for any scalar second-order equation is
     }
   }
   FSMatSetValuesLocal(fs,Jp,P,lidx,P,lidx,&K[0][0],ADD_VALUES);
-\end{minted}
+\end{ccode}
 where \cverb|PointwiseJacobian| applies the action of the continuous Jacobian at the current ``stashed'' state to perturbations $w = \cverb|interp[q][j]|$ and $\nabla w = \cverb|deriv[q][j][:]|$.
 This generalizes readily to vector problems and an arbitrary number of function spaces, see the examples in the {\Dohp} source tree.
 
@@ -161,7 +161,7 @@ The implementation in {\Dohp} will work after definition of the spline bases, th
 
 \subsection{Input/output and visualization for high-order mixed spaces}
 Although there has been some work visualizing high-order basis functions~\cite{schroeder2005framework,schroeder2006methods,ueffinger2010interactive}, the code has not been released and it is not supported by the popular visualization tools such as VTK~\cite{schroeder1998visualization}, Paraview~\cite{henderson2004paraview}, and VisIt~\cite{childs2006beyond}.
-Visualization of a model that uses high order elements requires losing the high-order information by either representing each element as a structured grid or by replacing it with many smaller unstructured elements.
+Due to this deficiency, visualization of a model that uses high-order elements requires losing the high-order information by either representing each element as a structured grid or by replacing it with many smaller unstructured elements.
 Experience from other high-order projects~\cite{fischer2008nek5000} indicated that VisIt (and presumably other software) had poor scaling when thousands or millions of ``grids'' were defined, therefore {\Dohp} chose to simply represent everything using unstructured low-order elements.
 It is simple for an application to write it's entire state into an unstructured file, but the connectivity for lowest order elements is expensive to store and it is no longer possible to recover the high-order state.
 Because there were no extensible formats for storing high-order mesh data, {\Dohp} defined its own HDF5-based~\cite{hdf5} format, with read and write functionality for function spaces and vectors using PETSc's Viewer framework.

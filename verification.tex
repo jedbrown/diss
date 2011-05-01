@@ -46,7 +46,7 @@ For the purpose of verifying a calculation (in which the answer is not known), M
 In other words, numerical evidence that a sequence of computational results on successively refined approximation spaces is \emph{Cauchy} becomes a convincing argument that the sequence converges to the correct solution of the governing equations, and even at the rate predicted by the theory.
 
 As an example, we consider large deformation elasticity and implement the weak form in Python using the SymPy~\cite{sympy-web-page} symbolic algebra package as
-\begin{minted}{python}
+\begin{pythoncode}
   def weak_form(u, du, v, dv):
     I = eye(3)                      # Identity tensor
     F = I - du                      # Deformation gradient
@@ -54,16 +54,16 @@ As an example, we consider large deformation elasticity and implement the weak f
     S = lmbda*E.trace()*I + 2*mu*E  # Second Piola-Kirchoff tensor
     Pi = F * S                      # First Piola-Kirchoff tensor
     return dv.dot(Pi)
-\end{minted}
+\end{pythoncode}
 where \pyverb|lmbda| and \pyverb|mu| are material parameters and a St. Venant-Kirchoff constitutive model has been used (neo-Hookean and other models are handled simply by changing the definition of \pyverb|S|).
 The homogeneous weak form above is symbolically differentiated to produce a strong form of the governing equations.
 A manufactured solution is defined in Python as
-\begin{minted}{python}
+\begin{pythoncode}
   def solution(x,y,z, a,b,c):
     return Matrix([cos(a*x) * exp(b*y) * z + sin(c*z),
                    sin(a*x) * tanh(b*y) + x * cosh(c*z),
                    exp(a*x) * sinh(b*y) + y * log(1+(c*z)**2)])
-\end{minted}
+\end{pythoncode}
 with free parameters \pyverb|a|, \pyverb|b|, and \pyverb|c|.
 The strong form of the governing equations is then applied to this exact solution, with spatial differentiation performed symbolically, and a forcing term is generated.
 The forcing term for this model involves more than a thousand transcendental functions, but C code for its evaluation is automatically generated and does not need to be examined.
