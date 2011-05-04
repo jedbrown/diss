@@ -48,7 +48,7 @@ In particular, the velocity space must be at least quadratic for stability reaso
 This means that the normal need not be constrained on any flat element face (but having no constraint admits non-physical recirculation within elements) and that for isoparametrically mapped elements with small face curvature, the definition of the normal becomes unstable due to near cancellation and can flip direction as the surface evolves.
 This problem does not occur for non-deformed quadrilaterals (on the surface of a hexahedral mesh), but may arise for sufficiently deformed elements.
 The extra constraint on element quality is inconvenient for moving mesh simulations and for meshing complex structures, but it is a limitation that we accept in the present work.
-An interesting alternative is to eschew Lagrange interpolants in favor of the non-negative spline bases used in isogeometric analysis~\cite{cottrell2009isogeometric}, see \cite{akkerman2011isogeometric} for recent results with free surface flows.
+An interesting alternative is to eschew Lagrange interpolants in favor of non-negative bases such as Bernstein polynomials or more generally, the spline bases used in isogeometric analysis~\cite{cottrell2009isogeometric}; see \cite{akkerman2011isogeometric} for recent results with free surface flows.
 
 When implementing the normal constraint in slip boundary conditions, it is not practical to remove the normal component from the ansatz space so we prefer to leave them in as described in \secref{ssec:implementation-dirichlet}.
 To enforce Dirichlet conditions on the normal component, we rotate coordinates in the global vector so that the normal component is isolated.
