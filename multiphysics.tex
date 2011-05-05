@@ -48,7 +48,9 @@ Relaxation methods are inspired by the classical stationary iterative methods th
 \end{align*}
 which can be accessed at runtime using the PETSc option \code{-pc\_fieldsplit\_type additive}, \code{multiplicative}, and \code{symmetric\_multiplicative} respectively.
 Relaxation is simple to use and expected to perform well when the diagonal blocks control the dynamics of the system or in which the coupling is one-way.
-\todo{Elaborate here, the Schur complement quantifies the difference.}
+Heuristically, this occurs when there are few modes $y$ in the second space for which $\norm{B y}$ is large compared to $\norm{D y}$.
+We expect problems if $A$ or $D$ is nearly singular or ``small'' compared to $B$ and $C$ on a sizable subspace.
+More precisely, relaxation splitting will perform well if $D$ is a good approximation to the Schur complement $S = D - CA^{-1}B$.
 
 Stiff hyperbolic waves and systems with constraints are two common cases where relaxation breaks down.
 The first is somewhat more benign and we use the shallow water equations as an illustrative example.
