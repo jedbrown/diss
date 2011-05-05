@@ -1,16 +1,16 @@
 \begin{quote}
-  \emph{The easiest way to make software scalable is to make it sequentially inefficient.}~\cite{gropp1999exploiting}
+  \emph{The easiest way to make software scalable is to make it sequentially inefficient.}~\citep{gropp1999exploiting}
 \end{quote}
 
 \subsection{Sparse matrix kernels}\label{ssec:sparsekernels}
 
 This section briefly describes some optimizations that improved PETSc's matrix kernels by about 30\% on Intel and AMD architectures, bringing them quite close to the memory bandwidth limits.
-This was implemented subsequent to the new data structures for factored matrices described in \cite{smith2010sparse} and thus represents an additional improvement.
+This was implemented subsequent to the new data structures for factored matrices described in \citet{smith2010sparse} and thus represents an additional improvement.
 
 The following hardware descriptions generally hold across Intel Core, Core 2, and Core i7 as well as AMD K8 and K10 microarchitectures.
 Most variation is due to different prefetch and TLB semantics as well as different latencies for vector instructions.
-Details can be found in the optimization reference manuals~\cite{intel2011optimization,amd2009optimization} as well as Agner Fog's excellent resources~\cite{fog2011michoarchitecture,fog2011instruction}.
-See \cite{drepper2007memory} for a more accessible introduction to the memory hierarchy.
+Details can be found in the optimization reference manuals~\citep{intel2011optimization,amd2009optimization} as well as Agner Fog's excellent resources~\citet{fog2011michoarchitecture,fog2011instruction}.
+See \citet{drepper2007memory} for a more accessible introduction to the memory hierarchy.
 
 Most of our optimizations involve maximal reuse of level 1 data (L1D) cache, higher level caches, and streaming bandwidth.
 Each floating point unit can issue one packed add and one packed multiply per clock cycle, with latencies of 3 to 5 cycles.
@@ -26,7 +26,7 @@ The systems above balance computation with memory when the arithmetic intensity 
 
 The hardware prefetch unit can recognize 16 forward-moving streams and 4 backward-moving streams, but only one stream per 4 kB page and not across page boundaries.
 Additionally, the hardware prefetcher does not resolve minor TLB misses which is a significant issue because the TLB can only address 1 or 2 MB and TLB misses produce roughly 60 cycles of latency, plus DRAM latency if the resulting address is not in high-level cache.
-Software prefetch can hide these latencies and resolve TLB misses in advance, providing roughly 20\% improvement in our STREAM benchmarks~\cite{mccalpin2007stream}.
+Software prefetch can hide these latencies and resolve TLB misses in advance, providing roughly 20\% improvement in our STREAM benchmarks~\citep{mccalpin2007stream}.
 In addition to improving overall bandwidth, software prefetch instructions can set a ``non-temporal access'' (NTA) policy such that lines evicted from L1D will not subsequently reside in higher level caches.
 
 We consider four matrix formats with increasing amounts of structure: {\AIJ}, {\AIJInode}, {\BAIJ}, and {\SBAIJ}.
@@ -45,7 +45,7 @@ Assuming perfect cache reuse with $m$ rows and an average of $n$ nonzeros per ro
 \end{align*}
 where the long-row limit is calculated for \cverb|double| precision and 32 bit integers.
 In practice, the vector will not reuse cache perfectly so some entries of $x$ will need to be loaded into cache more than once.
-Choosing a low-bandwidth ordering such as Reverse Cuthill-McKee~\cite{cuthill1969reducing} (RCM) improves cache reuse which reduces end-to-end run time substantially (speeding up matrix-free operations such as residual evaluation in addition to sparse matrix kernels), e.g. by more than a factor of 2~\cite{gropp2000pmt}.
+Choosing a low-bandwidth ordering such as Reverse Cuthill-McKee~\citep{cuthill1969reducing} (RCM) improves cache reuse which reduces end-to-end run time substantially (speeding up matrix-free operations such as residual evaluation in addition to sparse matrix kernels), e.g. by more than a factor of 2~\citep{gropp2000pmt}.
 Our optimization for {\AIJ} consisted of inserting software prefetch instructions to initiate loads of every cache line holding entries in the row after the current one.
 The L1D cache line length is detected during configuration so only one prefetch instruction per line is issued (it is 64 bytes on the x86-64 microarchitectures considered here).
 Sparse matrix-vector products for PDEs can be thought of as a stencil operation combined with a high-volume stream of matrix entries and column indices (the weights and shape of the stencil).
@@ -82,7 +82,7 @@ In return, the storage and arithmetic intensity is almost double that of nonsymm
 \end{align*}
 % let scalar = 8; int = 4; intenBAIJ n b = 2*n*b / ((n+1)*b*scalar + (n/b+1)*int); intenAIJInode n b = 2*n*b/((n+1)*b*scalar + (n+2)*int)
 
-The data structure change described in \cite{smith2010sparse} caused both forward and back solves to traverse matrix entries forward in memory when using (incomplete) LU.
+The data structure change described in \citet{smith2010sparse} caused both forward and back solves to traverse matrix entries forward in memory when using (incomplete) LU.
 Even though the matrix entries are fetched moving forward, the stencil for ``back solve'' still moves backward through memory so there are much fewer hardware prefetch streams (4 instead of 16 forward-moving on Intel/AMD, there is no hardware prefetch for backward-moving streams on Blue Gene/P).
 
 For (incomplete) Cholesky, the factors are only stored once so it is not possible for both forward and back solves to traverse matrix entries by moving forward.
@@ -103,7 +103,7 @@ On Opteron, the single-threaded Triad achieved 5.8 GB/s, increasing to \todo{XXX
 
 Table~\ref{tab:throughput:baij} shows the performance of the three primary sparse matrix kernels with each storage format on both test machines.
 With prefetch enabled, the sparse matrix kernels obtain a remarkably high fraction of theoretical peak bandwidth, especially on Intel processors.
-Indeed, the scalar format performance is competitive with the best {\MatMult} results of \cite{williams2007osm} and block formats are consistently faster by a factor of 20 to 30 percent.
+Indeed, the scalar format performance is competitive with the best {\MatMult} results of \citet{williams2007osm} and block formats are consistently faster by a factor of 20 to 30 percent.
 Block formats provide greater benefit for {\MatSolve} than for {\MatMult}, with {\BAIJ} {\MatSolve} frequently outperforming the corresponding {\MatMult}.
 We are not aware of previous reports of this effect and speculate that it is due to {\MatSolve} having fewer read streams and using only one vector at a time ({\MatMult} reads from one vector and writes to another, {\MatSolve} is in-place).
 
@@ -161,14 +161,14 @@ This is not possible when applying $C$ because packed loads (and vector arithmet
 The input could be transposed to avoid this constraint, but the cost for small sizes overwhelms the benefit, therefore we are forced to use one \asm{HADDPD} instruction per packed result $y_{i,j,k:k+1}$ and the reduction also creates some unavoidable (without more registers) pipeline stalls.
 Application of $A\otimes B\otimes \bm 1$ achieve nearly 80\% of floating point peak on the Core 2 Duo while $C$ is reduced to near 60\%.
 The full tensor product contraction $A\otimes B\otimes C$ achieves more than 70\% of floating point peak on Intel and about 60\% on AMD.
-This performance is comparable to or better than the best autotuned results of \cite{shin2010speeding}, though they achieve slightly higher performance for larger sizes (which have less overhead).
-Note that large size tensor contractions are important for quantum chemistry and have thus received more optimization attention, \eg \cite{kaushik2008improving,hirata2003tensor}.
+This performance is comparable to or better than the best autotuned results of \citet{shin2010speeding}, though they achieve slightly higher performance for larger sizes (which have less overhead).
+Note that large size tensor contractions are important for quantum chemistry and have thus received more optimization attention \citep[\eg][]{kaushik2008improving,hirata2003tensor}.
 Contrast the tensor product performance with sparse matrix kernels that attain less than 10\% of floating point peak due to low arithmetic intensity.
 
-An old \cite{mccalpin2007stream} but continuing trend in computer architecture is for peak floating point performance to continue to improve via the use of longer registers (Intel's AVX and the Blue Gene/Q architecture have packed 32-byte floating point registers), more cores, and GPU-style vectorization while memory bandwidth increases much more slowly~\cite{keyes2011exaflop}.
-An additional feature of upcoming high-performance computing architectures is the prevalence of in-order execution; high power requirements no longer justify the luxury of sophisticated out-of-order execution units common on today's commodity hardware~\cite{seiler2008larrabee,pham2006overview}.
+An old \citep{mccalpin2007stream} but continuing trend in computer architecture is for peak floating point performance to continue to improve via the use of longer registers (Intel's AVX and the Blue Gene/Q architecture have packed 32-byte floating point registers), more cores, and GPU-style vectorization while memory bandwidth increases much more slowly~\citep{keyes2011exaflop}.
+An additional feature of upcoming high-performance computing architectures is the prevalence of in-order execution; high power requirements no longer justify the luxury of sophisticated out-of-order execution units common on today's commodity hardware~\citep{seiler2008larrabee,pham2006overview}.
 Achieving high performance on such systems requires decomposing the computation into kernels with high arithmetic intensity (so as not to overload the memory subsystem) and sufficient local structure to utilize vector registers and effectively schedule instructions at compile time.
-We optimized streaming stencil kernels for Blue Gene/P in \cite{malas2011streaming}, including implementation of a static scheduler that we used to rapidly perform loop optimizations with a small assembly-language building block that exploited the available SIMD floating point unit.
+We optimized streaming stencil kernels for Blue Gene/P in \citet{malas2011streaming}, including implementation of a static scheduler that we used to rapidly perform loop optimizations with a small assembly-language building block that exploited the available SIMD floating point unit.
 With this approach, we were able to effectively use all the floating point and general purpose registers to hide instruction latency, delivering 93\% of theoretical FPU peak for the 27-point stencil with problem sizes that fit in level 1 cache and 91\% of bandwidth for larger problem sizes (72\% of FPU peak).
 These results are 80\% better than the best previously published for Blue Gene/P.
 

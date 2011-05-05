@@ -22,19 +22,19 @@
 \section{Introduction}
 High order spatial discretization has significant advantages over low order when high accuracy is required, especially
 when the solution is smooth.  When the solution is only piecewise smooth, $hp$ finite element
-methods~\cite{demkowicz1989tuh,oden1989tuh,rachowicz1989tuh,schwab1998pah} are capable of exponential
+methods~\citep{demkowicz1989tuh,oden1989tuh,rachowicz1989tuh,schwab1998pah} are capable of exponential
 convergence, but high order discretization may yield higher quality results before asymptotic convergence rates are
 realized.  Optimal $hp$ meshes are usually defined in terms of minimizing the discretization error for a given number of
-degrees of freedom, and effective refinement strategies (e.g. \cite{ainsworth1998ars,demkowicz2002fah}) have been
+degrees of freedom, and effective refinement strategies \citep[\eg][]{ainsworth1998ars,demkowicz2002fah} have been
 developed relative to this metric.
 
 Due to rapid loss of sparsity in the Jacobian under $p$-refinement, the total number of degrees of freedom is only
 weakly related to the practical performance metrics, computational time and storage requirements.  For linear constant
 coefficient problems, this can be avoided by choosing special hierarchical bases that preserve
-sparsity~\cite{karniadakis2005she}.  When the spectral element method (a special case of nodal $p$-FEM which reuses the
+sparsity~\citep{karniadakis2005she}.  When the spectral element method (a special case of nodal $p$-FEM which reuses the
 interpolation nodes for quadrature) is used with (nearly) affine elements, linear constant coefficient problems can be
 very efficiently solved using the fast diagonalization method combined with a multilevel coarse
-solve~\cite{lottes2005hms}.
+solve~\citep{lottes2005hms}.
 
 For nonlinear and variable coefficient problems in 3D, the element matrices are necessarily dense and fast
 diagonalization is not available.  For order $p$ tensor product bases on hexahedral elements, there are $n = (p+1)^3$
@@ -69,8 +69,8 @@ the asymptotic range.
 
 To develop efficient solvers for high order elements, we examine the bottlenecks present in nonlinear solvers, and
 design the discretization to eliminate as many of these bottlenecks as possible.  Our approach to preconditioning
-involves the method proposed by \cite{orszag1980smp} and further investigated by
-\cite{deville1985cps,deville1990fep,heys2005amh,kim2007pbp}, resulting in a scheme with storage costs equivalent to
+involves the method proposed by \citet{orszag1980smp} and further investigated by
+\citet{deville1985cps,deville1990fep,heys2005amh,kim2007pbp}, resulting in a scheme with storage costs equivalent to
 $Q_1$ (piecewise trilinear) elements independent of $p$ and total CPU time which is mesh independent and only weakly
 dependent on $p$.  The principle contributions of this paper are a formulation of this preconditioner that is applicable
 to general nonlinear systems, a matrix-free representation of the Jacobian, and observation of a much lower
@@ -79,7 +79,7 @@ to general nonlinear systems, a matrix-free representation of the Jacobian, and 
 \section{Newton-Krylov}\label{sec:jfnk}
 Jacobian-free Newton-Krylov (JFNK) methods combine Newton-type methods for superlinearly convergent solution of
 nonlinear equations with Krylov subspace methods for solving the Newton step without actually forming the true
-Jacobian~\cite{knoll2004jfn}.  In this section, we introduce the method and highlight the performance bottlenecks.
+Jacobian~\citep{knoll2004jfn}.  In this section, we introduce the method and highlight the performance bottlenecks.
 \subsection{The Newton iteration}
 The Newton iteration for the nonlinear system $F(x) = 0$ with state vector $x$ involves solving the sequence of linear
 systems
@@ -101,7 +101,7 @@ Krylov methods solve $J x = b$ using the Krylov subspaces
 \end{equation*}
 where $\tilde J = P^{-1}J$, $\tilde b = P^{-1}b_0$ for left preconditioning and $\tilde J = J P^{-1}$, $\tilde b = b$
 for right preconditioning.  The convergence rate of various Krylov methods (e.g. CG, MINRES, GMRES, BiCGStab, QMR)
-depend in diverse ways on the spectral properties of $\tilde J$ (\eg \cite{nachtigal1992fnm} constructs a linear system
+depend in diverse ways on the spectral properties of $\tilde J$ (\eg \citet{nachtigal1992fnm} constructs a linear system
 for each Krylov scheme listed above, for which that scheme beats all other schemes by a large margin)
 but a useful heuristic is that the iteration count scales as
 the square root of $\kappa(\tilde J)$.  When solving the Newton step \eqref{eq:newton} we rely on $P^{-1}$ to overcome
@@ -144,7 +144,7 @@ denser coarse operator).  The coarse operator needs to be factored, a task that 
 solve involves matrix multiplication and smoothers on each level.
 
 The relative cost of these three phases (assembly, setup, solve) is highly problem dependent, but we offer some general
-guidelines for perspective; see \cite{gropp2000pmt,knoll2004jfn,knoll1998eni} for more detailed analysis of these
+guidelines for perspective; see \citet{gropp2000pmt,knoll2004jfn,knoll1998eni} for more detailed analysis of these
 issues.  Matrix assembly in finite element methods involves pointwise operations at quadrature points and is typically
 limited by instruction level parallelism and scheduling (especially for high-order methods).  The setup and solve phases
 are limited by memory bandwidth on the fine levels and by network latency on the coarse levels.  An important issue is
@@ -170,7 +170,7 @@ accuracy.  In particular, $J(x^{k}) s^k = - F(x^k)$ may be ``solved'' so that
 \end{equation*}
 and the method converges $q$-superlinearly as long as $\eta^k \to 0$, and $q$-quadratically if $\eta^k \in
 \bigO(\norm{F(x^k)})$.  Various heuristics have been developed to automatically adjust the ``forcing term'' $\eta^k$ to
-avoid oversolving without sacrificing quadratic convergence in the terminal phase, see \cite{eisenstat1996cft} for
+avoid oversolving without sacrificing quadratic convergence in the terminal phase, see \citet{eisenstat1996cft} for
 further discussion and a particularly useful heuristic which we use in the numerical examples.
 
 \section{High order finite element methods}\label{sec:hpfem}
@@ -225,7 +225,7 @@ each $\EE^e$ extracts the degrees of freedom associated with element $e$ from th
 a conforming mesh and equal approximation order on every element, $\EE$ will have a single unit entry per row.  When the
 mesh is $h$- or $p$-nonconforming, a global basis can be chosen by using minimum order on the largest faces and edges,
 then the element basis can be constrained by writing it as a linear combination of global basis
-functions~\cite{demkowicz1989tuh}.
+functions~\citep{demkowicz1989tuh}.
 
 \subsection{Residual evaluation}\label{sec:res-eval}
 We now turn to evaluation of the discrete residual statement $F(u) = 0$ in weak form.  Since the weak form is always
@@ -290,7 +290,7 @@ and any preconditioner $\Ppc$ for assembled matrices can be used in the Krylov i
 but that is rarely the most economical choice.  When multigrid works well, such as for elliptic problems with smooth
 coefficients, we find that $\Ppc = MG$ requires very few extra iterations compared to a direct solve $\Ppc = LU$.  This
 preconditioner has received substantial attention in the collocation and spectral element contexts
-(e.g. \cite{orszag1980smp,deville1985cps,deville1990fep,heys2005amh,kim2007pbp}), but is not widely used for Galerkin
+\citep[\eg][]{orszag1980smp,deville1985cps,deville1990fep,heys2005amh,kim2007pbp}, but is not widely used for Galerkin
 discretization with independent quadrature.
 
 \begin{figure}
@@ -315,7 +315,7 @@ arithmetic intensity to almost 1 flop / 4 bytes.  In addition, it is advantageou
 processor to reduce the matrix bandwidth (e.g. with reverse Cuthill-McKee), thus improving cache reuse by the vector
 during matrix-vector multiplication and preconditioning kernels (relaxation and solves with factors), and also the
 effectiveness of these preconditioning kernels.  On our 3D elasticity test, these two optimizations combined for a 75\%
-speedup relative to scalar formats in the natural ordering, see \cite{gropp2000pmt} for further analysis of blocking and
+speedup relative to scalar formats in the natural ordering, see \citet{gropp2000pmt} for further analysis of blocking and
 reordering.
 
 High order methods allow much more effective utilization of today's multicore hardware.  An implementation of the tensor
@@ -328,10 +328,10 @@ problem is only 2.5 times slower than the assembled $Q_2$ Jacobian when using on
 
 \section{Numerical examples}\label{sec:examples}
 All examples with dual-order preconditioning were implemented as part of a new C library named \emph{Dohp}, available
-from the author, which is tightly integrated with PETSc~\cite{petsc-user-ref} and uses the ITAPS~\cite{itapsproject}
-interfaces for mesh and geometry services.  In particular, we use the MOAB~\cite{moab} and CGM~\cite{cgm}
+from the author, which is tightly integrated with PETSc~\citep{petsc-user-ref} and uses the ITAPS~\citep{itapsproject}
+interfaces for mesh and geometry services.  In particular, we use the MOAB~\citep{moab} and CGM~\citep{cgm}
 implementations of the \emph{iMesh} and \emph{iGeom} interfaces.  In the examples using algebraic multigrid, we use
-smoothed aggregation from ML~\cite{ml-guide} and classical multigrid from BoomerAMG~\cite{henson2002bpa}, all accessed
+smoothed aggregation from ML~\citep{ml-guide} and classical multigrid from BoomerAMG~\citep{henson2002bpa}, all accessed
 through the common PETSc interface.  The ML interface is designed to only produce aggregates which PETSc uses to
 construct the multigrid hierarchy and thus exposes all PETSc preconditioners as smoothers, while BoomerAMG is
 essentially a black-box preconditioner.  Smoothed aggregation is known to scale slightly superlinearly, but in our tests
@@ -340,7 +340,7 @@ PETSc-3.0.0, ML-6.2\footnote{We have observed that ML-6.2 produces much higher q
   assembled $Q_2$ case, leading to a 50\% speedup and significantly lower memory usage.}, and BoomerAMG from
 Hypre-2.4.0b.
 
-The \texttt{libMesh}~\cite{libmesh} library is used to provide a reference for conventional methods (based on assembling
+The \texttt{libMesh}~\citep{libmesh} library is used to provide a reference for conventional methods (based on assembling
 the true Jacobian).  Since \texttt{libMesh} also uses PETSc for linear algebra, identical solver parameters are used so
 that the results are representative.
 
@@ -349,7 +349,7 @@ The inhomogeneous $\pfrak$-Laplacian is
 \begin{equation*}
   -\nabla \cdot (\abs{\nabla u}^{\pfrak-2} \nabla u) - f = 0
 \end{equation*}
-where $1 \le \pfrak \le \infty$ (see \cite{evans2007lol} for discussion of these limiting cases).  This equation is
+where $1 \le \pfrak \le \infty$ (see \citet{evans2007lol} for discussion of these limiting cases).  This equation is
 singular at $\nabla u = 0$ when $\pfrak<2$ and degenerate when $\pfrak>2$, so we solve a regularized variant with weak
 form: find $u \in V_D$ such that
 \begin{equation}\label{eq:ppoisson}
@@ -425,7 +425,7 @@ Table~\ref{tab:libmesh}.  Note the greatly reduced assembly time compared to con
 \subsubsection{Poor-quality meshes}
 Figure~\ref{fig:quality} shows two low-quality meshes, \texttt{twist} and \texttt{random}.  The first was generated by
 stretching and twisting a mesh of the reference cube and the second generated using the ``random'' feature of
-Cubit~\cite{blacker1994cmg}.  Additionally, we consider \texttt{flat}, a uniform Cartesian mesh with dimensions $1\times
+Cubit~\citep{blacker1994cmg}.  Additionally, we consider \texttt{flat}, a uniform Cartesian mesh with dimensions $1\times
 1 \times 10^{-5}$.  These should be compared to \texttt{brick}, an $8^3$ mesh of the reference cube.
 
 \begin{figure}
@@ -515,7 +515,7 @@ offers more preconditioning choices.
   \caption{Time (seconds) spent in various stages of a nonlinear solve for $Q_3$ elements preconditioned by ILU(0) and
     ILU(1) applied to the corresponding $Q_1$ matrix.  The first columns solve the linear system
     to a relative tolerance of $10^{-4}$ with a maximum of 60 Krylov iterations per Newton, the latter use the
-    Eisenstat-Walker method for adjusting solver tolerances \cite{eisenstat1996cft} with a maximum of 30 Krylov iterations.
+    Eisenstat-Walker method for adjusting solver tolerances \citep{eisenstat1996cft} with a maximum of 30 Krylov iterations.
     The events \emph{MF MatMult} (matrix-free Jacobian application), \emph{PCSetup}, and \emph{PCApply} are part of the
     \emph{Krylov} iteration.  Additional \emph{Residual} evaluations are needed when the line search is activated.}
 \label{tab:nonlinear}
@@ -533,8 +533,7 @@ the discrete inf-sup condition
 \begin{equation*}
   \inf_{p} \sup_{u} \frac{\int_\Omega p \nabla \cdot u}{\norm{p}_{0} \norm{u}_1} \ge \beta > 0 .
 \end{equation*}
-The finite element space $Q_k-Q_{k-2}$ is stable with $\beta \in \bigO(k^{-(d-1)/2})$ in $d$ dimensions (see
-\cite{schotzau1998mhf}) and is thus quite usable for the modest orders we propose.
+The finite element space $Q_k-Q_{k-2}$ is stable with $\beta \in \bigO(k^{-(d-1)/2})$ in $d$ dimensions \citep[see][]{schotzau1998mhf} and is thus quite usable for the modest orders we propose.
 
 \subsubsection{Indefinite preconditioning}
 Standard preconditioners perform poorly or fail completely when applied to indefinite problems.  Block factorization
@@ -548,10 +547,10 @@ factoring the Jacobian as
 \end{equation}
 where $S = -BA^{-1}B^T$ is the Schur complement which is dense and must be preconditioned by other means.  When GMRES is
 used with left (right) preconditioning, the upper (lower) block is typically dropped (since the resulting exactly
-preconditioned operator has minimal degree 2, see \cite{murphy2000npi}), and all occurrences of $A^{-1}$ are replaced by
-a suitable preconditioner.  There are numerous ways to precondition $S$ (e.g. \cite{benzi2005nss,elman2008tcp}), here we
+preconditioned operator has minimal degree 2, see \citet{murphy2000npi}), and all occurrences of $A^{-1}$ are replaced by
+a suitable preconditioner.  There are numerous ways to precondition $S$ \citep[\eg][]{benzi2005nss,elman2008tcp}, here we
 use only the classic pressure mass matrix $M_p$, but more sophisticated methods are needed for strongly heterogeneous or
-anisotropic problems (see \cite{may2008pim}), for Navier-Stokes with non-vanishing Reynolds number, and for short time
+anisotropic problems \citep[see][]{may2008pim}, for Navier-Stokes with non-vanishing Reynolds number, and for short time
 steps in a time-dependent simulation.  With the dual-order method, it is only necessary to assemble matrices to
 precondition $A$ and $S$ (the latter via a diagonal approximation to the mass matrix $M_p$), all ``matrix multiplies''
 are performed matrix-free.

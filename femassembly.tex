@@ -105,7 +105,7 @@ Some possible choices that are automatically supported by client applications of
   This is practical for problems where the geometry of the domain has finer structure than coefficients.
 \end{itemize}
 
-To demonstrate that this generic formulation does not severely degrade performance for low-order approximations, we compare \Dohp's assembly cost to that of the well-known finite element libraries {\libmesh}~\cite{libmesh} and {\dealii}~\cite{bangerth2007deal}.
+To demonstrate that this generic formulation does not severely degrade performance for low-order approximations, we compare \Dohp's assembly cost to that of the well-known finite element libraries {\libmesh}~\citep{libmesh} and {\dealii}~\citep{bangerth2007deal}.
 \tabref{tab:dohpasm} shows the assembly time for a Laplacian on a cube using all three libraries.
 Example 4 was used from the latest versions of both {\libmesh} and {\dealii}.
 For \dealii, constants in the code needed to be changed to change the mesh resolution and element order, and timing calls (using \cverb|clock_gettime(2)|) needed to be added.
@@ -155,27 +155,27 @@ For each vector, the user specifies whether it should reside in a function space
 Dirichlet conditions are typically enforced by the library on a user-specified part of the boundary using \eqref{eq:slip:dirichlet}.
 The API to start an iterator and to evaluate test and trial functions uses variadic functions so it is easy to add more spaces without needing to use an excessively verbose or fine-grained API.
 
-Finally, we mention that this software design naturally supports isogeometric analysis (IGA) \cite{cottrell2009isogeometric} which replaces the Lagrange interpolants with splines, usually non-rational splines (NURBS).
+Finally, we mention that this software design naturally supports isogeometric analysis (IGA) \citep{cottrell2009isogeometric} which replaces the Lagrange interpolants with splines, usually non-rational splines (NURBS).
 Advantages of IGA relative to conventional finite element methods include higher order continuity (especially important for equations beyond second order such as shell elements for structural mechanics or the Cahn-Hilliard equation for separation), the ability to represent certain geometries exactly (especially those created by computer-aided design software, thus simplifying the meshing process), and non-negative basis functions which enable robust definitions of normals for conservative slip and better control over positivity.
 Disadvantages include more nonzero entries in the assembled matrices and more complex implementation.
 To support IGA under the framework above, we identify a ``NURBS patch'' with \Dohp's ``element'' and IGA's ``element'' with \Dohp's ``quadrature patch''.
 The implementation in {\Dohp} will work after definition of the spline bases, though it would require additional code to support especially large NURBS patches, such as those spanning multiple processors.
 
 \subsection{Input/output and visualization for high-order mixed spaces}
-Although there has been some work visualizing high-order basis functions~\cite{schroeder2005framework,schroeder2006methods,ueffinger2010interactive}, the code has not been released and it is not supported by the popular visualization tools such as VTK~\cite{schroeder1998visualization}, Paraview~\cite{henderson2004paraview}, and VisIt~\cite{childs2006beyond}.
+Although there has been some work visualizing high-order basis functions~\citep{schroeder2005framework,schroeder2006methods,ueffinger2010interactive}, the code has not been released and it is not supported by the popular visualization tools such as VTK~\citep{schroeder1998visualization}, Paraview~\citep{henderson2004paraview}, and VisIt~\citep{childs2006beyond}.
 Due to this deficiency, visualization of a model that uses high-order elements requires losing the high-order information by either representing each element as a structured grid or by replacing it with many smaller unstructured elements.
-Experience from other high-order projects~\cite{fischer2008nek5000} indicated that VisIt (and presumably other software) had poor scaling when thousands or millions of ``grids'' were defined, therefore {\Dohp} chose to simply represent everything using unstructured low-order elements.
+Experience from other high-order projects~\citep{fischer2008nek5000} indicated that VisIt (and presumably other software) had poor scaling when thousands or millions of ``grids'' were defined, therefore {\Dohp} chose to simply represent everything using unstructured low-order elements.
 It is simple for an application to write it's entire state into an unstructured file, but the connectivity for lowest order elements is expensive to store and it is no longer possible to recover the high-order state.
-Because there were no extensible formats for storing high-order mesh data, {\Dohp} defined its own HDF5-based~\cite{hdf5} format, with read and write functionality for function spaces and vectors using PETSc's Viewer framework.
+Because there were no extensible formats for storing high-order mesh data, {\Dohp} defined its own HDF5-based~\citep{hdf5} format, with read and write functionality for function spaces and vectors using PETSc's Viewer framework.
 The intent is for the format to be simultaneously usable as checkpoints in forward simulation, as part of time-dependent adjoint solves, and for visualization, without the need for custom support for each application.
 
 This format stores unstructured time-dependent multi-domain multi-field data.
-The mesh topology is contained in MOAB's format~\cite{moab}, although any iMesh implementation would, in principle, be sufficient.
+The mesh topology is contained in MOAB's format~\citep{moab}, although any iMesh implementation would, in principle, be sufficient.
 The tags defining the function space are stored only once, unless the connectivity or distribution changes.
 A function space has a reference to the geometry it is defined on.
 For problems with moving meshes, the geometry evolves, but not the topology (unless remeshing is needed, this is not yet implemented), so we avoid storing duplicate copies.
 Similarly, for arbitrary vectors defined on function spaces, only the vector values are stored at each step.
-The actual output for vectors is typically done using collective MPI-IO~\cite{corbett1995overview} accessed through HDF5.
+The actual output for vectors is typically done using collective MPI-IO~\citep{corbett1995overview} accessed through HDF5.
 
 For each scalar or vector field, function spaces keep track of the name, units, and an arbitrary scaling factor.
 The scaling factor is needed for bitwise exact recovery of serialized state when the model works with non-dimensionalized fields, otherwise rounding error contaminates the low bits.

@@ -1,24 +1,24 @@
 How reliable are the results of a numerical simulation?
 Under what circumstances can decisions by made based on the results of a calculation?
-Answering these questions involves two distinct steps known as Verification and Validation~\cite{babuska2004vav,roache1998verification}.
+Answering these questions involves two distinct steps known as Verification and Validation~\citep{babuska2004vav,roache1998verification}.
 Verification is the purely mathematical endeavor of determining if a computational model obtained by discretizing a mathematical model of a physical process can be used to represent the mathematical model with sufficient accuracy---\emph{solving the equations right}.
-It is an essential prerequisite for Validation which is the process of assessing whether a mathematical model is a sufficiently accurate model of a physical process---\emph{solving the right equations}~\cite{roache1998verification}.
-To quote \cite{babuska2004vav},``any validation exercise that is based on a computational model in which discretization error is not quantified is futile, because modeling and approximation error are then intertwined in an indecipherable way.''
+It is an essential prerequisite for Validation which is the process of assessing whether a mathematical model is a sufficiently accurate model of a physical process---\emph{solving the right equations}~\citep{roache1998verification}.
+To quote \citet{babuska2004vav},``any validation exercise that is based on a computational model in which discretization error is not quantified is futile, because modeling and approximation error are then intertwined in an indecipherable way.''
 The distinction, and uncertainty quantification in general, has been largely overlooked by numerical modeling efforts in glaciology.
 Many problems in geophysics, and especially in glaciology, lack accurate observations of material parameters, boundary conditions, or geometry, and thus, can only rigorously be modeled as stochastic processes.
-The field of stochastic PDEs~\cite{deb2001ssp,ghanem2003sfe,chow2007stochastic} is however, quite young, and despite promising work on challenging prototype application problems~\cite{asokan2006stochastic,ganapathysubramanian2007sgc,zabaras2008scalable,mishra2011mlmcfvm}, is not yet mature enough for analysis of ice flow problems.
+The field of stochastic PDEs~\citep{deb2001ssp,ghanem2003sfe,chow2007stochastic} is however, quite young, and despite promising work on challenging prototype application problems~\citep{asokan2006stochastic,ganapathysubramanian2007sgc,zabaras2008scalable,mishra2011mlmcfvm}, is not yet mature enough for analysis of ice flow problems.
 Therefore, we are limited to deterministic models in which uncertainty in material parameters, boundary conditions, and geometry are handled in a more heuristic way.
 Inability to measure and/or control these sources of uncertainty, as well as the diversity of measurement types, each with its own (often sparse) spatial and temporal distribution, makes validation an ongoing process that can never truly be completed.
 Verification of a deterministic numerical model for a known class of input parameters, on the other hand, is a process that can be completed.
 
-It is useful to distinguish between verification of code and verification of a calculation~\cite{roache2002cvm}.
+It is useful to distinguish between verification of code and verification of a calculation~\citep{roache2002cvm}.
 The first is concerned with demonstration that all terms, including boundary conditions and source terms, are implemented correctly and exhibit the designed order of accuracy for the method.
 It is a check for consistency between the analysis and the implementation.
-Verification of a calculation involves the estimation of uncertainty for a particular problem, usually by demonstrating mesh independence and the use of a posteriori error estimators~\cite{ainsworth1997pee}.
+Verification of a calculation involves the estimation of uncertainty for a particular problem, usually by demonstrating mesh independence and the use of a posteriori error estimators~\citep{ainsworth1997pee}.
 The former can be done using exact solutions (provided they exercise all terms and options in the code), but exact solutions are generally not available for the latter.
 
 This section is devoted to code verification and in particular, the design of software so that the model is readily verifiable.
-We focus on the method of manufactured solutions (MMS)~\cite{roache2002cvm} which has been shown to be an extremely robust methodology.
+We focus on the method of manufactured solutions (MMS)~\citep{roache2002cvm} which has been shown to be an extremely robust methodology.
 The method relies on the simple observation that the correctness of a numerical method for discretizing and solving a nonlinear system
 \begin{align*}
   F(u) = b
@@ -36,16 +36,16 @@ With the chosen $u$ and symbolically computed $b$ in hand, we have an analytic s
 At this point, we choose a domain and boundary conditions, and a sequence of discrete approximation spaces.
 The discrete problem is solved using the manufactured forcing term $b$ and the discrete solution is compared to the exact solution in whichever norms the user is interested in.
 If the numerical approximation converges at the rate predicted by the analysis, the code has been verified and the process moves on to verification of calculations and validation.
-The only requirements MMS imposes on the code is that it be possible to solve with arbitrary user-provided forcing terms and inhomogeneous boundary conditions, and to evaluate the error as compared to a user-provided solution~\cite{roache2004bpc}.
+The only requirements MMS imposes on the code is that it be possible to solve with arbitrary user-provided forcing terms and inhomogeneous boundary conditions, and to evaluate the error as compared to a user-provided solution~\citep{roache2004bpc}.
 
-It is argued by \cite{roache2002cvm} that this methodology constitutes an ``engineering proof'' to the extent that the chance of a computer program delivering correct orders of convergence with even one manufactured solution, whilst possessing implementation errors affecting the quality of solution is vanishingly small.
-Indeed, \cite{knupp2002verification} conducted a blind study in which one author sabotaged a previously verified Navier-Stokes solver (compressible and incompressible, steady and unsteady) developed by the other.
+It is argued by \citet{roache2002cvm} that this methodology constitutes an ``engineering proof'' to the extent that the chance of a computer program delivering correct orders of convergence with even one manufactured solution, whilst possessing implementation errors affecting the quality of solution is vanishingly small.
+Indeed, \citet{knupp2002verification} conducted a blind study in which one author sabotaged a previously verified Navier-Stokes solver (compressible and incompressible, steady and unsteady) developed by the other.
 Every introduced error affecting quality of solution was detected by MMS.
 A pointwise error degrading the order of a boundary condition at a single corner node a domain is still visible in the global error and correspondingly degrades the global error.
 For the purpose of verifying a calculation (in which the answer is not known), MMS provides confidence in the assertion that if a the code is self-convergent under grid refinement, then it is converging to the correct solution.
 In other words, numerical evidence that a sequence of computational results on successively refined approximation spaces is \emph{Cauchy} becomes a convincing argument that the sequence converges to the correct solution of the governing equations, and even at the rate predicted by the theory.
 
-As an example, we consider large deformation elasticity and implement the weak form in Python using the SymPy~\cite{sympy-web-page} symbolic algebra package as
+As an example, we consider large deformation elasticity and implement the weak form in Python using the SymPy~\citep{sympy-web-page} symbolic algebra package as
 \begin{pythoncode}
   def weak_form(u, du, v, dv):
     I = eye(3)                      # Identity tensor
@@ -133,14 +133,14 @@ This nonlinear system is solved by matrix-free Newton-Krylov methods and the sol
 At this point, the residual will never be modified again, therefore programming and/or mathematical in pursuit of \emph{getting a solution fast} will not affect the quality of the solution that is eventually obtained.
 If the nonlinear solve converges, the solution will have whatever accuracy the underlying discretization provides.
 Of course unpreconditioned methods are not fast so practical simulation requires further effort, which is typically the most complicated and error-prone part of an application.
-This is not tested by MMS, but consistency can be checked in other ways, such as by comparing to an explicit Jacobian computed using finite differences, by confirming that application of an ``exact preconditioner'' results in convergence in one or two or three iterations as predicted by theory (e.g. \cite{murphy2000npi,ipsen2001note}), or by confirming that a Newton method is converging quadratically.
+This is not tested by MMS, but consistency can be checked in other ways, such as by comparing to an explicit Jacobian computed using finite differences, by confirming that application of an ``exact preconditioner'' results in convergence in one or two or three iterations as predicted by theory \citep[\eg][]{murphy2000npi,ipsen2001note}, or by confirming that a Newton method is converging quadratically.
 
 Finally, a note on automation.
 The Python function \pyverb|weak_form| contains the governing equations, therefore it need not be necessary to manually write the same equations in C.
-Indeed, it would be very little effort to automatically generate C code from a weak form written in Python, in much the same spirit as has been done by the FEniCS project~\cite{fenicsproject}.
-In particular, it would be possible to use physical models implemented in the ``unified form language'' (UFL)~\cite{alnaes2009unified}, but generate pointwise physics kernels for {\Dohp} instead of the assembly code used by DOLFIN~\cite{logg2010dolfin}.
+Indeed, it would be very little effort to automatically generate C code from a weak form written in Python, in much the same spirit as has been done by the FEniCS project~\citep{fenicsproject}.
+In particular, it would be possible to use physical models implemented in the ``unified form language'' (UFL)~\citep{alnaes2009unified}, but generate pointwise physics kernels for {\Dohp} instead of the assembly code used by DOLFIN~\citep{logg2010dolfin}.
 UFL is based on Python and looks very similar to the symbolic \pyverb|weak_form| above, but includes specification of the function space.
-The FEniCS project considers that to be an advantage because it permits optimizations that involve mixing the discretization with the physics, such as tabulation of element matrices on the reference element and mapping them to physical elements by dense matrix-matrix product~\cite{kirby2005optimizing}.
+The FEniCS project considers that to be an advantage because it permits optimizations that involve mixing the discretization with the physics, such as tabulation of element matrices on the reference element and mapping them to physical elements by dense matrix-matrix product~\citep{kirby2005optimizing}.
 While such methods can provide substantial speedup for simple physics on affine elements (DOLFIN only handles simplicial meshes), the method becomes untenable for more general nonlinear problems on non-affine meshes, and a quadrature representation must be adopted.
 As seen by comparing the matrix assembly performance of {\Dohp} to the structured grid with inlined $Q_1$ discretization in \tabref{tab:dohpasm}, there is very little benefit to mixing physics with discretization when using a quadrature representation.
 Separating physics from discretization, as \Dohp's interface encourages, has the benefit that element types can be changed at run-time (skipping possibly time-consuming compilation steps) and that meshes of mixed topology and/or element order can be handled transparently.

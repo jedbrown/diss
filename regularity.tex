@@ -27,13 +27,13 @@ The precise form of the sliding relation is a subject of extensive debate, but i
 \begin{gather*}
   \bm g_{\text{slip}}(T\uu,\theta,\cdots) = \beta_m(\theta,\cdots) \abs{T\uu}^{m-1} T\uu
 \end{gather*}
-where $m=1$ is Navier slip, $m=1/3$ is the popular ``Weertman sliding'' \cite{weertman1957sliding} and $m\to 0$ is the Coulomb limit.
-See \cite{iverson1998ring} for empirical support of the Coulomb limit and \cite{schoof2006variational,schoof2006plastic,schoof2007isg} for analysis of the associated variational inequalities.
-Some continuum models for basal hydrology are discussed in \cite{flowers2002multicomponent1,flowers2002multicomponent1,johnson2002nhg}, but basal processes are poorly understood and outside the scope of the present work, see \cite{clarke2004subglacial} for a review.
+where $m=1$ is Navier slip, $m=1/3$ is the popular ``Weertman sliding'' \citep{weertman1957sliding} and $m\to 0$ is the Coulomb limit.
+See \citet{iverson1998ring} for empirical support of the Coulomb limit and \citet{schoof2006variational,schoof2006plastic,schoof2007isg} for analysis of the associated variational inequalities.
+Some continuum models for basal hydrology are discussed in \citet{flowers2002multicomponent1,flowers2002multicomponent1,johnson2002nhg}, but basal processes are poorly understood and outside the scope of the present work, see \citet{clarke2004subglacial} for a review.
 
 % Weak form
 Classical solutions to the linear constant-coefficient Stokes problem with frictional slip boundary conditions do not exist in general.
-For example, in addition to $C^2$ continuity on Dirichlet boundaries, \cite{saito2004stokes} required much higher $C^4$ continuity for slip surfaces; see also the analysis by \cite{fujita2002coherent}.
+For example, in addition to $C^2$ continuity on Dirichlet boundaries, \citet{saito2004stokes} required much higher $C^4$ continuity for slip surfaces; see also the analysis by \citet{fujita2002coherent}.
 Since the boundaries of interest for our problems are merely Lischitz and change type abruptly, we cannot use the strong form \eqref{eq:slip:stokes-strong}.
 To discuss regularity issues at boundaries and our discretization, we need the weak form which is formally obtained by introducing test functions $\vv,q$ and integrating by parts.
 Given a Lipschitz domain $\Omega \subset \R^3$ and a nonempty open subset $\Gamma$ of the boundary $\partial\Omega$ which we identify as ``not frozen'', the problem is to find $(\uu,p) \in \bm W_D^{1,\pfrak}(\Omega) \times L^2(\Omega)$ such that
@@ -52,37 +52,37 @@ For well-posedness, it remains to specify $(D\uu - p\bm 1)\cdot\nn$ on $\Gamma$ 
 Although it is not used directly in our work, \eqref{eq:slip:stokes-weak} corresponds to the minimization of the viscous energy $\int_\Omega \half D\uu\tcolon \eta\bm 1 \tcolon D\uu$ over the subspace where $\div\uu = 0$.
 In particular, it is the first variation of the Lagrangian obtained when pressure $p$ is introduced as a Lagrange multiplier to enforce the constraint.
 Boundedness of the Lagrangian requires coercivity of the viscous energy term which follows from Korn's inequality which controls $\norm{\uu}_{H^1}$ using the symmetric gradient $\norm{D\uu}_{L^2}$
-and an inf-sup condition to control pressure using divergence of velocity~\cite{evans1998partial,brenner2008mathematical}.
+and an inf-sup condition to control pressure using divergence of velocity~\citep{evans1998partial,brenner2008mathematical}.
 These conditions are easily satisfied by the continuum spaces, but they place important restrictions on the discrete spaces, an issue which we revisit in Section~\ref{sssec:approximation}.
 
 \subsection{Singularities in the continuum formulation}
 The transition from no-slip to slip boundary conditions is exactly analogous to mode II and III fatigue in nonlinear elasticity theory, transition from no-slip to an unconstrained stress condition (e.g. floating) is the mode I case.
-In the case of linear rheolgy, this is the classical inverse square root stress singularity $\sigma \sim r^{-1/2}$ in fracture mechanics~\cite{anderson2005fracture}, where $r$ is the distance from the transition, see \cite{erdogan1973two} for two bonded materials.
-For nonlinear rheology, the same energy estimates~\cite{rice1968path} apply and the singularity becomes $\abs{\sigma} \sim r^{(1-\pfrak)/\pfrak}$ and $\abs{D\uu} \sim r^{-1/\pfrak}$ as shown by \cite{rice1968plane,hutchinson1968singular}. 
+In the case of linear rheolgy, this is the classical inverse square root stress singularity $\sigma \sim r^{-1/2}$ in fracture mechanics~\citep{anderson2005fracture}, where $r$ is the distance from the transition, see \citet{erdogan1973two} for two bonded materials.
+For nonlinear rheology, the same energy estimates~\citep{rice1968path} apply and the singularity becomes $\abs{\sigma} \sim r^{(1-\pfrak)/\pfrak}$ and $\abs{D\uu} \sim r^{-1/\pfrak}$ as shown by \citet{rice1968plane,hutchinson1968singular}. 
 These functions are all integrable and the singularity does not pose a fundamental regularity problem for the continuum equations, but the velocity in this latter case behaves as $\abs{\uu} \sim r^{(\pfrak-1)/\pfrak}$ which is a fourth root for the typical $\pfrak = 4/3$, thus difficult to approximate with a polynomial basis.
 Note that in reality, there is not a true singularity because of friction and plastic failure in the immediate vicinity of the transition, but micro-scale physical processes are fundamentally different, therefore the meso-scale asymptotics are most relevant when designing an approximation space.
 
 The singularity is stronger for the heat production term $\sigma\tcolon D\uu$, of order $1/r$ regardless of rheology.
 Enthalpy cannot have infinite slopes because there is always physical diffusion, but the approximation problem is more difficult because of the need to represent a ``spike'' instead of a ``kink''.
-The most important case for glaciology is mixed mode II and III which occurs at the margins of ice streams, the thermal structure of which was investigated in \cite{jacobson1998thermal,raymond2000energy}.
+The most important case for glaciology is mixed mode II and III which occurs at the margins of ice streams, the thermal structure of which was investigated in \citet{jacobson1998thermal,raymond2000energy}.
 
 Reentrant corners in the ice domain caused by incompletely resolved bathymetry are the source of the other important singularity.
-For second order elliptic equations, solutions around reentrant corners of angle $\omega > \pi$ have singularities of order $r^{\pi/\omega}\sin\frac{\pi\phi}{\omega}$ where $(r,\phi), r < 0, 0 < \phi < \omega$ are polar coordinates centered at the corner, see \cite{grisvard1985elliptic,nazarov1994elliptic}, also \cite{bacuta2003regularity} which has new sharp finite element convergence estimates.
+For second order elliptic equations, solutions around reentrant corners of angle $\omega > \pi$ have singularities of order $r^{\pi/\omega}\sin\frac{\pi\phi}{\omega}$ where $(r,\phi), r < 0, 0 < \phi < \omega$ are polar coordinates centered at the corner, see \citet{grisvard1985elliptic,nazarov1994elliptic}, also \citet{bacuta2003regularity} which has new sharp finite element convergence estimates.
 In the strongest case $\omega\to 2\pi$, this singularity becomes $r^{1/2}$ which is the same as a crack in linear media.
 Nonlinear rheology is analogous and indeed, the singularity for flow past a reentrant corner is never worse than for a transition from no-slip to free slip.
 
-Although not considered here, viscoelastic flows have the further difficulty that the Weissenberg number blows up at viscous stress singularities, see \cite{lipscomb1987implications,davies1988reentrant,hinch1993flow,owens2002cr}.
+Although not considered here, viscoelastic flows have the further difficulty that the Weissenberg number blows up at viscous stress singularities, see \citet{lipscomb1987implications,davies1988reentrant,hinch1993flow,owens2002cr}.
 
 \subsection{Approximation spaces}\label{sssec:approximation}
 While the Banach space $W^{1,\pfrak}$ in \eqref{eq:slip:stokes-weak} has the correct regularity for investigating the singularities discussed in the last section, approximation spaces in the present work will always be piecewise polynomial, and since we desire a symmetric formulation, we switch to the Hilbert space $H^1$.
-Such polynomial bases are a conventional and proven approach, but there are promising alternatives including the rational bases used in isogeometric analysis~\cite{hughes2005isogeometric,cottrell2009isogeometric} and physics-adapted bases in extended finite element methods~\cite{belytschko2009review,mohammadi2008extended}.
+Such polynomial bases are a conventional and proven approach, but there are promising alternatives including the rational bases used in isogeometric analysis~\citep{hughes2005isogeometric,cottrell2009isogeometric} and physics-adapted bases in extended finite element methods~\citep{belytschko2009review,mohammadi2008extended}.
 
-Finite element methods choose a discrete subspace $\VV_D,\QQ$ of the continuous trial space $\bm H_D^1 \times L^2$ from \eqref{eq:slip:stokes-weak}, discrete spaces for the test functions, and a way of approximately\footnote{Inexact quadrature is a ``variational crime'' \cite{brenner2008mathematical}, but nonlinear rheology produces terms that cannot reasonably be integrated exactly.} evaluating integrals.
+Finite element methods choose a discrete subspace $\VV_D,\QQ$ of the continuous trial space $\bm H_D^1 \times L^2$ from \eqref{eq:slip:stokes-weak}, discrete spaces for the test functions, and a way of approximately\footnote{Inexact quadrature is a ``variational crime'' \citep{brenner2008mathematical}, but nonlinear rheology produces terms that cannot reasonably be integrated exactly.} evaluating integrals.
 The present work considers only Galerkin methods for which case the test and trial spaces are equivalent except for inhomogenous boundary values.
 Galerkin methods for elliptic problems come with a property called Galerkin orthogonality which asserts that the error in a discrete approximation is within a constant of the minimum error within the discrete space.
 In other words, the PDE is solved to within a constant of the pure approximation problem for the exact solution.
 This is a powerful property and not generally available for nonsymmetric problems or non-Galerkin methods.
-Error estimators, adaptivity, and uncertainty quantification for both smooth and non-smooth problems are also most mature in the Galerkin context, see \cite{ainsworth1997pee,matthies2005gml,babuska2005scm,barth2010mlmcfe}.
+Error estimators, adaptivity, and uncertainty quantification for both smooth and non-smooth problems are also most mature in the Galerkin context, see \citet{ainsworth1997pee,matthies2005gml,babuska2005scm,barth2010mlmcfe}.
 
 We consider two classes of finite element space defined on hexahedral meshes.
 The first is spanned by a tensor product of 1D polynomials of degree $k \ge 1$ that have been pushed forward from the reference cube $[0,1]^3$ to the physical element.
@@ -98,7 +98,7 @@ Given a velocity space $\VV$ and pressure space $\QQ$, the inf-sup constant
 \end{equation}
 is a measure of how well the velocity space spans the pressure space.
 If $\beta$ is bounded below by a positive constant as the mesh is refined, then the finite element method will converge at an optimal rate.
-More precisely, given discrete solutions $(\uu_h,p_h) \in \VV \times \QQ$ with inf-sup constant $\beta$ and exact solution $(\uu,p)$, the velocity and pressure errors satisfy the a priori estimate~\cite{brezzi1991mixed}
+More precisely, given discrete solutions $(\uu_h,p_h) \in \VV \times \QQ$ with inf-sup constant $\beta$ and exact solution $(\uu,p)$, the velocity and pressure errors satisfy the a priori estimate~\citep{brezzi1991mixed}
 \begin{align}\label{eq:slip:apriori}
   \eta \norm{\uu - \uu_h}_{H^1} & \le C \left[ \frac{\eta}{\beta} \inf_{\vv \in \VV} \norm{\uu - \vv}_{H^1} + \inf_{q \in \QQ} \norm{p-q}_{L^2} \right] \\
   \norm{p - p_h}_{L^2} & \le \frac{C}{\beta} \left[ \frac{\eta}{\beta} \inf_{\vv \in \VV} \norm{\uu - \vv}_{H^1} + \inf_{q\in\QQ} \norm{p-q}_{L^2} \right] .
@@ -107,38 +107,38 @@ This shows that the error in the discrete solution is bounded in terms of how we
 For problems posed in anisotropic domains or containing thin boundary layers, the true solution is most efficiently represented by highly anisotropic meshes, therefore we desire uniform inf-sup stability with respect to aspect ratio.
 
 For many choices of $\VV \times \QQ$, such as using the same basis functions, $\beta$ is zero meaning there is a discrete pressure mode that is untested by the velocity space, thus the Stokes system is singular.
-Other choices, such as $\Qk 1-\Pkdisc 0$ have positive values of $\beta$ on most grids, but $\beta$ decays under mesh refinement so spurious pressure modes appear and convergence rates suffer~\cite{brenner2008mathematical,chapelle1993inf,babuska1997babuska}.
+Other choices, such as $\Qk 1-\Pkdisc 0$ have positive values of $\beta$ on most grids, but $\beta$ decays under mesh refinement so spurious pressure modes appear and convergence rates suffer~\citep{brenner2008mathematical,chapelle1993inf,babuska1997babuska}.
 It is important to recognize that if the pressure space contains the piecwise constant functions, the constraint equation will force the discrete velocity field $\uu$ to be exactly divergence-free when integrated over an element $e$,
 \begin{gather*}
   \int_e \div\uu = \int_{\partial e} \uu\cdot\nn.
 \end{gather*}
 This local conservation property is important for free surface flows, density-driven flows, and for long time integration.
-Note that although it is possible to solve incompressible flow problems by introducing stabilization (e.g. residual-based~\cite{hughes1986new} or polynomial projection~\cite{dohrmann2004stabilized}), these formulations sacrifice local conservation and perform poorly on problems with sharp structure.
+Note that although it is possible to solve incompressible flow problems by introducing stabilization (e.g. residual-based~\citep{hughes1986new} or polynomial projection~\citep{dohrmann2004stabilized}), these formulations sacrifice local conservation and perform poorly on problems with sharp structure.
 
 In the following, let $d\in \{2,3\}$ be the number of spatial dimensions.
-A particularly useful and robust element pair is $\Qk k-\Pkdisc{k-1}$ where $k \ge 2$, for which local conservation holds and the inf-sup constant is uniformly bounded with respect to mesh resolution and independent of the polynomial degree~\cite{bernardi1999uniform}.
-This result also holds for non-affine $hp$-adaptive meshes under modest adaptivity assumptions~\cite{schieweck2008uniformly}.
+A particularly useful and robust element pair is $\Qk k-\Pkdisc{k-1}$ where $k \ge 2$, for which local conservation holds and the inf-sup constant is uniformly bounded with respect to mesh resolution and independent of the polynomial degree~\citep{bernardi1999uniform}.
+This result also holds for non-affine $hp$-adaptive meshes under modest adaptivity assumptions~\citep{schieweck2008uniformly}.
 For smooth solutions, the $\Qk k-\Pkdisc{k-1}$ element produces velocity and pressure errors of order $k$ in $H^1$ and $L^2$ respectively, which is optimal.
 
 Unfortunately, the inf-sup constant $\beta$ degrades as $\bigO(\epsilon^{1/2})$ where $\epsilon > 0$ is the aspect ratio of the mesh.
 While this is acceptable for some fluid dynamics problems, it is unusable for those geophysical flows in which extreme aspect ratio is inherent in the problem, as well as for wall-resolved large eddy simulation where boundary layer elements have aspect ratio on the order of $10^{-6}$.
-An alternative is $\Qk k - \Qkdisc{k-2}$ which is locally conservative and has uniform inf-sup stability independent of aspect ratio~\cite{stenberg1996mixed,schotzau1998mhf}, albeit with $\bigO(k^\frac{1-d}{2})$ dependence on polynomial degree in $d=2$ or $d=3$ dimensions~\cite{maday1992pn}.
-On affine meshes with corners and/or hanging nodes, this $k$-dependence is sharp in 2D~\cite{schotzau1999mhf}, but degrades to $k^{-3/2}$ in 3D~\cite{toselli2003mhf}.
+An alternative is $\Qk k - \Qkdisc{k-2}$ which is locally conservative and has uniform inf-sup stability independent of aspect ratio~\citep{stenberg1996mixed,schotzau1998mhf}, albeit with $\bigO(k^\frac{1-d}{2})$ dependence on polynomial degree in $d=2$ or $d=3$ dimensions~\citep{maday1992pn}.
+On affine meshes with corners and/or hanging nodes, this $k$-dependence is sharp in 2D~\citep{schotzau1999mhf}, but degrades to $k^{-3/2}$ in 3D~\citep{toselli2003mhf}.
 We are not aware of an analogous result for non-affine meshes.
 This element is more ``squishy'' inside elements than with $\Pkdisc{k-1}$ pressure, and has suboptimal order of accuracy $k-1$ in $H^1$ for velocity and in $L^2$ for pressure due to poor representation of the pressure spacethe rightmost terms in \eqref{eq:slip:apriori}.
 
-For high-aspect ratio meshes around corners, the uniform inf-sup stability of $\Qk k - \Qkdisc{k-2}$ for edge-refined meshes is lost and $\epsilon^{1/2}$ dependence appears~\cite{schotzau1998mhf}.
-In two dimensions, \cite{ainsworth2000smh} propose ways to improve inf-sup stability for edge and corner refinement.
+For high-aspect ratio meshes around corners, the uniform inf-sup stability of $\Qk k - \Qkdisc{k-2}$ for edge-refined meshes is lost and $\epsilon^{1/2}$ dependence appears~\citep{schotzau1998mhf}.
+In two dimensions, \citet{ainsworth2000smh} propose ways to improve inf-sup stability for edge and corner refinement.
 In the first case, if $\Qk k - \Pkdisc{k-1}$ is augmented by increasing the polynomial degree of the velocity in the direction tangent to the stretched edge element to $k+1$, uniform inf-sup stability is recovered.
 For corners, the $\epsilon^{1/2}$ dependence is due to a single pressure mode which is also critical for representing the solution near the corner, therefore the velocity space must once again be augmented.
-A single velocity mode that stabilizes the problematic pressure mode is identified by \cite{ainsworth2000smh}, thus achieving uniform inf-sup stability independent of aspect ratio and polynomial degree.
+A single velocity mode that stabilizes the problematic pressure mode is identified by \citet{ainsworth2000smh}, thus achieving uniform inf-sup stability independent of aspect ratio and polynomial degree.
 Unfortunately, this mode is only defined for affine corner macroelements and is thus difficult to use in practice.
 The brute-force method of simply raising the polynomial degree with the aspect ratio, $k \sim \epsilon^{-1/2}$, improves the stability to $\beta \sim \epsilon^{1/4}$ (or even to $\beta \sim (1+\log^{1/2}k)^{-1} \min(1,k\sqrt\epsilon)$ if the velocity space is allowed to grow slightly faster than the pressure space, though this result is less practical).
 To our knowledge, this analysis has not been extended to three dimensions, but remains the best known result for highly anisotropic meshes.
 
-``Rotated'' non-conforming elements were proposed in \cite{rannacher1992simple} that have uniform stability on affine meshes~\cite{becker1994finite}.
-These methods are amenable to very efficient coupled multigrid solvers~\cite{rannacher2000finite}.
-Unfortunately, these elements do not satisfy a discrete Korn's inequality and thus need complex edge stabilization techniques~\cite{brenner2004korn,turek2007unified}.
-This stabilization impacts sparsity and makes the multigrid solution process more complicated~\cite{turek2002multigrid,ouazzi2006efficient}.
+``Rotated'' non-conforming elements were proposed in \citet{rannacher1992simple} that have uniform stability on affine meshes~\citep{becker1994finite}.
+These methods are amenable to very efficient coupled multigrid solvers~\citep{rannacher2000finite}.
+Unfortunately, these elements do not satisfy a discrete Korn's inequality and thus need complex edge stabilization techniques~\citep{brenner2004korn,turek2007unified}.
+This stabilization impacts sparsity and makes the multigrid solution process more complicated~\citep{turek2002multigrid,ouazzi2006efficient}.
 Note that stabilization is not required if one uses the ``vector Laplacian'' formulation for viscous stresses instead of the proper formulation in terms of symmetric gradient.
-While it is inexpensive and does not require stabilization, the vector Laplacian formulation cannot be used for variable viscosity and violates objectivity when used with certain boundary conditions~\cite{limache2008objectivity}.
+While it is inexpensive and does not require stabilization, the vector Laplacian formulation cannot be used for variable viscosity and violates objectivity when used with certain boundary conditions~\citep{limache2008objectivity}.

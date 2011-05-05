@@ -28,8 +28,8 @@ Then a loop over the boundary places the $\alpha$-scaled difference from the cor
 \subsection{Slip}
 Slip boundary conditions are a combination of Dirichlet on the normal component and (usually nonlinear) Robin on the tangent component.
 When the slip surface is curved, there are multiple ways to define the normal direction.
-Geometric averages such as those advocated by \cite{walkley2004calculation} can be very accurate and appear to be preferable for problems with surface tension in which conservation is not essential.
-When exact conservation is critical, there is no choice but to use ``conservative normals''~\cite{lynch1980finite}.
+Geometric averages such as those advocated by \citet{walkley2004calculation} can be very accurate and appear to be preferable for problems with surface tension in which conservation is not essential.
+When exact conservation is critical, there is no choice but to use ``conservative normals''~\citep{lynch1980finite}.
 Conservative normals are defined at an arbitrary node (or mode) $i$ in which the basis function $\phi_i$ has support on the boundary $\Gamma$ by
 \begin{equation}
   \label{eq:slip:conservative-normal}
@@ -38,9 +38,9 @@ Conservative normals are defined at an arbitrary node (or mode) $i$ in which the
 If the velocity field is constrained so that $\uu_i \cdot \nn_i = 0$ for a node $i$ with support on the boundary, then node $i$ will contribute zero flux through the boundary.
 We enforce this condition for all boundary nodes so the total flux is also zero across the boundary: $\int_\Gamma \uu \cdot \nn = 0$.
 Note that we do not in general have that $\int_f \uu \cdot \nn = 0$ for all mesh faces $f$ for the same reason that continuous Galerkin methods are not locally conservative.
-However, a weaker local conservation statement similar to that in \cite{hughes2000continuous} still holds.
+However, a weaker local conservation statement similar to that in \citet{hughes2000continuous} still holds.
 
-There is a technical difficulty observed by \cite{walkley2004calculation} when using conservative normals with inf-sup stable spaces.
+There is a technical difficulty observed by \citet{walkley2004calculation} when using conservative normals with inf-sup stable spaces.
 In particular, the velocity space must be at least quadratic for stability reasons and the corner basis functions of $\Pk{2}$ triangles (appearing on the surface of a tetrahedral mesh) have the property that
 \begin{equation*}
   \int_\Gamma \phi_i = 0 .
@@ -48,29 +48,29 @@ In particular, the velocity space must be at least quadratic for stability reaso
 This means that the normal need not be constrained on any flat element face (but having no constraint admits non-physical recirculation within elements) and that for isoparametrically mapped elements with small face curvature, the definition of the normal becomes unstable due to near cancellation and can flip direction as the surface evolves.
 This problem does not occur for non-deformed quadrilaterals (on the surface of a hexahedral mesh), but may arise for sufficiently deformed elements.
 The extra constraint on element quality is inconvenient for moving mesh simulations and for meshing complex structures, but it is a limitation that we accept in the present work.
-An interesting alternative is to eschew Lagrange interpolants in favor of non-negative bases such as Bernstein polynomials or more generally, the spline bases used in isogeometric analysis~\cite{cottrell2009isogeometric}; see \cite{akkerman2011isogeometric} for recent results with free surface flows.
+An interesting alternative is to eschew Lagrange interpolants in favor of non-negative bases such as Bernstein polynomials or more generally, the spline bases used in isogeometric analysis~\citep{cottrell2009isogeometric}; see \citet{akkerman2011isogeometric} for recent results with free surface flows.
 
 When implementing the normal constraint in slip boundary conditions, it is not practical to remove the normal component from the ansatz space so we prefer to leave them in as described in \secref{ssec:implementation-dirichlet}.
 To enforce Dirichlet conditions on the normal component, we rotate coordinates in the global vector so that the normal component is isolated.
 The rotation is undone at the element level so that local operations need not be aware that the solution vector contains rotated blocks.
 This rotation affects the construction of coarse level spaces in multigrid and domain decomposition methods.
-The ML~\cite{ml-guide} algebraic multigrid package allows the user to specify low-energy modes to be represented in the coarse space.
+The ML~\citep{ml-guide} algebraic multigrid package allows the user to specify low-energy modes to be represented in the coarse space.
 These modes should respect the change of basis so that their energies remain low.
-The impact on domain decomposition methods such as FETI-DP is more delicate, see \cite{klawonn2007robust,klawonn2006dual,dohrmann2010hybrid} for details on the construction of coarse spaces.
+The impact on domain decomposition methods such as FETI-DP is more delicate, see \citet{klawonn2007robust,klawonn2006dual,dohrmann2010hybrid} for details on the construction of coarse spaces.
 
 While use of conservative normals provides exact conservation across the interface, there is no guarantee that it will preserve realistic steady states, particularly for free surface flows where the hydrostatic contribution to pressure cannot be removed.
 Indeed, with a smooth curved boundary and a level surface, the momentum residual will not point in the same direction as the conservative normal.
 The tangent component of the momentum residual is a spurious tangent force that causes non-physical recirculation within the fluid domain that can not be prevented simply by adding artificial friction to the slip surface.
-This issue is addressed \cite{behr2004application} which we follow below.
+This issue is addressed \citet{behr2004application} which we follow below.
 Recall the boundary integral appearing in the weak form of the Stokes problem \eqref{eq:slip:stokes-weak}
 \begin{equation}\label{eq:slip:stress-bc}
   - \int_\Gamma \vv\cdot (\eta D\uu - p\bm 1)\cdot\nn
 \end{equation}
 where well-posedness of the continuous weak form requires specifying the stress $(D\uu - p\bm 1)\cdot\nn$ as an algebraic function of $\uu$.
 We are only concerned with the tangential part of the stress since the normal components have Dirichlet conditions imposed.
-The approach of \cite{behr2004application} integrates \eqref{eq:slip:stress-bc} ``as is'', without applying any boundary condition at all.
+The approach of \citet{behr2004application} integrates \eqref{eq:slip:stress-bc} ``as is'', without applying any boundary condition at all.
 This has the effect of extending the PDE to include the boundary.
 It is completely invalid for the continuum problem, resulting in non-uniqueness since the solution to the same PDE on any extended domain with any applied boundary conditions is also a solution on the initial domain, but turns out to be valid in the discrete context.
-The idea was introduced in the context of open boundary conditions for natural convection in \cite{papanastasiou1992nob} and later refined 
-in the restricted context of outflow boundary conditions for advection-diffusion by \cite{griffiths1997nbc} and \cite{renardy1997inb}.
-In particular, \cite{griffiths1997nbc} showed that the boundary condition produces $\bigO((h+1/\Peclet)^{p+1})$ errors in $\Linfty$ for mesh size $h$, Peclet number $\Peclet$, and finite elements of polynomial degree $p$, a result distinctly better than the $\bigO(h^{p+1} + 1/\Peclet)$ obtained for Neumann outflow conditions.
+The idea was introduced in the context of open boundary conditions for natural convection in \citet{papanastasiou1992nob} and later refined 
+in the restricted context of outflow boundary conditions for advection-diffusion by \citet{griffiths1997nbc} and \citet{renardy1997inb}.
+In particular, \citet{griffiths1997nbc} showed that the boundary condition produces $\bigO((h+1/\Peclet)^{p+1})$ errors in $\Linfty$ for mesh size $h$, Peclet number $\Peclet$, and finite elements of polynomial degree $p$, a result distinctly better than the $\bigO(h^{p+1} + 1/\Peclet)$ obtained for Neumann outflow conditions.
