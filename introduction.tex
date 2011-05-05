@@ -21,7 +21,7 @@ It is clear from the list, and has been confirmed by numerous colleagues in each
 This must change if the results of numerical models are to be taken seriously in the future.
 
 Unfortunately, careful study of spatial discretization and grid convergence is not sufficient to enable the next generation of scientific inquiry for multiphysics systems such as climate or even ice dynamics in isolation.
-The state of current methods and a means 
+Time discretization and implicit solver performance must also be addressed.
 As elucidated by a recent Department of Energy panel~\cite{simon2007modeling}, current models invariably rely on ``first-order accurate operator-splitting, semi-implicit and explicit time integration methods, and decoupled nonlinear solution strategies.
 Such methods have not provided the stability properties needed to perform accurate simulations over the dynamical time-scales of interest.
 Moreover, in most cases, numerical errors and means for controlling such errors are understood heuristically at best.''
@@ -33,7 +33,15 @@ This problem of grounding line stability is fundamentally three dimensional, con
 The ``full'' grounding line stability problem is on the frontier of computational science in many ways.
 It involves coupling physical processes in multiple domains interacting on multiple time scales through boundary layer processes, with material and geometric anisotropy, strong nonlinearity and heterogeneity, mixed characteristic PDEs, four varieties of interacting contact problems, and uncertainty in the geometry, coefficients, and constitutive models.
 
-This thesis attempts to bring a more rigorous understanding of numerical and computational issues in ice flow modeling, with a focus on robust, extensible methods that scale to large problem sizes with efficient use of current and future hardware.
+Advances in geoscience simulations will come from the synergy of
+\begin{itemize}
+\item more accurate physical models,
+\item more sophisticated mathematical algorithms, and
+\item more efficient implementations of these models and algorithms that take into account the advances in computer hardware.
+\end{itemize}
+This synergy can only occur within a comprehensive well-thought-out software infrastructure that reflects all three facets of simulation.
+This thesis contains my work on each of these topics and their synthesis.
+It attempts to bring a more rigorous understanding of numerical and computational issues in ice flow modeling, with a focus on robust, extensible methods that scale to large problem sizes with efficient use of current and future hardware.
 An overarching theme is the development of extensible software that can be used to solve increasingly complex problems with minimal development time, while using the best possible methods.
 Much of this software has been added to the {\PETSc}~\cite{petsc-user-ref} library and is in production use by many external groups.
 Components which are not part of {\PETSc} are available under a BSD-style open source license.

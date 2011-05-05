@@ -101,8 +101,9 @@ Krylov methods solve $J x = b$ using the Krylov subspaces
 \end{equation*}
 where $\tilde J = P^{-1}J$, $\tilde b = P^{-1}b_0$ for left preconditioning and $\tilde J = J P^{-1}$, $\tilde b = b$
 for right preconditioning.  The convergence rate of various Krylov methods (e.g. CG, MINRES, GMRES, BiCGStab, QMR)
-depend in diverse ways on the spectral properties of $\tilde J$ (see \cite{nachtigal1992fnm} for matrices where each
-nonsymmetric iteration beats all others by a large margin) but a useful heuristic is that the iteration count scales as
+depend in diverse ways on the spectral properties of $\tilde J$ (\eg \cite{nachtigal1992fnm} constructs a linear system
+for each Krylov scheme listed above, for which that scheme beats all other schemes by a large margin)
+but a useful heuristic is that the iteration count scales as
 the square root of $\kappa(\tilde J)$.  When solving the Newton step \eqref{eq:newton} we rely on $P^{-1}$ to overcome
 the $\bigO(h^{-2}p^4)$ conditioning of the spatial discretization.  Our preconditioners are obtained by applying an
 algorithm $\Ppc$ to data $J_p$ provided by the discretization of the equations, i.e. $P^{-1} = \Ppc(J_p)$.  Concretely,
@@ -135,7 +136,7 @@ to AD with optimal taping.
 \subsection{Performance}\label{sec:jfnk:bottlenecks}
 The most expensive parts of the Newton-Krylov iteration are assembling matrices for the preconditioner and subsequently
 solving for the Newton step.  Most preconditioners require a setup phase after the matrices (and whatever else goes into
-$J_p$) are assembled.  Scalable preconditioners require a globally coupled coarse level solve and we take multigrid as
+$J_p$) are assembled.  Scalable preconditioners for elliptic problems require a globally coupled coarse level solve and we take multigrid as
 the canonical example.  With geometric multigrid the coarse level can be provided by the application by rediscretizing
 the governing equations while algebraic multigrid must analyze the matrix structure to determine the coarse component
 and then compute the Galerkin coarse operator (involving relatively expensive matrix-matrix products and producing a
@@ -193,7 +194,7 @@ We extend these definitions to 3D via tensor product
 with the diagonal weighting matrix $\hat{\bm W} = \hat W \otimes \hat W \otimes \hat W$.  With isotropic basis order $p$
 and quadrature order $q$, these tensor product operations cost $2(p^3 q + p^2 q^2 + pq^3)$ flops and touch only
 $\bigO(p^3 + q^3)$ memory.  It should be noted that in the special case of the spectral element method where the same
-LGL points are reused for quadrature, $B$ is the identity and differentiation reduces to $2p^4$ operations.  In the
+LGL points are reused for quadrature, $\hat B$ is the identity and differentiation reduces to $2p^4$ operations.  In the
 present work, we prefer to use more accurate Gauss quadrature and do not find the extra floating point operations in
 basis evaluation to be prohibitively expensive.  Every other required operation will be $\bigO(p^3)$ or $\bigO(q^3)$ so
 the performance of the operation \eqref{eq:tprod} is crucial to the success of the method, see

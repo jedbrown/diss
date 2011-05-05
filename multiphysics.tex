@@ -20,7 +20,7 @@ The associated smoothers~\cite{vanka1986block} are relatively more expensive tha
 It is difficult to write generic software for coupled multigrid because many fine-grained operations, especially the definition of the local smoother, require physics- and discretization-dependent choices.
 Additionally, very little theory is available for coupled multi-physics and it is unclear how to define smoothers for multi-domain problems or surface-volume coupled problems.
 
-A different approach is to apply a Newton iteration on the coupled problem and solve the linear system with a Krylov method using a preconditioner defined in terms of some operator splitting such that each split can be understood and efficient solvers can be provided.
+A different approach is to apply a Newton iteration on the coupled problem and solve the linear system with a Krylov method using a preconditioner defined in terms of some operator splitting such that the physics of each part of the decomposition can be understood and efficient solvers can be provided.
 This approach~\cite{knoll2004jfn} has proven successful at reusing software, with many papers accessing such methods through PETSc~\cite{petsc-web-page}.
 However, until recent additions to PETSc, it was cumbersome to package separate physics separately without compromising which methods are available, and decisions about using field-split versus monolithic methods were typically required up-front.
 The enhancements to PETSc allow each physics to be packaged independently without sacrificing performance or runtime flexibility in choice of methods.
@@ -31,14 +31,14 @@ Suppose the Jacobian of the original coupled problem has block structure
 \begin{equation}\label{eq:fieldsplit:jacobian}
   J = \begin{pmatrix} A & B \\ C & D \end{pmatrix} .
 \end{equation}
-We explain the methods for $2\times 2$ block systems, but $n\times n$ systems can be treated similarly.
+We explain the methods for $2\times 2$ block systems, but $n\times n$ block systems can be treated similarly.
 Field split methods can be classified as block relaxation or factorization.
 
 Relaxation methods are inspired by the classical stationary iterative methods the preconditioners taking the forms
 \begin{align*}
-  P^{-1}_{text{Jacobi}} &= \begin{pmatrix} A & \\ & D \end{pmatrix}^{-1} \\
-  P^{-1}_{text{GS}} &= \begin{pmatrix} A & \\ C & D \end{pmatrix}^{-1} \\
-  P^{-1}_{text{SGS}} &=
+  P^{-1}_{\text{Jacobi}} &= \begin{pmatrix} A & \\ & D \end{pmatrix}^{-1} \\
+  P^{-1}_{\text{GS}} &= \begin{pmatrix} A & \\ C & D \end{pmatrix}^{-1} \\
+  P^{-1}_{\text{SGS}} &=
       \begin{pmatrix} A & \\  & \bm 1 \end{pmatrix}^{-1}
       \left(
         \bm 1 -
@@ -47,7 +47,8 @@ Relaxation methods are inspired by the classical stationary iterative methods th
       \right)
 \end{align*}
 which can be accessed at runtime using the PETSc option \code{-pc\_fieldsplit\_type additive}, \code{multiplicative}, and \code{symmetric\_multiplicative} respectively.
-Relaxation is simple to use and expected to perform well when most energy in the system is carried by coupling within each split rather than by coupling between splits.
+Relaxation is simple to use and expected to perform well when the diagonal blocks control the dynamics of the system or in which the coupling is one-way.
+\todo{Elaborate here, the Schur complement quantifies the difference.}
 
 Stiff hyperbolic waves and systems with constraints are two common cases where relaxation breaks down.
 The first is somewhat more benign and we use the shallow water equations as an illustrative example.
@@ -139,11 +140,11 @@ The traditional compressed sparse row formats, known as \code{AIJ} (plus symmetr
 The \code{Nest} format does not store entries directly, instead it stores nested matrices of any format with the action of the whole matrix defined in terms of its nested blocks.
 Each nested block can use a different format which allows symmetry and constant block size optimizations to be used, even for mixed discretizations or multi-domain problems where it would otherwise not be possible.
 
-\code{MatGetSubMatrix} is the primary interface used by \code{PCFieldSplit} to extract blocks from the Jacobian.
+\cfunc|MatGetSubMatrix| is the primary interface used by \cverb|PCFieldSplit| to extract blocks from the Jacobian.
 This function extracts a parallel submatrix with distribution specified by the distribution of the row and column index sets.
-For monolithic matrix formats like \code{AIJ}, \code{MatGetSubMatrix} necessarily requires the matrix entries to be copied into a new data structure which as much as doubles the memory needed by an application.
+For monolithic matrix formats like \code{AIJ}, \cfunc|MatGetSubMatrix| necessarily requires the matrix entries to be copied into a new data structure which as much as doubles the memory needed by an application.
 In the generic parallel setting, this operation requires complex communication patterns which are not memory scalable as currently implemented.
-For matrices in the \code{Nest} format, \code{MatGetSubMatrix} returns the submatrix without making a copy or any parallel communication.
+For matrices in the \code{Nest} format, \cfunc|MatGetSubMatrix| returns the submatrix without making a copy or any parallel communication.
 
 While Schur complements needed by block factorization could be constructed from submatrices, it would be cumbersome for the user to provide problem-specific approximations to the Schur complement this way.
 Instead, \code{PCFieldSplit} uses
@@ -156,8 +157,8 @@ to extract the Schur complement of $(\cverb|isrow0|,\cverb|iscol0|)$ restricted 
 The default implementation returns a matrix of type \code{MatSchurComplement} which applies $S$ according to its definition $D - CA^{-1}B$ by storing the four blocks and, if requested by the caller, the SIMPLE~\cite{patankar1972cph} approximation $D - C\text{diag}(A)^{-1}B$.
 This function can be overridden by the user to return arbitrary problem-specific data.
 
-The \code{MatGetSubMatrix} and \code{MatGetSchurComplement} interface is perfectly adequate for use by \code{PCFieldSplit} and \code{MatNest} provides an efficient storage format, but since the assembly interface is different for creating separate blocks from a monolithic matrix, it seems to require the user to decide up-front whether to assemble a \code{MatNest} or a \code{MatAIJ}.
-Additionally, if \code{MatAIJ} is used, assembly for a single physics would need to ``know'' about the other fields in order to set the indices correctly for insertion.
+The \cfunc|MatGetSubMatrix| and \cfunc|MatGetSchurComplement| interfaces are perfectly adequate for use by \code{PCFieldSplit} and \cverb|Nest| matrices provide an efficient storage format, but since the assembly interface is different for creating separate blocks from a monolithic matrix, it seems to require the user to decide up-front whether to assemble a \cverb|Nest| or a \cverb|AIJ| matrix.
+Additionally, if \cverb|AIJ| is used, assembly for a single physics would need to ``know'' about the other fields in order to set the indices correctly for insertion.
 These are both highly undesirable because they limit the algorithmic choices that can be made at run time so we have introduced an interface suitable for modular and generic assembly.
 
 Before explaining the interface, we need to define ``local'' spaces in the multi-physics context.
@@ -183,9 +184,9 @@ PetscErrorCode MatGetLocalSubMatrix(Mat A,IS rows,IS cols,Mat *submat);
 which returns a submatrix with local indices defined by the index sets.
 This function is not collective and makes only weak guarantees about the functionality implemented by the returned submatrix.
 In particular, the communicator is not specified and collective operations like {\MatMult} may not be defined.
-If the matrix storage format is \cverb|MatNest|, this function simply returns the appropriate submatrix which usually lives on a parallel communicator and has full functionality.
-For matrix formats that do not implement \cverb|MatGetLocalSubMatrix|, a proxy matrix is set up on \cverb|PETSC_COMM_SELF| that implements \cverb|MatSetValuesLocal| and similar functions by translating sub-physics local indices to coupled local or global (best choice depending on what is explicitly supported) indices and setting values in the parent matrix.
-If the row and column index sets have matching block size attribute, \cverb|MatSetValuesBlockedLocal| is also implemented regardless of whether the underlying storage format uses blocks.
+If the matrix storage format is \cverb|Nest|, this function simply returns the appropriate submatrix which usually lives on a parallel communicator and has full functionality.
+For matrix formats that do not implement \cfunc|MatGetLocalSubMatrix|, a proxy matrix is set up on \cverb|PETSC_COMM_SELF| that implements \cfunc|MatSetValuesLocal| and similar functions by translating sub-physics local indices to coupled local or global (best choice depending on what is explicitly supported) indices and setting values in the parent matrix.
+If the row and column index sets have matching block size attribute, \cfunc|MatSetValuesBlockedLocal| is also implemented regardless of whether the underlying storage format uses blocks.
 This permits sub-physics modules having constant block size to always speak the most specific language (blocked and/or symmetric) regardless of the underlying format.
 When the underlying format specifically supports blocks, we reap the benefits of faster insertion due to fewer searches and moves, otherwise there is negligible performance penalty.
-When \cverb|MatSetValuesBlockedLocal| is used recursively and the matrix implementation has no specific support, the proxy matrices are flattened so that index translation is never done more than once.
+When \cfunc|MatSetValuesBlockedLocal| is used recursively and the matrix implementation has no specific support, the proxy matrices are flattened so that index translation is never done more than once.

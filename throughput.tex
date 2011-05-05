@@ -53,8 +53,8 @@ Without the NTA policy, the high-volume stream flushes the vector $x$ out of cac
 
 The {\AIJInode} format simply augments the {\AIJ} format by marking clusters of consecutive rows ``Inodes'' that have the same nonzero pattern, then matrix kernels unroll over the Inodes.
 Use of the {\AIJInode} format is automatic if the matrix has consecutive rows with the same nonzero pattern.
-The column indices are \emph{not} copied out of the standard {\AIJ} storage so matrix kernels skip over $b-1$ rows of identical entries in each Inode of size $b$.
-Skipping over these rows of column indices is especially inefficient with hardware prefetch because entries are eagerly brought into cache and then skipped, followed by a full DRAM stall as the kernel jumps over many skipped ahead in \cverb|aj| and starts $b-1$ new streams from \cverb|aa| that are not predicted by the prefetch unit.
+The column indices are \emph{not} copied out of the standard {\AIJ} storage so matrix kernels skip over $b-1$ rows of identical column indices in each Inode of size $b$.
+Skipping over these rows of column indices is especially inefficient with hardware prefetch because entries are eagerly brought into cache and then skipped, followed by a full DRAM stall as the kernel jumps past the prefetched indices in \cverb|aj| and starts $b-1$ new streams from \cverb|aa| that are not predicted by the prefetch unit.
 Software prefetch for {\AIJInode} avoids bringing in the redundant column entries and prevents the stalls due to jumping over column indices and starting new \cverb|aa| streams.
 The prefetch logic assumes that the next Inode and row lengths will be approximately the same size as the current one since this is the typical case for PDE-like problems.
 If no redundant column entries are brought in, the arithmetic intensity is
