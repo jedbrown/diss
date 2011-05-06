@@ -515,7 +515,7 @@ offers more preconditioning choices.
   \caption{Time (seconds) spent in various stages of a nonlinear solve for $Q_3$ elements preconditioned by ILU(0) and
     ILU(1) applied to the corresponding $Q_1$ matrix.  The first columns solve the linear system
     to a relative tolerance of $10^{-4}$ with a maximum of 60 Krylov iterations per Newton, the latter use the
-    Eisenstat-Walker method for adjusting solver tolerances \citep{eisenstat1996cft} with a maximum of 30 Krylov iterations.
+    Eisenstat-Walker\citeyearpar{eisenstat1996cft} method for adjusting solver tolerances with a maximum of 30 Krylov iterations.
     The events \emph{MF MatMult} (matrix-free Jacobian application), \emph{PCSetup}, and \emph{PCApply} are part of the
     \emph{Krylov} iteration.  Additional \emph{Residual} evaluations are needed when the line search is activated.}
 \label{tab:nonlinear}
