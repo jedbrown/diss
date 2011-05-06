@@ -4,6 +4,47 @@ With the ever-increasing complexity, it is difficult to verify correctness of th
 The established strategies for model coupling, while generally thought to be necessary in order to manage complexity, cause significant stability and accuracy problems.
 Efficiency of nonlinear solvers represent a further obstacle to high resolution and advanced analysis techniques such as optimization, uncertainty quantification, and stability analysis.
 Present implementations also tend to use low-order discretizations which poorly utilize emerging hardware, are low accuracy, and cause numerical artifacts in some cases.
-We address algorithmic and software issues for tightly-coupled multiphysics, efficient nonlinear solvers, throughput on current and emerging architectures, and high-order discretizations.
-Several discretization challenges for the simulation of land ice are examined, with identification of methods for their resolution.
-Finally, the methods are applied to a section of Jakobshavn Isbr{\ae}'s ice stream.
+%Use of numerical models for quantitative predictive analysis of climate change phenomena requires a synthesis of advances in continuum modeling, mathematical analysis of discretizations and solvers, and implementation of these methods in software.
+This thesis contains contributions to each of these challenges.
+
+A new perspective on high-order methods for finite element analysis is introduced.
+This formulation is well-suited to advances in linear and nonlinear solvers and offers dramatically better utilization of modern hardware than conventional methods.
+\Dohp, a new general purpose library based on this method is presented, and the performance is shown to be several times faster than other widely used finite element libraries.
+Through new software interfaces, this performance is achieved while retaining more run-time flexibility in terms of element and preconditioning choice, and drastically better performance as the order of the element increases.
+The library also retains more geometric information than existing open source libraries, permitting more natural coupling to CAD and geometric models, as well as the implicit solution of equations in which the domain is part of the solution.
+
+A new Newton-Krylov-Multigrid solver for the hydrostatic equations of ice sheet flow is presented.
+The high cost of solving the hydrostatic equations using conventional methods has been the principle imediment to their use in large-scale ice sheet models, causing existing models to fall back to simpler momentum balance models.
+In addition to poor algorithms, the community has also suffered from lack of quality parallel implementations, thus further limiting the scope of problems that could be solved.
+The new solver demonstrates textbook multigrid efficiency on a variety of demanding problems, offering several orders of magnitude speedup for problem sizes of interest, and nearly perfect strong and weak scalability on parallel hardware.
+
+A new algebraic interface for multiphysics coupling is introduced.
+Robust coupling of multiple interacting physical processes is a challenging problem in which many commonly used methods are fundamentally inadequate.
+The best methods are highly problem dependent, change as larger number of coupled processes grows, and are a highly active area of research.
+A crucial limitation of earlier software was that trying different methods generally involved a great deal of error-prone software development by the user.
+This poor software support made it difficult to test the quality and performance of different methods, thus locking projects in to methods that may actually be ill-suited to the problems that are eventually encountered.
+The new algebraic interface allows an arbitrary number of physical processes to be coupled using a wide range of methods which can be selected and combined at run-time.
+It permits straightforward reuse of single physics modules with no code modification, thus offering better support for model verification and extensibility.
+The interface offers higher performance and a great deal more flexibility in choice of methods than previous software.
+This software has been added to {\PETSc} and is in production use by several external groups.
+
+Improvements in throughput on modern hardware are presented.
+Current methods for solving partial differential equations exhibit very low utilization of modern hardware, often less than 5 percent, due to their overwhelming dependence on memory bandwidth.
+Part of this under-utilization was due to implementation issues with sparse matrix kernels preventing good reuse of high-level caches.
+This was rectified by improving \PETSc's sparse matrix kernels by 20 to 30 percent, and performance is now close to the theoretical limit of the hardware.
+The more fundamental limitation of memory bandwidth cannot be overcome by implementation optimization; it requires changing the underlying algorithm.
+In the context of the finite element library \Dohp, this can be achieved by eschewing assembled sparse matrices in favor of a matrix-free representation that has higher arithmetic intensity and uses much less memory for everything beyond lowest order elements.
+This transformation permits an order of magnitude improvement in hardware utilization and is transparently available to the user in the {\Dohp} library.
+Improved support for such unassembled representations was integrated into the multi-physics coupling interface.
+
+Robustness and accuracy requirements for ice flow problems place many constraints on the discretization and treatment of boundary conditions.
+Many of these technical requirements are undocumented in the glaciology literature and hampering current efforts for robust simulation.
+These technical issues are investigated and conclusions are drawn, with practical consequences to the present work and future development of methods for ice flow.
+
+A study of the numerical accuracy of different Stokes discretizations is conducted for a section of the ice stream channel at Jakobshavn Isbr{\ae}.
+Setting up a model of an outlet glacier using realistic geometry and boundary conditions is a time-consuming task.
+This is especially true if a geometric model is needed to define slip conditions, or if the mesh needs to conform to the grounding line.
+Visualization is also complicated by the need to georeference model results.
+These difficulties have been partially mitigated by having the analysis code work with georeferenced input in any format and any projection, and produce georeferenced output.
+
+The purpose of this thesis is not to make a specific prediction, but rather to improve the methods and process available for future predictive modeling, especially by less computationally inclined glaciologists.
