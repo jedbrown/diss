@@ -11,7 +11,7 @@ with nonlinear viscosity
 \begin{gather}
   \eta(\gamma) = B(\theta,\dotsc)\big(\epsilon + \gamma \big)^{\frac{\mathfrak{p}-2}{2}}
 \end{gather}
-where $D\uu = \tfrac 1 2 \left(\nabla \uu + (\nabla \uu)^T \right)$ is the strain rate, $\gamma(D\uu) = \tfrac 1 2 D\uu \tcolon D\uu$ is the second invariant, $\mathfrak{p} = 1 + \tfrac{1}{\mathfrak{n}} \approx \tfrac 4 3$, $B$ is a hardness parameter depending on enthalpy $\theta$ and perhaps other variables (e.g. grain size, dust content, damage), and $\epsilon$ is the second invariant of a reference strain rate that provides regularization to prevent viscosity from becoming infinite.
+where $D\uu = \tfrac 1 2 \left(\nabla \uu + (\nabla \uu)^T \right)$ is the strain rate, $\gamma(D\uu) = \tfrac 1 2 D\uu \tcolon D\uu$ is the second invariant, $\pfrak = 1 + \tfrac{1}{\nfrak} \approx \tfrac 4 3$ in terms of Glen's~\citeyearpar{glen1955creep} exponent $\nfrak$, $B$ is a hardness parameter depending on enthalpy $\theta$ and perhaps other variables (e.g. grain size, dust content, damage), and $\epsilon$ is the second invariant of a reference strain rate that provides regularization to prevent viscosity from becoming infinite.
 
 Common boundary conditions for \eqref{eq:slip:stokes-strong} include $\uu = \bm 0$ at a frozen bed, $\eta D\uu - p\bm 1 = 0$ at the free surface, and $\eta D\uu - p\bm 1 = -\rho_w z \nn$ at the ice-ocean interface underneath an ice shelf where $\nn$ is the unit outward-facing normal.
 Open boundary conditions are also needed for regional models, but should be applied in places where the shallow ice approximation is accurate, thus causing the flow to be defined by local geometry.
@@ -34,25 +34,26 @@ Some continuum models for basal hydrology are discussed in \citet{flowers2002mul
 % Weak form
 Classical solutions to the linear constant-coefficient Stokes problem with frictional slip boundary conditions do not exist in general.
 For example, in addition to $C^2$ continuity on Dirichlet boundaries, \citet{saito2004stokes} required much higher $C^4$ continuity for slip surfaces; see also the analysis by \citet{fujita2002coherent}.
-Since the boundaries of interest for our problems are merely Lischitz and change type abruptly, we cannot use the strong form \eqref{eq:slip:stokes-strong}.
+Since the boundaries of interest for our problems are merely Lipschitz and change type abruptly, we cannot use the strong form \eqref{eq:slip:stokes-strong}.
 To discuss regularity issues at boundaries and our discretization, we need the weak form which is formally obtained by introducing test functions $\vv,q$ and integrating by parts.
 Given a Lipschitz domain $\Omega \subset \R^3$ and a nonempty open subset $\Gamma$ of the boundary $\partial\Omega$ which we identify as ``not frozen'', the problem is to find $(\uu,p) \in \bm W_D^{1,\pfrak}(\Omega) \times L^2(\Omega)$ such that
 \begin{equation}\label{eq:slip:stokes-weak}
   \int_\Omega D\vv\tcolon \eta\bm 1 \tcolon D\uu - q\div\uu - p\div\vv - \vv\cdot\bm f
   - \int_\Gamma \vv\cdot (\eta D\uu - p\bm 1)\cdot\nn = 0
 \end{equation}
-for all $(\vv,q)\in \bm W_0^{1,\mathfrak{q}}(\Omega) \times L^2(\Omega)$, where $\mathfrak q$ satisfies $1/\mathfrak p + 1/\mathfrak q = 1$.
+for all $(\vv,q)\in \bm W_0^{1,\pfrak}(\Omega) \times L^2(\Omega)$.
 Readers unfamiliar with Sobolev spaces may think of $W^{1,\pfrak}$ simply as the space with sufficiently well-behaved first derivatives.
 The subscripts in $W_D^{1,\mathfrak{q}},W_0^{1,\mathfrak{q}}$ indicate that inhomogeneous and homogenous Dirichlet boundary conditions respectively are built into the space.
 That is, all components of velocity are specified in regions where the bed is frozen and normal components are specified at places where sliding may take place.
 The implementation of Dirichlet conditions is somewhat different from its definition here and will be discussed later.
-In general circumstances, the true solution is actually only $W^{1,\pfrak}$, but we always assume that there is regularization which permits us to only use Hilbert spaces.
 For well-posedness, it remains to specify $(D\uu - p\bm 1)\cdot\nn$ on $\Gamma$ as an algebraic function $\bm g(\uu)$ to enforce stress conditions on tangent components at slip surfaces and on all components at free surfaces in which case $\bm g$ is independent of $\uu$.
 
 Although it is not used directly in our work, \eqref{eq:slip:stokes-weak} corresponds to the minimization of the viscous energy $\int_\Omega \half D\uu\tcolon \eta\bm 1 \tcolon D\uu$ over the subspace where $\div\uu = 0$.
 In particular, it is the first variation of the Lagrangian obtained when pressure $p$ is introduced as a Lagrange multiplier to enforce the constraint.
-Boundedness of the Lagrangian requires coercivity of the viscous energy term which follows from Korn's inequality which controls $\norm{\uu}_{H^1}$ using the symmetric gradient $\norm{D\uu}_{L^2}$
-and an inf-sup condition to control pressure using divergence of velocity~\citep{evans1998partial,brenner2008mathematical}.
+Boundedness of the Lagrangian requires coercivity of the viscous energy term which follows from Korn's inequality\footnote{%
+See \citet{kondratev1988boundary} for Korn's inequality in $L^\pfrak$.
+I am not aware of a priori error estimates for finite element methods that apply for solutions in $W^{1,\pfrak}$, but expect that similar results to the $\pfrak=2$ case hold.}
+which controls $\norm{\uu}_{W^{1,\pfrak}}$ using the symmetric gradient $\norm{D\uu}_{L^\pfrak}$ and an inf-sup condition to control pressure using divergence of velocity~\citep{evans1998partial,brenner2008mathematical}.
 These conditions are easily satisfied by the continuum spaces, but they place important restrictions on the discrete spaces, an issue which we revisit in Section~\ref{sssec:approximation}.
 
 \subsection{Singularities in the continuum formulation}
@@ -74,10 +75,11 @@ Nonlinear rheology is analogous and indeed, the singularity for flow past a reen
 Although not considered here, viscoelastic flows have the further difficulty that the Weissenberg number blows up at viscous stress singularities, see \citet{lipscomb1987implications,davies1988reentrant,hinch1993flow,owens2002cr}.
 
 \subsection{Approximation spaces}\label{sssec:approximation}
-While the Banach space $W^{1,\pfrak}$ in \eqref{eq:slip:stokes-weak} has the correct regularity for investigating the singularities discussed in the last section, approximation spaces in the present work will always be piecewise polynomial, and since we desire a symmetric formulation, we switch to the Hilbert space $H^1$.
-Such polynomial bases are a conventional and proven approach, but there are promising alternatives including the rational bases used in isogeometric analysis~\citep{hughes2005isogeometric,cottrell2009isogeometric} and physics-adapted bases in extended finite element methods~\citep{belytschko2009review,mohammadi2008extended}.
+The Banach space $W^{1,\pfrak}$ in \eqref{eq:slip:stokes-weak} has the correct regularity for investigating the singularities discussed in the last section, but many approximation results are not known in this setting, therefore we will fall back to the smaller space $H^1$ when necessary.
+Approximation spaces in the present work will always be piecewise polynomial so this is not as egregious as it would be with non-polynomial bases.
+I believe that the rational bases used in isogeometric analysis~\citep{hughes2005isogeometric,cottrell2009isogeometric} and physics-adapted bases in extended finite element methods~\citep{belytschko2009review,mohammadi2008extended,elguedj2006extended} are very promising and should be explored for treating several boundary singularities in the ice flow problem.
 
-Finite element methods choose a discrete subspace $\VV_D,\QQ$ of the continuous trial space $\bm H_D^1 \times L^2$ from \eqref{eq:slip:stokes-weak}, discrete spaces for the test functions, and a way of approximately\footnote{Inexact quadrature is a ``variational crime'' \citep{brenner2008mathematical}, but nonlinear rheology produces terms that cannot reasonably be integrated exactly.} evaluating integrals.
+Finite element methods choose a discrete subspace $\VV_D,\QQ$ of the continuous trial space $\bm W_D^{1,\pfrak} \times L^2$ from \eqref{eq:slip:stokes-weak}, discrete spaces for the test functions, and a way of approximately\footnote{Inexact quadrature is a ``variational crime'' \citep{brenner2008mathematical}, but nonlinear rheology produces terms that cannot reasonably be integrated exactly.} evaluating integrals.
 The present work considers only Galerkin methods for which case the test and trial spaces are equivalent except for inhomogenous boundary values.
 Galerkin methods for elliptic problems come with a property called Galerkin orthogonality which asserts that the error in a discrete approximation is within a constant of the minimum error within the discrete space.
 In other words, the PDE is solved to within a constant of the pure approximation problem for the exact solution.
@@ -90,7 +92,7 @@ This has a variant $\Qk k$ that is continuous between elements and a discontinuo
 The other is a $\Pkdisc k$ which is spanned by polynomials of maximum degree $k$ and is discontinuous between elements.
 
 Stability of the Galerkin approximation depends on discrete versions of Korn's inequality and the inf-sup condition.
-Korn's inequality bounds the $H^1$ norm in terms of the $L^2$ norm of symmetric gradient and is easily satisfied by $C^0$ vector-valued spaces such as $Q_k$.
+Korn's inequality bounds the $W^{1,\pfrak}$ norm in terms of the $L^\pfrak$ norm of symmetric gradient and is easily satisfied by $C^0$ vector-valued spaces such as $Q_k$.
 The inf-sup condition is more troublesome.
 Given a velocity space $\VV$ and pressure space $\QQ$, the inf-sup constant
 \begin{equation}\label{eq:slip:inf-sup}
@@ -103,12 +105,13 @@ More precisely, given discrete solutions $(\uu_h,p_h) \in \VV \times \QQ$ with i
   \eta \norm{\uu - \uu_h}_{H^1} & \le C \left[ \frac{\eta}{\beta} \inf_{\vv \in \VV} \norm{\uu - \vv}_{H^1} + \inf_{q \in \QQ} \norm{p-q}_{L^2} \right] \\
   \norm{p - p_h}_{L^2} & \le \frac{C}{\beta} \left[ \frac{\eta}{\beta} \inf_{\vv \in \VV} \norm{\uu - \vv}_{H^1} + \inf_{q\in\QQ} \norm{p-q}_{L^2} \right] .
 \end{align}
+The $H^1$ norm is used here because I am not aware of an analogous result in $W^{1,\pfrak}$.
 This shows that the error in the discrete solution is bounded in terms of how well the true solution can be represented in the discrete space.
 For problems posed in anisotropic domains or containing thin boundary layers, the true solution is most efficiently represented by highly anisotropic meshes, therefore we desire uniform inf-sup stability with respect to aspect ratio.
 
 For many choices of $\VV \times \QQ$, such as using the same basis functions, $\beta$ is zero meaning there is a discrete pressure mode that is untested by the velocity space, thus the Stokes system is singular.
 Other choices, such as $\Qk 1-\Pkdisc 0$ have positive values of $\beta$ on most grids, but $\beta$ decays under mesh refinement so spurious pressure modes appear and convergence rates suffer~\citep{brenner2008mathematical,chapelle1993inf,babuska1997babuska}.
-It is important to recognize that if the pressure space contains the piecwise constant functions, the constraint equation will force the discrete velocity field $\uu$ to be exactly divergence-free when integrated over an element $e$,
+It is important to recognize that if the pressure space contains the piecewise constant functions, the constraint equation will force the discrete velocity field $\uu$ to be exactly divergence-free when integrated over an element $e$,
 \begin{gather*}
   \int_e \div\uu = \int_{\partial e} \uu\cdot\nn.
 \end{gather*}
@@ -117,12 +120,12 @@ Note that although it is possible to solve incompressible flow problems by intro
 
 In the following, let $d\in \{2,3\}$ be the number of spatial dimensions.
 A particularly useful and robust element pair is $\Qk k-\Pkdisc{k-1}$ where $k \ge 2$, for which local conservation holds and the inf-sup constant is uniformly bounded with respect to mesh resolution and independent of the polynomial degree~\citep{bernardi1999uniform}.
-This result also holds for non-affine $hp$-adaptive meshes under modest adaptivity assumptions~\citep{schieweck2008uniformly}.
+This result also holds for non-affine $hp$-adaptive meshes under modest adaptivity assumptions~\citep{schieweck2008uniformly}, see also \citet{matthies2002inf}.
 For smooth solutions, the $\Qk k-\Pkdisc{k-1}$ element produces velocity and pressure errors of order $k$ in $H^1$ and $L^2$ respectively, which is optimal.
 
 Unfortunately, the inf-sup constant $\beta$ degrades as $\bigO(\epsilon^{1/2})$ where $\epsilon > 0$ is the aspect ratio of the mesh.
 While this is acceptable for some fluid dynamics problems, it is unusable for those geophysical flows in which extreme aspect ratio is inherent in the problem, as well as for wall-resolved large eddy simulation where boundary layer elements have aspect ratio on the order of $10^{-6}$.
-An alternative is $\Qk k - \Qkdisc{k-2}$ which is locally conservative and has uniform inf-sup stability independent of aspect ratio~\citep{stenberg1996mixed,schotzau1998mhf}, albeit with $\bigO(k^\frac{1-d}{2})$ dependence on polynomial degree in $d=2$ or $d=3$ dimensions~\citep{maday1992pn}.
+An alternative is $\Qk k - \Qkdisc{k-2}$ which is locally conservative and has uniform inf-sup stability independent of aspect ratio~\citep{stenberg1996mixed,schotzau1998mhf}, albeit with $\bigO(k^\frac{1-d}{2})$ dependence on polynomial degree~\citep{maday1992pn}.
 On affine meshes with corners and/or hanging nodes, this $k$-dependence is sharp in 2D~\citep{schotzau1999mhf}, but degrades to $k^{-3/2}$ in 3D~\citep{toselli2003mhf}.
 We are not aware of an analogous result for non-affine meshes.
 This element is more ``squishy'' inside elements than with $\Pkdisc{k-1}$ pressure, and has suboptimal order of accuracy $k-1$ in $H^1$ for velocity and in $L^2$ for pressure due to poor representation of the pressure spacethe rightmost terms in \eqref{eq:slip:apriori}.
