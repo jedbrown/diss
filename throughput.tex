@@ -4,7 +4,7 @@
 
 \subsection{Sparse matrix kernels}\label{ssec:sparsekernels}
 
-This section briefly describes some optimizations that improved PETSc's matrix kernels by about 30\% on Intel and AMD architectures, bringing them quite close to the memory bandwidth limits.
+This section briefly describes some optimizations I made to improve PETSc's matrix kernels by about 30\% on Intel and AMD architectures, bringing them quite close to the memory bandwidth limits.
 This was implemented subsequent to the new data structures for factored matrices described in \citet{smith2010sparse} and thus represents an additional improvement.
 
 The following hardware descriptions generally hold across Intel Core, Core 2, and Core i7 as well as AMD K8 and K10 microarchitectures.
@@ -12,26 +12,27 @@ Most variation is due to different prefetch and TLB semantics as well as differe
 Details can be found in the optimization reference manuals~\citep{intel2011optimization,amd2009optimization} as well as Agner Fog's excellent resources~\citet{fog2011michoarchitecture,fog2011instruction}.
 See \citet{drepper2007memory} for a more accessible introduction to the memory hierarchy.
 
-Most of our optimizations involve maximal reuse of level 1 data (L1D) cache, higher level caches, and streaming bandwidth.
+Most of my optimizations for sparse matrices involve maximizing reuse of caches and attained fraction of peak streaming bandwidth.
 Each floating point unit can issue one packed add and one packed multiply per clock cycle, with latencies of 3 to 5 cycles.
-SSE instructions may have both operands in registers or have one operand in L1D with no throughput penalty, although a concurrently issued add and multiply cannot both have a memory operand.
+SSE instructions may have both operands in registers or have one operand in level 1 data cache (L1D) with no throughput penalty, although a concurrently issued add and multiply cannot both have a memory operand.
 AMD has a 2-cycle latency penalty for memory operands, Intel has no latency penalty.
 This means that L1D is almost as good as a register, compared to L2 with roughly 10-cycle latency and DRAM with approximately 250-cycle latency.
 
-Assuming a 2.5 GHz clock, one packed load and store per cycle means a bandwidth to L1 of 24 GB/s each way (48 GB/s each way for newer architectures supporting 32-byte AVX registers).
+Assuming a 2.5 GHz clock, one packed load and store per cycle means a bandwidth to L1D of 24 GB/s each way (48 GB/s each way for newer architectures supporting 32-byte AVX registers).
 We can compare this to per-core memory bandwidth ranging from 1.75 GB/s (6-core with 2-channel DDR2-667, found on Cray XT-5) to 9.6 GB/s (4-core with 3-channel DDR3-1600, found on Intel's newest ``Sandy Bridge'' processors).
 With four (SSE2) or eight (AVX) double precision floating point operations possible per cycle, it becomes clear that memory will be the bottleneck unless many floating point operations can be performed per value loaded.
 The ratio of flops per byte for a computational kernel is known as arithmetic intensity.
-The systems above balance computation with memory when the arithmetic intensity is between 2 and 6 flops/byte.
+The previously mentioned architectures achieve balance in computation and memory accesses when the arithmetic intensity is between 2 and 6 flops/byte.
 
 The hardware prefetch unit can recognize 16 forward-moving streams and 4 backward-moving streams, but only one stream per 4 kB page and not across page boundaries.
-Additionally, the hardware prefetcher does not resolve minor TLB misses which is a significant issue because the TLB can only address 1 or 2 MB and TLB misses produce roughly 60 cycles of latency, plus DRAM latency if the resulting address is not in high-level cache.
-Software prefetch can hide these latencies and resolve TLB misses in advance, providing roughly 20\% improvement in our STREAM benchmarks~\citep{mccalpin2007stream}.
+Additionally, the hardware prefetcher does not resolve minor TLB misses.
+This is a significant issue because the TLB can only address 1 or 2 MB and TLB misses produce roughly 60 cycles of latency plus DRAM latency if the resulting address is not in high-level cache.
+Software prefetch can hide these latencies and resolve TLB misses in advance, providing roughly 20\% improvement in my optimized implementations of the STREAM benchmarks~\citep{mccalpin2007stream} discussed later in this section.
 In addition to improving overall bandwidth, software prefetch instructions can set a ``non-temporal access'' (NTA) policy such that lines evicted from L1D will not subsequently reside in higher level caches.
 
 We consider four matrix formats with increasing amounts of structure: {\AIJ}, {\AIJInode}, {\BAIJ}, and {\SBAIJ}.
 {\AIJ} is a standard compressed row format that stores a column index for each nonzero entry.
-A matrix-vector product $y \gets A x$ is characterized by the kernel
+A matrix-vector product $y \gets A x$ is characterized by the {\MatMult} kernel,
 \begin{minted}{c}
   for (i=0; i<m; i++) {
       y[i] = 0.0;
@@ -43,20 +44,22 @@ Assuming perfect cache reuse with $m$ rows and an average of $n$ nonzeros per ro
 \begin{align*}
   \I_{\text{AIJ}} = \frac{2n}{(n+1)\texttt{sizeof(Scalar)} + (n+1)\texttt{sizeof(Int)}} \xrightarrow{n\to\infty} 0.167 \text{flops/byte}
 \end{align*}
-where the long-row limit is calculated for \cverb|double| precision and 32 bit integers.
-In practice, the vector will not reuse cache perfectly so some entries of $x$ will need to be loaded into cache more than once.
-Choosing a low-bandwidth ordering such as Reverse Cuthill-McKee~\citep{cuthill1969reducing} (RCM) improves cache reuse which reduces end-to-end run time substantially (speeding up matrix-free operations such as residual evaluation in addition to sparse matrix kernels), e.g. by more than a factor of 2~\citep{gropp2000pmt}.
-Our optimization for {\AIJ} consisted of inserting software prefetch instructions to initiate loads of every cache line holding entries in the row after the current one.
+where the long-row limit is calculated for \cverb|double| precision and 32-bit integers.
+In practice, the vector will not reuse cache perfectly, so some entries of $x$ will need to be loaded into cache more than once.
+Choosing a low-bandwidth ordering such as Reverse Cuthill-McKee~\citep{cuthill1969reducing} (RCM) improves cache reuse.
+This reduces end-to-end run time substantially, speeding up matrix-free operations such as residual evaluation in addition to sparse matrix kernels, \eg by more than a factor of 2~\citep{gropp2000pmt}.
+My optimization for {\AIJ} consists of inserting software prefetch instructions to initiate loads of every cache line holding entries in the row after the current one.
 The L1D cache line length is detected during configuration so only one prefetch instruction per line is issued (it is 64 bytes on the x86-64 microarchitectures considered here).
 Sparse matrix-vector products for PDEs can be thought of as a stencil operation combined with a high-volume stream of matrix entries and column indices (the weights and shape of the stencil).
-Without the NTA policy, the high-volume stream flushes the vector $x$ out of caches prematurely.
+Without the NTA policy, the high-volume stream flushes the vector $x$ out of caches, even though the vector will be reused and the matrix entries and indices will not be.
 
-The {\AIJInode} format simply augments the {\AIJ} format by marking clusters of consecutive rows ``Inodes'' that have the same nonzero pattern, then matrix kernels unroll over the Inodes.
+The {\AIJInode} format simply augments the {\AIJ} format by marking ``Inodes'' (clusters of consecutive rows that have the same nonzero pattern).
+The matrix kernels unroll over the Inodes which reduces the memory demands for column entries and performs more work per entry loaded from the vector.
 Use of the {\AIJInode} format is automatic if the matrix has consecutive rows with the same nonzero pattern.
 The column indices are \emph{not} copied out of the standard {\AIJ} storage so matrix kernels skip over $b-1$ rows of identical column indices in each Inode of size $b$.
 Skipping over these rows of column indices is especially inefficient with hardware prefetch because entries are eagerly brought into cache and then skipped, followed by a full DRAM stall as the kernel jumps past the prefetched indices in \cverb|aj| and starts $b-1$ new streams from \cverb|aa| that are not predicted by the prefetch unit.
-Software prefetch for {\AIJInode} avoids bringing in the redundant column entries and prevents the stalls due to jumping over column indices and starting new \cverb|aa| streams.
-The prefetch logic assumes that the next Inode and row lengths will be approximately the same size as the current one since this is the typical case for PDE-like problems.
+Software prefetch for {\AIJInode} avoids bringing in the redundant column entries and prevents the stalls due to jumping over column indices \cverb|aj| and starting new \cverb|aa| streams.
+The prefetch logic assumes that the next Inode size and row lengths will be approximately the same size as the current one since this is the typical case for PDE-like problems.
 If no redundant column entries are brought in, the arithmetic intensity is
 \begin{align*}
   \I_{{\AIJInode}} = \frac{2nb}{(n+1)b\texttt{sizeof(Scalar)} + (n+2)\texttt{sizeof(Int)}} \xrightarrow[b=3]{n\to\infty} 0.214 \text{flops/byte}
@@ -73,19 +76,20 @@ The arithmetic intensity
 is very close to the dense limit of $0.25$.
 In practice, {\BAIJ} achieves a higher fraction of the bandwidth peak due its more regular memory access and unrolled kernels.
 
-The symmetric block format {\SBAIJ} which stores only the upper-triangular part in compressed row format has a more involved memory access pattern.
-Each matrix entry is only loaded once where it is used for both upper and lower triangular contributions.
-The contribution from the lower-triangular part has multiple destinations effectively doubling the number of stencil-like streams that must be sustained, with all the new streams read-write as opposed to the read-only streams of nonsymmetric row formats.
-In return, the storage and arithmetic intensity is almost double that of nonsymmetric formats
+The symmetric block format {\SBAIJ} stores only the upper-triangular part, in compressed row format, and has a more involved memory access pattern.
+Each matrix entry is only loaded once and is used for both upper and lower triangular contributions.
+The contribution from the lower-triangular part has multiple destinations, effectively doubling the number of stencil-like streams that must be sustained.
+All the new streams are read-write as opposed to the read-only streams of nonsymmetric row formats.
+In return, the storage requirement is halved and arithmetic intensity is doubled compared to nonsymmetric formats,
 \begin{align*}
   \I_{\SBAIJ} = \frac{4nb - 2b^2}{(n+2)b\texttt{sizeof(Scalar)} + (n/b+1)\texttt{sizeof(Int)}} \to \xrightarrow[b=3]{n\to\infty} 0.47 \text{flops/byte} .
 \end{align*}
 % let scalar = 8; int = 4; intenBAIJ n b = 2*n*b / ((n+1)*b*scalar + (n/b+1)*int); intenAIJInode n b = 2*n*b/((n+1)*b*scalar + (n+2)*int)
 
-The data structure change described in \citet{smith2010sparse} caused both forward and back solves to traverse matrix entries forward in memory when using (incomplete) LU.
-Even though the matrix entries are fetched moving forward, the stencil for ``back solve'' still moves backward through memory so there are much fewer hardware prefetch streams (4 instead of 16 forward-moving on Intel/AMD, there is no hardware prefetch for backward-moving streams on Blue Gene/P).
+The data structure change described in \citet{smith2010sparse} caused both forward and back solves with (incomplete) LU factors to traverse matrix entries by moving forward in memory.
+Even though the matrix entries are fetched moving forward, the stencil for ``back solve'' still moves backward through memory so there are much fewer hardware prefetch streams (4 instead of 16 forward-moving on Intel/AMD; note that there is no hardware prefetch for backward-moving streams on Blue Gene/P).
 
-For (incomplete) Cholesky, the factors are only stored once so it is not possible for both forward and back solves to traverse matrix entries by moving forward.
+For (incomplete) Cholesky, the factors are only stored once, so it is not possible for both forward and back solves to traverse matrix entries by moving forward.
 Because the primary backward-moving streams are prefetched by software, this causes relatively little performance degradation compared to ILU.
 
 % Core 2 P8700: DDR2-800 (6400 MB/s), single thread Triad peak 5400 MB/s
@@ -96,10 +100,15 @@ Because the primary backward-moving streams are prefetched by software, this cau
 % through, therefore optimization of each STREAM kernel is not entirely
 % independent of the others.
 
-As an estimate of the peak usable bandwidth, we use the STREAM Triad benchmark with a moderately tuned implementation (software prefetch, SSE2 arithmetic, non-temporal stores, unrolled over cache lines).
+As an estimate of the peak usable bandwidth, we use the STREAM Triad benchmark with my moderately tuned implementation (software prefetch, SSE2 arithmetic, non-temporal stores, unrolled over cache lines).
 We consider two test systems, a Core 2 Duo (P8700) clocked at 2.53 GHz with a single DDR2-800 memory channel (theoretical bandwidth of 6.4 GB/s) and a two-socket Opteron 2356 (quad core) clocked at 2.3 GHz with two channels of DDR2-677 memory per socket (theoretical peak of 5.3 GB/s per channel).
-The achieved bandwidth for Triad on the Intel system was 5.4 GB/s for a single thread.
-On Opteron, the single-threaded Triad achieved 5.8 GB/s, increasing to \todo{XXX} GB/s for 4 processes (2 per socket) and \todo{XXX} GB/s for 8 processes.
+The achieved bandwidth for Triad on the Intel system is 5.4 GB/s for a single thread, there is no further improvement for multiple threads or processes.
+On Opteron, the single-threaded Triad achieved 5.8 GB/s, increasing to 11.1 GB/s for 2 processes (1 per socket), 14.8 GB/s for four processes (2 per socket), and 13.1 GB/s for 8 processes.
+Note that a single process very nearly saturates the usable bandwith of an entire socket, regardless of whether one or two memory channels are available.
+Within a single socket, 2 processes achieve 7.6 GB/s while 4 processes see only 6.6 GB/s.
+Although these Opteron results are 
+The memory architecture of 
+It is clear that the memory architecture within and between sockets limits the realizable bandwidth to well below the theoretical peak.
 
 Table~\ref{tab:throughput:baij} shows the performance of the three primary sparse matrix kernels with each storage format on both test machines.
 With prefetch enabled, the sparse matrix kernels obtain a remarkably high fraction of theoretical peak bandwidth, especially on Intel processors.
@@ -123,14 +132,12 @@ We are not aware of previous reports of this effect and speculate that it is due
     \MatSolve/ICC                                  & 426        & 427       & 815        & 814        \\ \midrule
                                                    & \multicolumn{4}{c}{Opteron, 4 processes}         \\
                                                    & {\AIJ}       & {\AIJInode} & {\BAIJ}      & {\SBAIJ}     \\ \cmidrule{2-5}
-%% FIXME: STREAM performance using MPI
-    \MatMult                                       & 1673       & 1978      & 2450       & 3089       \\
+    \MatMult                                       & 1673(69\%) & 1978(68\%) & 2450(76\%) & 3089(49\%) \\
     \MatSolve/ILU                                  & 1621       & 1896      & 2766       & ---        \\
     \MatSolve/ICC                                  & 1519       & 1522      & 2700       & 2710       \\ \midrule
                                                    & \multicolumn{4}{c}{Opteron, 8 processes}         \\
                                                    & {\AIJ}       & {\AIJInode} & {\BAIJ}      & {\SBAIJ}     \\ \cmidrule{2-5}
-%% FIXME: STREAM performance using MPI
-    \MatMult                                       & 2374       & 2408      & 2897       & 4331       \\
+    \MatMult                                       & 2374(111\%) & 2408(94\%) & 2897(102\%) & 4331(77\%) \\
     \MatSolve/ILU                                  & 2321       & 1954      & 2913       & ---        \\
     \MatSolve/ICC                                  & 2214       & 1854      & 2892       & 2877       \\
     \bottomrule

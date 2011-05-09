@@ -146,8 +146,12 @@ def main():
     if opts.spmv_table:
         core2 = Hardware(5420).table(916, 855, 1013, 1429)
         opteron = Hardware(5787).table(506, 592, 735, 744)
+        opteron4 = Hardware(14800).table(1673, 1978, 2450, 3089)
+        opteron8 = Hardware(13100).table(2374, 2408, 2897, 4331)
         print('core2  :', ' & '.join(core2))
         print('opteron:', ' & '.join(opteron))
+        print('opteron4:', ' & '.join(opteron4))
+        print('opteron8:', ' & '.join(opteron8))
     if opts.plot:
         plot_intensity(opts)
 
