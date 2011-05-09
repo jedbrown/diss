@@ -306,7 +306,7 @@ flops per clock cycle resulting in a theoretical peak of 10 Gflop/s.  The memory
 of 5.3 GB/s implying that dual core performance for matrix-vector products cannot exceed 900 Mflop/s, ignoring access
 costs for the vector (each matrix entry is 8 bytes plus 4 bytes for the column index, and supplies only 2 flops for an
 arithmetic intensity of 1 flop / 6 bytes).  Note that this is less than 5\% of the theoretical dual-core peak 20
-Gflop/s.  Even if the column indices were known, the operation cannot exceed 4 bytes per flop, despite the system being
+Gflop/s.  Even if the stencil was known so that column indices did not need to be stored explicitly, the operation cannot exceed 4 bytes per flop, despite the system being
 capable of performing nearly 4 flops for each byte loaded from memory.
 
 For multi-component problems, we can exploit structural blocking to reduce the bandwidth required for column indices.
@@ -328,7 +328,8 @@ problem is only 2.5 times slower than the assembled $Q_2$ Jacobian when using on
 
 \section{Numerical examples}\label{sec:examples}
 All examples with dual-order preconditioning were implemented as part of a new C library named \emph{Dohp}, available
-from the author, which is tightly integrated with PETSc~\citep{petsc-user-ref} and uses the ITAPS~\citep{itapsproject}
+from the author.
+Dohp is tightly integrated with PETSc~\citep{petsc-user-ref} and uses the ITAPS~\citep{itapsproject}
 interfaces for mesh and geometry services.  In particular, we use the MOAB~\citep{moab} and CGM~\citep{cgm}
 implementations of the \emph{iMesh} and \emph{iGeom} interfaces.  In the examples using algebraic multigrid, we use
 smoothed aggregation from ML~\citep{ml-guide} and classical multigrid from BoomerAMG~\citep{henson2002bpa}, all accessed
