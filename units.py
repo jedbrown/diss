@@ -1,15 +1,20 @@
 #!/usr/bin/env python
 
+from __future__ import division
+
 # Natural units are meter, bigmass, year
+timeunit = 31556926.
+
 # We write the SI units in terms of these natural units
-year = 1
 meter = 1.
-second = 1./31556926.
+second = 1./timeunit
 rhog = 1                        # Bigmass is constructed so that rho*grav = 1
-kg = rhog / (9.81 * meter * second**(-2) * 910 * meter**(-3))
+massunit = (9.81 * meter * second**(-2) * 910 * meter**(-3)) / rhog
+kg = 1/massunit
 
 print('mks:',meter,kg,second)
 
+year = 31556926 * second
 Newton = kg * meter / second**2
 Pascal = Newton / meter**2
 
