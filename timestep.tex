@@ -1,0 +1,61 @@
+Most problems in glaciology have elliptic constraints that apply at all times.
+Therefore, semi-discretization in space results in a system of differential algebraic equations~\citep{hairer2010solving} instead of ordinary differential equations.
+I converted the implicit methods in PETSc's TS package to work with differential algebraic equations, and implemented some recently developed general linear methods from \citet{butcher2006general,butcher2007error}.
+
+Differential algebraic equations (DAE) are written in implicit form
+\begin{equation}\label{eq:daei}
+  F(t,\bm{x},\dot{\bm{x}}) = 0, \quad \bm{x}(t_0) = \bm{x}_0
+\end{equation}
+where the nonlinear function $F$ represents the spatial discretization for PDE problems.
+If the matrix $F_{\dot{\bm{x}}}(t) = \partial F / \partial \dot{\bm{x}}$ is nonsingular then it is an ODE and can be transformed to the standard explicit form, although this transformation may not lead to efficient algorithms.
+For ODE with nontrivial mass matrices such as arise in FEM, the implicit/DAE interface significantly reduces overhead to prepare the system for algebraic solvers by having the user assemble the correctly shifted matrix, therefore it is also useful to solve ODE systems by writing them in the implicit form \eqref{eq:daei}.
+Preconditioning is usually necessary for stiff systems and requires an approximation to the Jacobian
+\begin{equation*}
+  J = F_{\bm{x}} + a F_{\dot{\bm{x}}}
+\end{equation*}
+which is the Jacobian of $G(\bm{x}) = F(t,\bm{x},\bm{z}+a\bm{x})$ where $G(\bm{x}) = 0$ is the nonlinear system solved internally by the time integrator.
+Internally, the DAE integrator approximates $\dot{\bm{x}}$ as $\bm{z} + a\bm{x}$ for some vector $\bm{z}$ and scalar ``shift'' $a$.
+For example, the implicit Euler method uses $\dot{\bm{x}} = (\bm{x} - \bm{x}_-)/h$ which is $\bm{z} = -\bm{x}_-/h$ and $a = 1/h$ where $\bm{x}_-$ is the value of the solution at the beginning of the time step and $h = \Delta t$ is the time step size.
+Other methods have more complicated expressions for $\dot{\bm{x}}$ in these implicit systems (e.g. using several previous steps) and may combine the results of these implicit solves in different ways.
+
+Two important properties for DAE and singularly perturbed ODE with mixed diffusive and transport phenomena are $A$-stability which ensures stability for time steps with length independent of parameters and $L$-stability which ensures that high-frequency oscillations are rapidly damped (to prevent ``ringing'' as seen when, e.g. the trapezoid rule is used for stiff diffusive processes).
+Additionally, all stages should be evaluated to some minimum order of accuracy, known as the \emph{stage order}, to prevent order degredation.
+Most conventional methods for stiff systems are either linear multi-step or Runge-Kutta methods.
+These classes have certain undesirable properties such as Dahlquist's second barrier which precludes $A$-stable linear multi-step methods of order greater than 2 and that diagonally implicit Runge-Kutta (DIRK) methods have stage order at most 1.
+A traditional alternative is to use singly implicit Runge-Kutta (SIRK) methods, but these place absicassa outside the time step interval which tend to produce poor results in the presence of bifurcations.
+Fully implicit Runge-Kutta methods such as the Radau schemes~\citep{hairer1999stiff} are highly successful when used with direct solvers, but must solve with all stages coupled together which increases the dimension of the Krylov space.
+The fully implicit Lobatto schemes have attractive stability properties and are self-adjoint which is desirable for adjoint sensitivity analysis~\citep{sandu2006properties,sandu2003direct}.
+There appears to be significant room for algorithmic development using fully implicit Runge-Kutta methods with parallel iterative solvers.
+
+General linear methods provide access to methods of arbitrary order with $A$ and $L$-stability while retaining diagonally implicit structure.
+One such example is the family of general linear methods with ``inherent Runge-Kutta stability''~\citep{wright2002general,butcher2006general}.
+The methods from this family that are designed for stiff systems have $A$- and $L$-stability as well as stage order equal to classical order.
+In addition, the come with asymptotically correct error estimates for the current method and methods of order one higher.
+General linear methods can be written in a tablea similar to Runge-Kutta methods
+\begin{equation*}
+  \begin{bmatrix} Y \\ X^{n+1} \end{bmatrix}
+  = \begin{bmatrix} A & U \\ B & V \end{bmatrix}
+  \begin{bmatrix} h \dot{Y} \\ X^{n} \end{bmatrix} .
+\end{equation*}
+where the Nordsieck vector
+\begin{equation*}
+  X = \{x_1,\dotsc,x_r\} = \{x, h \dot{x}, h^2 \ddot{x}, \dotsc \}
+\end{equation*}
+is passed between steps.
+Because $A$ is lower triangular, the stage values $Y = \{ y_1,\dotsc,y_s \}$ can be computed sequentially be solving $F(t^n_i,\bm{y}_i,\dot{\bm{y}_i}) = 0$ with $\dot{\bm{y}_i}$ written in terms of $\bm{y}_i$ using the top block.
+I implemented these methods for DAE in the TS component of {\PETSc}.
+Methods of orders 1 to 5 are available and new methods can be added by providing the entries of the tableau $\begin{smallmatrix}A & U \\ B & V\end{smallmatrix}$.
+The error estimators and rescale-and-modify scheme for changing step size are computed automatically using the methods in \citet{butcher2007error}.
+An adaptive-order adaptive-step controller is available with a plugin architecture for extending or using user-provided controllers.
+
+Unfortunately, despite great properties on paper, the tableaus published in \citet{butcher2006error,podhaisky2006atlas} seem to have rather noisy error estimates and poor monotonicity properties.
+The great freedom in optimizing coefficients for these metheds is both a blessing and a curse since the additional free parameters make the tableaus difficult to optimize.
+It is likely that more robust tableaus will be published in the future which will make this implementation more practical.
+Since all linear multistep and Runge-Kutta methods are general linear methods, they can be used simply by providing the tableau for the desired scheme.
+
+For hyperbolic problems such as transport phenomena discretized using a method of lines approach, it is important for the ordinary differential equation solvers to be Strong Stability Preserving (SSP)~\citep{gottlieb2009high}.
+The SSP property, when combined with a spatial discretization that is TVD~\citep{leveque2002finite} or TVB (e.g. (weighted) essential non-oscillatory, \citet{shu2003high}), ensures that the full discrete method is also TVD or TVB~\citep{gottlieb2001ssp}.
+For linear multistep and Runge-Kutta methods, it is known that implicit methods of order greater than 1 have a time step restriction in order for the SSP property to be satisfied~\citep{spijker1983contractivity} and it is conjectured that this holds for general linear methods and that the maximum coefficient is only twice as large as for explicit methods~\citep{gottlieb2009high}, therefore explicit methods appear to be more practical when SSP methods are required.
+I implemented a new family of optimal explicit SSP methods of second, third, and fourth order with various numbers of stages~\citep{ketcheson2008highly}.
+These methods are low-memory in the sense that memory usage is independent of the number of stages (usually two vectors), but methods with more stages have better effective CFL coefficients allowing longer stable time steps.
+These have been extremely practical methods.
