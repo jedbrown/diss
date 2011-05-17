@@ -24,7 +24,7 @@ The method relies on the simple observation that the correctness of a numerical 
   F(u) = b
 \end{align*}
 must be independent of the source term $b(x,y,z,t)$, and in particular, that there is no requirement that $b$ have physical significance.
-Therefore, for the purpose of code verification, we need not obtain analytical solutions with physical realizable source terms.
+Therefore, for the purpose of code verification, we need not obtain analytical solutions with physically realizable source terms.
 This is fortuitous because such solutions are nearly impossible to find for complex problems.
 Instead, MMS chooses a \emph{solution} $u(x,y,z,t)$, independent of the domain and even the physics $F$.
 There is no need for $u$ to have any similarity to reality, but it should possess a sufficient number of derivatives for the strong form of the PDE or variational problem $F$ to be valid.
