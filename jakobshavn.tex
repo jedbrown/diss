@@ -4,7 +4,7 @@ Understanding the effect of changing boundary conditions, especially ocean condi
 
 \section{Meshing}
 For the surface, we use the digital elevation model compiled by \citet{motyka2010volume} using aerial photography taken 24 July 1985 and ground control points resurveyed during our field campaigns~\todo{cite?}.
-The bedrock location was provided by CReSIS~\todo{cite?}.
+The bedrock location was provided by CReSIS~\cite{plummer2011highres}.
 A smooth geometric model based on an unstructured triangular mesh was constructed from these rasters using MOAB~\citep{moab} and other tools being developed as part of the MeshKit project~\citep{meshkit}.
 This unstructured triangular mesh was decimated to reduce size while preserving features.
 The boundary of the region of interest was described with a polygon in the map plane.
@@ -23,7 +23,7 @@ Due to surface and bed roughness, these lateral boundary conditions are noisier 
 %   u(x,y,z) = u_{\text{surf}}(x,y) \left( \frac{h-z}{h-b} \right)^{1/(\mathfrak n+1)}
 % \end{equation}
 % where $\nfrak = 3$ is the Glen exponent, which is consistent with the velocity profile expected from the shallow ice approximation.
-% The surface velocity map $u_{\text{surf}}(x,y)$ was obtained from Ian Joughin~\todo{cite}.
+% The surface velocity map $u_{\text{surf}}(x,y)$ was obtained from Ian Joughin~\cite{joughin2008continued}.
 
 \todo{Explain problem and background}
 
