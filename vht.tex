@@ -1,0 +1,57 @@
+We consider the problem of computing a steady-state enthalpy field coupled to a Stokes problem with enthalpy-dependent rheology.
+This problem is most important as part of inversion for a temperature field that is compatible with the observed geometry, flow field, borehole temperature measurements, and any other field observations.
+Time-stepping a transient model to steady state is extremely expensive, therefore it will never be feasible as part of the functional to be minimized by an optimization algorithm.
+
+Given a Lipschitz domain $\Omega$ with surface $\Gamma_s$, the strong form is to find velocity, pressure, and enthalpy density $(\uu,p,E) \in W^{1,\pfrak} \times L^2 \times H^1$ such that
+\begin{align}
+    -\nabla \cdot(\eta D\uu) + \nabla p - \ff &= 0 \\
+    \nabla \cdot \uu &= 0 \\
+    \nabla\cdot (E\uu - \kappa_T(T)\nabla T - \kappa_\omega(\omega)\nabla \omega) - \eta D\uu\tcolon D\uu &= 0
+\end{align}
+on $\Omega$, with Dirichlet flow boundary conditions except at the free surface, and all Dirichlet boundary conditions for enthalpy density $E$.
+The constitutive relations are
+\begin{align}
+  \eta(\gamma,p,E)            & = B(p,E)\big(\epsilon^2 + \gamma/\gamma_0 \big)^{\frac{\mathfrak{p}-2}{2}} \\
+  B(p,E)                      & = B_0 \exp \big( \frac{Q}{RT^*(p,E)\nfrak} \big)                                \\
+  T(p,E)                    & = \splice(T_0 + E/c_i,T_m(p),\delta,E_m,E)                            \\
+  T^*(p,E)                  & = T(E) - T_m(p) + T_3                                                    \\
+  E_m(p)                    & = c_i (T_m(p) - T_0)                                                     \\
+  T_m(p)                    & = T_3 - \beta_{CC} p                                                     \\
+  \omega(p,E)               & = \splice (0,(E-E_m(p))/L,\delta,E_m,E)                                   \\
+  \splice(a,b,\delta,x_0;x) & = a(x) + \frac{b(x)-a(x)}{2} \Big(1+\tanh \big(\frac{x-x_0}{\delta} \big) \Big)        \\
+\end{align}
+with physical constants given in \tabref{tab:vhtconst}.
+The $\splice$ function used here is globally smooth which is desirable for use with manufactured solutions, however it is not monotone when joining two overlapping functions such as $x \mapsto 0$ and $x \mapsto x$ at $x_0 = 0$.
+Splicing with a monotone spline would be preferable in real applications.
+
+\begin{table}
+  \centering
+  \begin{tabular}{lll}
+    \toprule
+    Symbol & Value & Description \\
+    \midrule
+    $c_i$ & \SI{2009}{\joule\per\kilogram\per\kelvin} & Specific heat capacity of ice \\
+    $k$ & \SI{2.1}{\watt\per\metre\per\kelvin} & Thermal conductivity of ice \\
+    $\rho_i$ & \SI{910}{\kilogram\per\metre\cubed} & Density of ice \\
+    $\kappa_i$ & \SI{1.15e-6}{\metre\squared\per\second} & Ethalpy diffusivity of ice from thermal diffusion ($\frac{k}{\rho_i}$) \\
+    $\kappa_\omega$ & \SI{5e-7}{\metre\squared\per\second} & Moisture diffusivity of ice \\
+    $\beta_{CC}$ & \SI{7.53e-8}{\kelvin\per\pascal} & Clausius-Capeyron gradient \\
+    $T_3$ & \SI{273.15}{\kelvin} & Triple point of water \\
+    \bottomrule
+  \end{tabular}
+  \caption{Physical constants used for the viscous heat transport problem.}\label{tab:vhtconst}
+\end{table}
+
+For the purpose of determining effective cell Peclet numbers, it is useful to write the thermal and moisture flux in terms of enthalpy gradient using
+\begin{align*}
+  \frac{\partial T}{\partial E} &\approx 1/c_i & \text{Cold ice} \\
+  \frac{\partial \omega}{\partial E} &\approx 1/L & \text{Temperate ice}
+\end{align*}
+so that the enthalpy flux can be written as $-\tilde\kappa_T \nabla E - \tilde\kappa_\omega \nabla E$ with
+
+Since dimensional units are used here unlike in earlier sections, the strain rate regularization $\epsilon$ is now nondimensional and $\gamma_0$ is the second invariant of a reference strain rate.
+This formulation is not conventional in glaciology, but permits more intuitive understanding of parameters because they are no longer sensitive to the power law exponent $\pfrak$.
+
+Although this simulation is run using realistic geometry on a section of the Jakobshavn Isbr{\ae} channel, not all boundary conditions necessary for a realistic simulation have been implemented in {\Dohp}.
+More sophisticated lateral boundary conditions, thermal conditions at the bed, and free-surface evolution are not considered in the present model.
+The output of this simulation is \emph{not} intended as a predictive model, instead it is a demonstration of the capability of the methods to handle systems that were previously not possible or too computationally expensive due to the need for short time steps.
