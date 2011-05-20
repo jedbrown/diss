@@ -23,9 +23,9 @@ Additionally, very little theory is available for coupled multi-physics and it i
 
 A different approach is to apply a Newton iteration on the coupled problem and solve the linear system with a Krylov method using a preconditioner defined in terms of some operator splitting such that the physics of each part of the decomposition can be understood and efficient solvers can be provided.
 This approach~\citep{knoll2004jfn} has proven successful at reusing software, with many papers accessing such methods through {\PETSc}~\citep{petsc-web-page}.
-However, until recent additions to {\PETSc}, it was cumbersome to package separate physics separately without compromising which methods are available, and decisions about using field-split versus monolithic methods were typically required up-front.
+However, until my recent additions to {\PETSc}, it was cumbersome to package separate physics separately without compromising which methods are available, and decisions about using field-split versus monolithic methods were typically required up-front.
 The enhancements to {\PETSc} allow each physics to be packaged independently without sacrificing performance or runtime flexibility in choice of methods.
-We first summarize a variety of field-split methods and their requirements from the user, then we examine the linear algebraic interface by which the user can generically provide this information.
+We first summarize a variety of field-split methods and their requirements from the user, then we examine the new linear algebraic interface by which the user can generically provide this information.
 
 \subsubsection{Field-split preconditioning}
 Suppose the Jacobian of the original coupled problem has block structure
@@ -162,7 +162,7 @@ PetscErrorCode MatGetSchurComplement(Mat mat,
                    MatReuse mreuse,Mat *newmat,MatReuse preuse,Mat *newpmat);
 \end{minted}
 to extract the Schur complement of $(\cverb|isrow0|,\cverb|iscol0|)$ restricted to $(\cverb|isrow1|,\cverb|iscol1|)$ and an approximation to be used for preconditioning.
-The default implementation returns a matrix of type \code{MatSchurComplement} which applies $S$ according to its definition $D - CA^{-1}B$ by storing the four blocks, and if requested by the caller, the SIMPLE~\citep{patankar1972cph} approximation $D - C\text{diag}(A)^{-1}B$.
+The default implementation returns a matrix of type \cverb|SchurComplement| which applies $S$ according to its definition $D - CA^{-1}B$ by storing the four blocks, and if requested by the caller, the SIMPLE~\citep{patankar1972cph} approximation $D - C\text{diag}(A)^{-1}B$.
 This function can be overridden by the user to return arbitrary problem-specific data.
 
 The \cfunc|MatGetSubMatrix| and \cfunc|MatGetSchurComplement| interfaces are perfectly adequate for use by \code{PCFieldSplit}, and \cverb|Nest| matrices provide an efficient storage format, but since the assembly interface is different for creating separate blocks from a monolithic matrix, it seems to require the user to decide up-front whether to assemble a \cverb|Nest| or a \cverb|AIJ| matrix.
@@ -174,7 +174,7 @@ Before describing the interface, we need to define ``local'' spaces in the multi
 We first assume a non-overlapping partition of owned nodes across subdomains, where typically subdomains are identified with MPI processes.
 We also assume a possibly overlapping partition of the integration domain.
 In the continuous finite element context, assembly is done by integration over elements, with each element typically integrated on exactly one process (thus the partition is non-overlapping).
-Note that finite difference and finite volume methods can also be interpreted as integration.
+Note that finite difference and finite volume methods can also be interpreted as integration with appropriate quadratures.
 The local space is then defined as the set of all nodes with support on the integration subdomain.
 This is also exactly the domain on which state variables need to be defined to evaluate a subdomain's contribution to the residual and contains the residual contribution from any given subdomain (identical for continuous finite element methods).
 The local space comes with an independent ordering (starting at zero for each subdomain) and a local-to-global mapping that translates local indices to global indices.
@@ -199,3 +199,4 @@ If the row and column index sets have matching block size attribute, \cfunc|MatS
 This permits sub-physics modules having constant block size to always speak the most specific language (blocked and/or symmetric) regardless of the underlying format.
 When the underlying format specifically supports blocks, we reap the benefits of faster insertion due to fewer searches and moves, otherwise there is negligible performance penalty.
 When \cfunc|MatSetValuesBlockedLocal| is used recursively and the matrix implementation has no specific support, the proxy matrices are flattened so that index translation is never done more than once.
+This interface allows separate physics modules to be packaged independently and gives a run-time choice of monolithic matrix formats or \cverb|Nest| with the best possible format in each block and high performance in all cases.

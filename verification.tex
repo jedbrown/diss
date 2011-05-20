@@ -1,5 +1,5 @@
 How reliable are the results of a numerical simulation?
-Under what circumstances can decisions by made based on the results of a calculation?
+Under what circumstances can decisions be made based on the results of a calculation?
 Answering these questions involves two distinct steps known as Verification and Validation~\citep{babuska2004vav,roache1998verification}.
 Verification is the purely mathematical endeavor of determining if a computational model obtained by discretizing a mathematical model of a physical process can be used to represent the mathematical model with sufficient accuracy---\emph{solving the equations right}.
 It is an essential prerequisite for Validation which is the process of assessing whether a mathematical model is a sufficiently accurate model of a physical process---\emph{solving the right equations}~\citep{roache1998verification}.
@@ -72,7 +72,7 @@ This methodology is implemented for all PDE examples in {\Dohp}.
 
 We continue with the large-deformation elasticity problem using manufactured solution described above and solve the problem on a sequence of refined meshes with different orders.
 Continuous norms of the discrete errors $\uu_h - \uu$ are shown in \tabref{tab:elastverif}.
-These norms are estimated using a standard quadrature, as was used to integrated the manufactured forcing term.
+These norms are estimated using a standard quadrature, as was used to integrate the manufactured forcing term.
 The expected convergence rate for a $Q_k$ discretization of this problem is of order $k+1$ in $L^p$ and of order $k$ for the gradients.
 The noisiness in the $\sup$ norms are due to the inexact quadrature since neither the exact solution nor the manufactured forcing term can reasonably be integrated exactly.
 The highest order cases are also sensitive to iterative solver tolerance and floating point rounding error, but it is clear in each case that the expected order of accuracy is being attained.

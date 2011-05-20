@@ -63,12 +63,12 @@ The impact on domain decomposition methods such as FETI-DP is more delicate, see
 While use of conservative normals provides exact conservation across the interface, there is no guarantee that it will preserve realistic steady states, particularly for free surface flows where the hydrostatic contribution to pressure cannot be removed.
 Indeed, with a smooth curved boundary and a level surface, the momentum residual will not point in the same direction as the conservative normal.
 The tangent component of the momentum residual is a spurious tangent force that causes non-physical recirculation within the fluid domain that can not be prevented simply by adding artificial friction to the slip surface.
-This issue is addressed \citet{behr2004application} which we follow below.
+This issue is addressed in \citet{behr2004application} which we follow below.
 Recall the boundary integral appearing in the weak form of the Stokes problem \eqref{eq:slip:stokes-weak}
 \begin{equation}\label{eq:slip:stress-bc}
   - \int_\Gamma \vv\cdot (\eta D\uu - p\bm 1)\cdot\nn
 \end{equation}
-where well-posedness of the continuous weak form requires specifying the stress $(D\uu - p\bm 1)\cdot\nn$ as an algebraic function of $\uu$.
+where well-posedness of the continuous weak form requires specifying the stress $(\eta D\uu - p\bm 1)\cdot\nn$ as an algebraic function of $\uu$.
 We are only concerned with the tangential part of the stress since the normal components have Dirichlet conditions imposed.
 The approach of \citet{behr2004application} integrates \eqref{eq:slip:stress-bc} ``as is'', without applying any boundary condition at all.
 This has the effect of extending the PDE to include the boundary.

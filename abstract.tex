@@ -14,13 +14,13 @@ Through new software interfaces, this performance is achieved while retaining mo
 The library also retains more geometric information than existing open source libraries, permitting more natural coupling to CAD and geometric models, as well as the implicit solution of equations in which the domain is part of the solution.
 
 A new Newton-Krylov-Multigrid solver for the hydrostatic equations of ice sheet flow is presented.
-The high cost of solving the hydrostatic equations using conventional methods has been the principle imediment to their use in large-scale ice sheet models, causing existing models to fall back to simpler momentum balance models.
+The high cost of solving the hydrostatic equations using conventional methods has been the principle impediment to their use in large-scale ice sheet models, causing existing models to fall back to simpler momentum balance models.
 In addition to poor algorithms, the community has also suffered from lack of quality parallel implementations, thus further limiting the scope of problems that could be solved.
 The new solver demonstrates textbook multigrid efficiency on a variety of demanding problems, offering several orders of magnitude speedup for problem sizes of interest, and nearly perfect strong and weak scalability on parallel hardware.
 
 A new algebraic interface for multiphysics coupling is introduced.
 Robust coupling of multiple interacting physical processes is a challenging problem in which many commonly used methods are fundamentally inadequate.
-The best methods are highly problem dependent, change as larger number of coupled processes grows, and are a highly active area of research.
+The best methods are highly problem dependent, change as the number of coupled processes grows, and are a highly active area of research.
 A crucial limitation of earlier software was that trying different methods generally involved a great deal of error-prone software development by the user.
 This poor software support made it difficult to test the quality and performance of different methods, thus locking projects in to methods that may actually be ill-suited to the problems that are eventually encountered.
 The new algebraic interface allows an arbitrary number of physical processes to be coupled using a wide range of methods which can be selected and combined at run-time.
@@ -31,7 +31,7 @@ This software, along with implicit time integrators for differential algebraic e
 Improvements in throughput on modern hardware are presented.
 Current methods for solving partial differential equations exhibit very low utilization of modern hardware, often less than 5 percent, due to their overwhelming dependence on memory bandwidth.
 Part of this under-utilization was due to implementation issues with sparse matrix kernels preventing good reuse of high-level caches.
-This was rectified by improving \PETSc's sparse matrix kernels by 20 to 30 percent, and performance is now close to the theoretical limit of the hardware.
+This was rectified within this work by improving \PETSc's sparse matrix kernels by 20 to 30 percent, and performance is now close to the theoretical limit of the hardware.
 The more fundamental limitation of memory bandwidth cannot be overcome by implementation optimization; it requires changing the underlying algorithm.
 In the context of the finite element library \Dohp, this can be achieved by eschewing assembled sparse matrices in favor of a matrix-free representation that has higher arithmetic intensity and uses much less memory for everything beyond lowest order elements.
 This transformation permits an order of magnitude improvement in hardware utilization and is transparently available to the user in the {\Dohp} library.

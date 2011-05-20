@@ -29,7 +29,7 @@ This and a related report~\citep{washington2009scientific} prioritize further re
 
 Ice dynamics was identified by the fourth assessment report of the IPCC~\citep{lemk2007ar4wg1} as a crucial source of uncertainty in sea level rise estimates, with no existing models capable of simulating the physical processes responsible for the large uncertainty.
 The underlying source of this uncertainty is a dynamical instability identified by \citet{weertman1974sji} and made rigorous by \citet{schoof2007isg}.
-This problem of grounding line stability is fundamentally three dimensional, constant factors are important, and the overall stability is determined by multi-scale behavior such as heat flux from the ocean through thin boundary layers and small bed features that can stabilize an unstable state.
+The problem of grounding line stability in locations such as Jakobshavn Isbr{\ae} is fundamentally three dimensional, constant factors are important, and the overall stability is determined by multi-scale behavior such as heat flux from the ocean through thin boundary layers and small bed features that can stabilize an unstable state.
 The ``full'' grounding line stability problem is on the frontier of computational science in many ways.
 It involves coupling physical processes in multiple domains interacting on multiple time scales through boundary layer processes, with material and geometric anisotropy, strong nonlinearity and heterogeneity, mixed characteristic PDEs, four varieties of interacting contact problems, and uncertainty in the geometry, coefficients, and constitutive models.
 
@@ -43,11 +43,15 @@ This synergy can only occur within a comprehensive well-thought-out software inf
 This thesis contains my work on each of these topics and their synthesis.
 It attempts to bring a more rigorous understanding of numerical and computational issues in ice flow modeling, with a focus on robust, extensible methods that scale to large problem sizes with efficient use of current and future hardware.
 An overarching theme is the development of extensible software that can be used to solve increasingly complex problems with minimal development time, while using the best possible methods.
-Much of this software has been added to the {\PETSc}~\citep{petsc-user-ref} library and is in production use by many external groups.
+Much of this software has been added to the {\PETSc}~\citep{petsc-user-ref} library\footnote{%
+The Portable Extensible Toolkit for Scientific computing ({\PETSc}) is an open source parallel nonlinear solvers package with support for many related tasks in scientific computing.
+It has thousands of users in academia and industry, with uses ranging from development of new iterative and preconditioning methods to computational physics and engineering problems in many fields, and forms the solver infrastructure for many discretization libraries as well as commercial software.
+I have been an active developer since 2008 and any developments that I felt belonged at {\PETSc}'s level of abstraction have been added to the library.}
+and is in production use by many external groups.
 Components which are not part of {\PETSc} are available under a BSD-style open source license.
 
 \chapref{chap:dohp} investigates efficient nonlinear solvers for high-order finite element methods in a rather general setting.
-High order methods have accuracy benefits, but they are also capable of better utilizing modern hardware, and are necessary for certain conservation and stability properties that are necessary for robust methods on practical meshes for ice flow problems.
+High order methods have accuracy benefits, but they are also capable of better utilizing modern hardware, and are necessary for certain conservation and stability properties that are needed for robust methods on practical meshes for ice flow problems.
 \chapref{chap:tme-ice} presents an especially robust and scalable multigrid method for the hydrostatic equations of ice flow.
 These equations are considered to be an important intermediate description of the ice flow and were previously thought to be very expensive to solve.
 Our implementation improves by several orders of magnitude on the best previous results, both in time to solution and in maximum problem size.
@@ -55,4 +59,4 @@ The code is available as a tutorial in {\PETSc}.
 
 \chapref{chap:software} discusses several of the software components that were implemented to facilitate efficient solvers, high throughput, flexible and performant finite element methods for multi-physics problems, and designing code for easy verification.
 \chapref{chap:discretization} investigates several relatively unique discretization requirements for ice flow problems.
-Finally, \chapref{chap:jakobshavn} has applications to the ice stream at Jakobshavn Isbr{\ae}.
+Finally, \chapref{chap:jakobshavn} has applications to the Jakobshavn Isbr{\ae} ice stream.

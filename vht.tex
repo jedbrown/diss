@@ -5,9 +5,9 @@ Time-stepping a transient model to steady state is extremely expensive, therefor
 Given a Lipschitz domain $\Omega$ with surface $\Gamma_s$ and time interval $(0,\tau)$, the strong form is to find total momentum, pressure, and total energy density $(\rho\uu,p,E) \in W^{1,\pfrak} \times L^2 \times H^1$ such that
 \begin{subequations}\label{eq:vhtstrong}
   \begin{align}
-    (\rho\uu)_t + \nabla \cdot(\rho\uu\otimes\uu - \eta D\uu_i + p\bm 1) - \rho \bm g &= 0 \label{eq:vhtstrong:momentum} \\
-    \rho_t + \nabla \cdot \rho\uu &= 0 \label{eq:vhtstrong:mass} \\
-    E_t + \nabla\cdot (E\uu_i - k_T\nabla T - L \kappa_\omega\nabla\omega) - \eta D\uu_i\tcolon D\uu_i &= 0 \label{eq:vhtstrong:energy}
+    (\rho\uu)_t + \div (\rho\uu\otimes\uu - \eta D\uu_i + p\bm 1) - \rho \bm g &= 0 \label{eq:vhtstrong:momentum} \\
+    \rho_t + \div \rho\uu &= 0 \label{eq:vhtstrong:mass} \\
+    E_t + \div (E\uu_i - k_T\nabla T - L \kappa_\omega\nabla\omega) - \eta D\uu_i\tcolon D\uu_i &= 0 \label{eq:vhtstrong:energy}
   \end{align}
 \end{subequations}
 on $\Omega\otimes (0,\tau)$, with Dirichlet flow boundary conditions except at the free surface, and all Dirichlet boundary conditions for energy $E$.
@@ -120,7 +120,7 @@ Substituting $\omega\rho_w(\uu_w - \uu_i) = -\kappa_\omega\nabla\omega$ into \eq
 as in \eqref{eq:vhtclosure:uice}.
 In \eqref{eq:vhtstrong:energy}, the mass flux is converted to energy flux $-L\kappa_\omega\nabla\omega$ using the latent heat $L$.
 
-The present formulation is similar to \citet{aschwanden2011enthalpy}, but is more conservative.
+The present formulation is similar to \citet{aschwanden2011enthalpy} and approaches their model in the limit $\omega\to 0$, but is more conservative.
 The formulation here uses a 3D momentum balance and conserves mass, momentum, and energy, regardless of large amplitude moisture content and presence of numerical diffusion.
 We have intentionally neglected to write constitutive relations of the form $e(T,\omega,p)$ because such relationships are superfluous for the purpose of solving the equations.
 They can be obtained by inverting the constitutive relations presented here and, depending on the experimental setup, may be useful for model validation.

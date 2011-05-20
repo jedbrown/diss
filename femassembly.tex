@@ -111,7 +111,7 @@ Example 4 was used from the latest versions of both {\libmesh} and {\dealii}.
 For \dealii, constants in the code needed to be changed to change the mesh resolution and element order, and timing calls (using \cverb|clock_gettime(2)|) needed to be added.
 The {\Dohp} results use the \verb|ellip.c| example which solves the ``$p$-Bratu'' equation
 \begin{align*}
-  -\divrg \big(\abs{\grad u}^{p-2} \grad u \big) - \lambda \exp u = f
+  -\div \big(\abs{\grad u}^{p-2} \grad u \big) - \lambda \exp u = f
 \end{align*}
 where $f$ is a manufactured forcing term.
 The Laplace equation is the special case $p=2, \lambda=0$, which is chosen at run-time in the example and produces the timing results shown in the $p$-Bratu column.

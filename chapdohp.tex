@@ -348,7 +348,7 @@ that the results are representative.
 \subsection{$p$-Poisson}\label{sec:ppoisson}
 The inhomogeneous $\pfrak$-Laplacian is
 \begin{equation*}
-  -\nabla \cdot (\abs{\nabla u}^{\pfrak-2} \nabla u) - f = 0
+  -\div (\abs{\nabla u}^{\pfrak-2} \nabla u) - f = 0
 \end{equation*}
 where $1 \le \pfrak \le \infty$ (see \citet{evans2007lol} for discussion of these limiting cases).  This equation is
 singular at $\nabla u = 0$ when $\pfrak<2$ and degenerate when $\pfrak>2$, so we solve a regularized variant with weak
@@ -367,7 +367,7 @@ memory needed for solution.
 
 The Newton step for \eqref{eq:ppoisson} corresponds to the weak form: find $w \in V_0$ such that
 \begin{equation*}
-  \ip{v}{J(u) w} = \int_\Omega \eta \nabla v \cdot\nabla w + \eta' (\nabla v\cdot\nabla u)(\nabla u\cdot\nabla w) = - (v,F(u))
+  \ip{v}{J(u) w} = \int_\Omega \eta \nabla v \cdot\nabla w + \eta' (\nabla v\cdot\nabla u)(\nabla u\cdot\nabla w) = - \ip{v}{F(u)}
 \end{equation*}
 for all $v \in V_0$, where $J(u)$ is the Jacobian of $F$ at $u$.  It is informative to rewrite the integrand as
 \begin{equation*}
@@ -525,14 +525,14 @@ offers more preconditioning choices.
 \subsection{Stokes}
 The weak form of the Dirichlet Stokes problem is: find $(u,p) \in \bm V_D \times P$ such that
 \begin{equation*}
-  \int_\Omega \eta Dv \tcolon Du - p \nabla\cdot v - q\nabla\cdot u - f\cdot v = 0
+  \int_\Omega \eta Dv \tcolon Du - p \div v - q\div u - f\cdot v = 0
 \end{equation*}
 for all $(v,q) \in \bm V_0 \times P$ where $Du = \frac 1 2 \big(\nabla u + (\nabla u)^T \big)$ is the symmetric
 gradient, $\bm V_D = \bm H^1_D(\Omega)$ is the inhomogeneous velocity space with $\bm V_0$ the corresponding homogeneous
 space, and $P = \{p \in L^2_0(\Omega) : \int_\Omega p = 0 \}$ is the pressure space.  Stability requires satisfaction of
 the discrete inf-sup condition
 \begin{equation*}
-  \inf_{p} \sup_{u} \frac{\int_\Omega p \nabla \cdot u}{\norm{p}_{0} \norm{u}_1} \ge \beta > 0 .
+  \inf_{p} \sup_{u} \frac{\int_\Omega p \div u}{\norm{p}_{0} \norm{u}_1} \ge \beta > 0 .
 \end{equation*}
 The finite element space $Q_k-Q_{k-2}$ is stable with $\beta \in \bigO(k^{-(d-1)/2})$ in $d$ dimensions \citep[see][]{schotzau1998mhf} and is thus quite usable for the modest orders we propose.
 
