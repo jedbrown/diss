@@ -1,0 +1,25 @@
+Implementing convergent numerical models for complex physical processes such as ice streams and grounding line dynamics is a time consuming task.
+If the model must also be accurate, achieve high performance, exhibit good parallel scalability, be portable to different operating systems and hardware, and be flexible enough to add new physics or couple to other models as part of a larger problem, the complexity explodes.
+Well-designed software libraries help to manage the complexity and to greatly reduce development time for new models.
+Perhaps more important than reducing initial development time, libraries enable experimentation with different methods at extremely low effort.
+The best way to experiment is entirely with run-time options, such that no code modifications or recompilation is necessary.
+
+Using different algorithms, each of which may be necessary for different parameter ranges or to obtain high performance on different architectures, require the use of different data structures.
+A fundamental tenet of object oriented design, and {\PETSc} in particular, is that users should not interact directly with the underlying data structures and should not depend on on any specific implementations of an interface.
+The requirement to interact through a generic interface without impacting performance places hard restrictions on the design of those interfaces.
+As a general rule, the interface should have a granularity that is large enough to offer high performance, but is not so large that it becomes restricted to certain data structures.
+All major classes in {\PETSc} have a plugin architecture with object creation managed by a service locator pattern~\cite{fowler2004injection}.
+This enables, for example, a vendor to compile a matrix format and/or preconditioner that performs well on their hardware into a shared library such that an end user of any {\PETSc} program can select the vendor's plugins at run-time without access to any source code.
+
+There is a balance between ``frameworks'' that take control of the model (often at \cfunc|main|) and offer a high-level interface to the user versus libraries that leave the user in control.
+Frameworks make many assumptions about the equations and methods to be used, which allow a high level of abstraction and rapid development of a new models, provided the equations and discretization are supported by the framework.
+On the other hand, these assumptions limit the ability to solve problems and use methods that are unnatural for the framework, as well as the ability to couple with other numerical models as part of something larger, or to perform analysis that is not explicitly supported by the framework (\eg bifurcation, sensitivity, optimization).
+Libraries, on the other hand, take more effort (which we try to minimize) to build a working model, but the user has much more control and the resulting code is more amenable to reuse in a larger scope.
+{\PETSc}'s solvers are purely algebraic and therefore make no assumptions about the discretization or coupling to external systems.
+The scope of my new library, \Dohp, is strictly limited to the task of turning a continuum formulation and input data including a computational mesh into discrete algebraic equations.
+Unlike many discretization libraries, {\Dohp} makes no attempt to also manage the solution of algebraic equations.
+\PETSc's algebraic interfaces are used exclusively.
+Since the data types are extensible, their use places no restriction on functionality or performance, but having a single common interface substantially reduces the ``impedance mismatch'' of mixing code from different packages.
+
+This section discusses the design decisions and implementation of several software components that I have developed to improve the capability, performance, and verifiability of numerical simulations.
+These contributions have broader scope than glaciology, but each component provides significant benefit to the overall capability of numerical models in glaciology.
