@@ -8,7 +8,7 @@ Given a Lipschitz domain $\Omega$ with surface $\Gamma_s$ and time interval $(0,
   \begin{align}
     (\rho\uu)_t + \div (\rho\uu\otimes\uu - \eta D\uu_i + p\bm 1) - \rho \bm g &= 0 \label{eq:vhtstrong:momentum} \\
     \rho_t + \div \rho\uu &= 0 \label{eq:vhtstrong:mass} \\
-    E_t + \div \big(\uu_i(E+p) - k_T\nabla T - L \kappa_\omega\nabla\omega \big) - \eta D\uu_i\tcolon D\uu_i - \rho\uu\cdot\bm g &= 0 \label{eq:vhtstrong:energy}
+    E_t + \div \left((E+p)\uu - k_T\nabla T - L (1-\omega)\frac{\rho_i}{\rho}\kappa_\omega\nabla\omega \right) - \eta D\uu_i\tcolon D\uu_i - \rho\uu\cdot\bm g &= 0 \label{eq:vhtstrong:energy}
   \end{align}
 \end{subequations}
 on $\Omega\otimes (0,\tau)$, with Dirichlet flow boundary conditions except at the free surface, and all Dirichlet boundary conditions for energy $E$.
@@ -124,9 +124,37 @@ Substituting $\omega\rho_w(\uu_w - \uu_i) = -\kappa_\omega\nabla\omega$ into \eq
   \uu_i = \uu + \rho^{-1} \kappa_\omega \nabla\omega
 \end{equation*}
 as in \eqref{eq:vhtclosure:uice}.
-In \eqref{eq:vhtstrong:energy}, the mass flux is converted to energy flux $-L\kappa_\omega\nabla\omega$ using the latent heat $L$.
+In \eqref{eq:vhtstrong:energy}, we need the energy flux in the reference frame of the total velocity.
+Starting from the mass flux in the reference frame of total velocity,
+\begin{equation}\label{eq:vhtmomflux}
+  \begin{split}
+    \omega\rho_w(\uu_w - \uu) & = \omega \rho_w (\uu_w - \uu_i) + \omega\rho_w(\uu_i - \uu)                             \\
+                              & = -\kappa_\omega\nabla\omega + \frac{\omega\rho_\omega}{\rho}\kappa_\omega\nabla \omega \\
+                              & = - \left( 1 - \frac{\omega\rho_\omega}{\rho} \right) \kappa_\omega \nabla \omega \\
+                              & = - (1-\omega)\frac{\rho_i}{\rho}\kappa_\omega\nabla\omega
+  \end{split}
+\end{equation}
+where the moisture flux and \eqref{eq:vhtclosure:uice} was used on the second line.
+The mass flux in \eqref{eq:vhtmomflux} is converted to energy flux by multiplying by the latent heat $L$ to produce the moisture flux appearing in \eqref{eq:vhtstrong:energy}.
 The use of constant hydraulic conductivity $\kappa_\omega$ is a poor approximation for large amplitude $\omega$ since intraglacial conduits form for higher melt fractions, thus conductivity becomes nearly infinite.
 For such cases, it would likely be better to use a Darcy-type constitutive relation accommodating the gravitational contribution and with conductivity dependent on moisture, perhaps of the form $\kappa(\omega) = \kappa_0 \exp \frac{\omega}{\omega_0}$ where $\kappa_0$ is the conductivity for vanishing moisture fraction and $\omega_0$ is a characteristic melt fraction on the order of \SI{1}{\percent}.
+
+The volumetric flux $p\bm u$ appearing in \eqref{eq:vhtstrong:energy} could have been written as part of a single heating term.
+For single-phase compressible flows, the heat production can be written $(\eta D\uu - p\bm 1)\tcolon \grad \uu$ from classical definitions of work~\citep[\eg][]{hutter2004continuum}, plus a kinetic energy contribution $-\uu\cdot\nabla p$.
+These can be manipulated as
+\begin{equation}\label{eq:heatdiss}
+  \begin{split}
+    (\eta D\uu - p\bm 1)\tcolon \grad \uu - \uu\cdot\grad p &= \eta D\uu\tcolon \grad\uu - p\div\uu - \uu\cdot\grad p \\
+    &= \eta D\uu\tcolon D\uu - \div (p\uu)
+  \end{split}
+\end{equation}
+which is the form appearing in \eqref{eq:vhtstrong:energy}.
+Although both expressions are equivalent for the continuous equations, the discrete equations are different because numerical solutions only satisfy partial differential equations weakly.
+Only the latter formulation is conservative.
+This formulation is also more amenable to discretization and is mandatory for stability when density is dependent on pressure (as it is here when melt content is available) and diffusion is poorly resolved on the mesh.
+The first term in \eqref{eq:heatdiss} is non-reversible dissipation while the second can be recovered through volume change and thus does not affect the global entropy.
+The ice velocity $\uu_i$ is used in \eqref{eq:vhtstrong:energy} because the melt fraction is assumed to be able to move through the ice matrix without viscous dissipation.
+Perhaps this is a reasonable assumption because the viscosity of ice is \num{1e15} larger than water, but for relatively stagnant ice with high moisture velocity, it is likely to be significant and the equations can be augmented with an additional diffusive term.
 
 The present formulation is similar to \citet{aschwanden2011enthalpy} and approaches their model in the limit $\omega\to 0$, but is more conservative.
 The formulation here uses a 3D momentum balance and conserves mass, momentum, and energy, regardless of large amplitude moisture content and presence of numerical diffusion.
@@ -195,6 +223,10 @@ As usual, this manufactured solution is not physically realizable, but it excerc
 \end{figure}
 
 We consider norms for a $\Qk 3 - \Qk 2 - \Qk 3$ approximation under $h$-refinement.
+Due to the direct appearance of pressure in the equations, we cannot expect to realize fourth order convergence, at least not for the energy equation.
+Figure~\ref{fig:vhtrefine} shows the observed convergence behavior in which energy clearly converges with only third order accuracy.
+I do not have an explanation for why the convergence eventually stagnates, starting with the energy equation.
+It could be an artifact of the manufactured solution process (perhaps rectifiable using more accurate quadrature for the forcing term), other quadrature errors due to nonlinearity, or stability of the continuum equations or discretization.
 
 \begin{figure}
   \centering\includegraphics{vhtdisc}
