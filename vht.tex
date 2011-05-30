@@ -1,17 +1,19 @@
-We consider the problem of computing a steady-state enthalpy (in the form of temperature and moisture) field coupled to a Stokes problem with an enthalpy-dependent rheology.
+We consider the problem of computing a steady-state energy (in the form of temperature, moisture, and kinetic energy) field coupled to a Stokes problem with rheology depending on strain rate, pressure, temperature, and melt fraction.
 This problem is most important as part of inversion for a temperature field that is compatible with the observed geometry, flow field, borehole temperature measurements, and any other field observations.
 Time-stepping a transient model to steady state is extremely expensive, therefore it will never be feasible as part of the functional to be minimized by an optimization algorithm.
 
+\subsection{Problem description}\label{ssec:vhtproblem}
 Given a Lipschitz domain $\Omega$ with surface $\Gamma_s$ and time interval $(0,\tau)$, the strong form is to find total momentum, pressure, and total energy density $(\rho\uu,p,E) \in W^{1,\pfrak} \times L^2 \times H^1$ such that
 \begin{subequations}\label{eq:vhtstrong}
   \begin{align}
     (\rho\uu)_t + \div (\rho\uu\otimes\uu - \eta D\uu_i + p\bm 1) - \rho \bm g &= 0 \label{eq:vhtstrong:momentum} \\
     \rho_t + \div \rho\uu &= 0 \label{eq:vhtstrong:mass} \\
-    E_t + \div (E\uu_i - k_T\nabla T - L \kappa_\omega\nabla\omega) - \eta D\uu_i\tcolon D\uu_i &= 0 \label{eq:vhtstrong:energy}
+    E_t + \div \big(\uu_i(E+p) - k_T\nabla T - L \kappa_\omega\nabla\omega \big) - \eta D\uu_i\tcolon D\uu_i - \rho\uu\cdot\bm g &= 0 \label{eq:vhtstrong:energy}
   \end{align}
 \end{subequations}
 on $\Omega\otimes (0,\tau)$, with Dirichlet flow boundary conditions except at the free surface, and all Dirichlet boundary conditions for energy $E$.
 These equations represent conservation of momentum, mass, and energy respectively.
+Note that $\rho_t$ appears in \eqref{eq:vhtstrong:mass}, but $\rho$ is not an explicit variable and only depends on pressure when the melt fraction is positive, therefore this system is still differential algebraic.
 The energy equation consists of a transport term, thermal diffusion, moisture diffusion, and heat production due to strain heating.
 We switch immediately to the steady-state form of \eqref{eq:vhtstrong} in which $(\rho\uu)_t$, $\rho_t$, and $E_t$ are all zero.
 Constitutive relations are needed for total density $\rho$ (\si{\kilogram\per\metre}), ice velocity $\uu_i$ (\si{\metre\per\second}), temperature $T$ (\si{\kelvin}), volumetric moisture fraction (porosity) $\omega$ (nondimensional), and viscosity $\eta$ ($\si{\pascal\second} = \si{\kilogram\per\metre\per\second}$).
