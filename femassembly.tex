@@ -108,6 +108,7 @@ Some possible choices that are automatically supported by client applications of
 To demonstrate that this generic formulation does not severely degrade performance for low-order approximations, we compare \Dohp's assembly cost to that of the well-known finite element libraries {\libmesh}~\citep{libmesh} and {\dealii}~\citep{bangerth2007deal}.
 \tabref{tab:dohpasm} shows the assembly time for a Laplacian on a cube using all three libraries.
 Example 4 was used from the latest versions of both {\libmesh} and {\dealii}.
+For the {\libmesh} example, the assembly loop was modified to only compute the matrix without contributions to the right hand side or adaptivity, and to use a low order quadrature rule when integrating $Q_1$ elements.
 For \dealii, constants in the code needed to be changed to change the mesh resolution and element order, and timing calls (using \cverb|clock_gettime(2)|) needed to be added.
 The {\Dohp} results use the \verb|ellip.c| example which solves the ``$p$-Bratu'' equation
 \begin{align*}
@@ -116,7 +117,7 @@ The {\Dohp} results use the \verb|ellip.c| example which solves the ``$p$-Bratu'
 where $f$ is a manufactured forcing term.
 The Laplace equation is the special case $p=2, \lambda=0$, which is chosen at run-time in the example and produces the timing results shown in the $p$-Bratu column.
 Timing with a modified version of \verb|ellip.c| specialized for the homogeneous Laplacian is also included so that the overhead of including nonlinearity can be seen.
-It is clear that {\Dohp} is faster than {\libmesh} and {\dealii} for everything but the assembled $Q_2$ case, including more than three times faster than {\dealii} and seven times faster than {\libmesh} for unstructured $Q_1$ elements.
+It is clear that {\Dohp} is faster than {\libmesh} and {\dealii} for everything but the assembled $Q_2$ case, including more than twice as fast for unstructured $Q_1$ elements.
 This was a surprise considering that {\Dohp} has no special optimization for unstructured $Q_1$ elements.
 {\Dohp} uses a very naive method for assembly of $Q_k$ elements when $k>1$, so there remains significant opportunity for optimizing the assembly of $Q_2$ discretization.
 However, we consider assembly (and solves) for such elements to be excessively expensive unless it is absolutely necessary for an application.
@@ -129,8 +130,10 @@ The unstructured $Q_1$ case requires 30\% overhead, and drops below 7\% when usi
     \toprule
     Library      & Mesh   & Connectivity & Discretization & \multicolumn{2}{c}{Laplace (s)} & \multicolumn{2}{c}{$p$-Bratu (s)} \\
     \midrule
-    \libmesh     & $64^3$ & $Q_1$        & $Q_1$          & 16&5        & \multicolumn{2}{l}{---}           \\
-    \libmesh     & $32^3$ & $Q_2$        & $Q_2$          & 7&4         & \multicolumn{2}{l}{---}           \\
+    \libmesh     & $64^3$ & $Q_1$        & $Q_1$          & 4&8        & \multicolumn{2}{l}{---}           \\
+    \libmesh     & $32^3$ & $Q_2$        & $Q_2$          & 5&0         & \multicolumn{2}{l}{---}           \\
+%nomod    \libmesh     & $64^3$ & $Q_1$        & $Q_1$          & 16&5        & \multicolumn{2}{l}{---}           \\
+%nomod    \libmesh     & $32^3$ & $Q_2$        & $Q_2$          & 7&4         & \multicolumn{2}{l}{---}           \\
     \dealii      & $64^3$ & $Q_1$        & $Q_1$          & 7&8         & \multicolumn{2}{l}{---}           \\
     \dealii      & $32^3$ & $Q_2$        & $Q_2$          & 4&9         & \multicolumn{2}{l}{---}           \\
     \Dohp        & $64^3$ & $Q_1$        & $Q_1$          & 2&32        & 2&58          \\
