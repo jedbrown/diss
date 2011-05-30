@@ -56,6 +56,7 @@ As an example, we consider large deformation elasticity and implement the weak f
     return dv.dot(Pi)
 \end{pythoncode}
 where \pyverb|lmbda| and \pyverb|mu| are material parameters and a St. Venant-Kirchoff constitutive model has been used (neo-Hookean and other models are handled simply by changing the definition of \pyverb|S|).
+Further discussion of finite element methods for large-deformation elasticity can be found in \citet{wriggers2008nonlinear} or \citet{bathe1996finite}.
 The homogeneous weak form above is symbolically differentiated to produce a strong form of the governing equations.
 A manufactured solution is defined in Python as
 \begin{pythoncode}
