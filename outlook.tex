@@ -1,1 +1,12 @@
+There are many periodic processes in glaciology, including ice stream margin migration and shutdown~\citep{raymond2000energy,bueler2009shallow}, Heinrich events~\citep{heinrich1988cyclic,calov2010heino}, and grounding line migration \citep{schoof2007isg,mismip}.
+All numerical studies to date have explored these phenomena by direct time integration.
+This involves large spin-up times and many time steps (sometimes millions) to complete a period.
+An alternative is to pose the time-periodic problem as a nonlinear rootfinding problem and apply Newton-Krylov techniques.
+This was done by \citep{merlis2008fast} for the spin-up of an ocean general circulation model and provided a factor of 10 to 100 speedup compared to direct time integration.
+Furthermore, it provided access to stable limit cycles and equilibrium solutions that could not be accessed by direct time integration.
+With such a method, it would also be possible to efficiently explore the effect of parameters on these cycles.
+For example, using multi-parameter continuation methods~\citep{allgower2003inc} to find combinations of parameters that cause a qualitative change in the structure of the periodic solution.
+
+
+
 \todo{write this}
