@@ -22,14 +22,18 @@ The thermal conductivity $k_T$ (\si{\joule\per\metre\per\kelvin\per\second}) and
 
 The constitutive relations for temperature and moisture fraction are usually defined piecewise.
 It is preferable for the convergence of Newton methods~\citep[\cf][]{gropp2000globalized} to have a discretization with $C^1$ continuity and it is simpler for manufactured solutions if the constitutive relation has a global (\ie not piecewise) definition in terms of analytic functions.
-To produce globally smooth approximations to the functions defined piecewise, we use introduce the (low precedence, infix) splice function
-\begin{equation*}
-  \splice{a}{b}{x_0}{\delta}{x} = a(x) + \frac{b(x)-a(x)}{2} \Big(1+\tanh \big(\frac{x-x_0}{\delta} \big) \Big)
-\end{equation*}
-which joins the functions $a(x)$ and $b(x)$ at $x = x_0$ via a smooth transition of characteristic width $\delta$.
-Taking $\delta \to 0$ recovers the piecewise function.
-This definition of $\spliceop$ is not monotone when joining two overlapping functions such as $a(x) = 0$ and $b(x) = x$ at $x_0 = 0$.
-Lack of monotonicity can violate the entropy inequality, therefore a monotone spline would be preferable in real applications.
+To achieve this, we decompose the function $\mathcal{S}(x) = x$ into two globally smooth parts
+\begin{align*}
+  %\mathcal S_\delta^-(x) &= \frac{x}{2} \left(1 - \erf \frac{x}{\sqrt 2 a} \right)  -\frac{a}{\sqrt{2\pi}} \exp{\frac{-x^{2}}{2 a^{2}}} \\
+  %\mathcal S_\delta^+(x) &= \frac{x}{2} \left(1 + \erf \frac{x}{\sqrt 2 a} \right) + \frac{a}{\sqrt{2\pi}} \exp{\frac{-x^{2}}{2 a^{2}}} \\
+  \mathcal S_\delta^-(x) &= \frac{x}{2} - \frac{x}{2} \erf \frac{x}{\sqrt 2 \delta} - \frac{\delta}{\sqrt{2\pi}} \exp{\frac{-x^{2}}{2 \delta^{2}}} \\
+  \mathcal S_\delta^+(x) &= \frac{x}{2} + \frac{x}{2} \erf \frac{x}{\sqrt 2 \delta} + \frac{\delta}{\sqrt{2\pi}} \exp{\frac{-x^{2}}{2 \delta^{2}}}
+\end{align*}
+which satisfy $\mathcal S_\delta^- (x) < 0$, $\mathcal S_\delta^+(x) > 0$ and $\mathcal S_\delta^-(x) + S_\delta^+(x) = x$.
+These functions arise from integrating the error function with standard deviation $\delta$.
+Taking $\delta\to 0$ recovers the piecewise linear decomposition $\mathcal S_0^-(x) = \min(x,0)$, $\mathcal S_0^+(x) = \max(x,0)$.
+In applications where a single global function is not important, the decomposition $\mathcal S^\pm$ could be defined using a spline which would reduce the high computational cost of evaluating $\erf$.
+This decomposition will be used to separate internal energy into thermal and melt contributions.
 
 For convenience in defining constitutive relations, we introduce specific internal energy $e$ (\si{\joule\per\kilogram}) which is related to total and kinetic energy through
 \begin{equation*}
@@ -43,8 +47,8 @@ This approximation may be violated, for example, at moderate porosity when the v
 In such circumstances, it is likely unavoidable to add additional variables for water momentum and energy.
 Consistent with exact incompressibility, the internal energy is independent of pressure even though observable quantities like temperature and moisture fraction are dependent on pressure.
 Removing this assumption would produce acoustic waves and a conservative formulation would require that density be an explicit degree of freedom.
-When combined with the closure for $\rho(p,e)$, shown below, \eqref{eq:intenergy} requires solving an implicit equation.
-This implicit equation can always be reduced to one dimension and can be solved explicitly for some definitions of $\spliceop$.
+When combined with the closure for $\rho(p,e)$, shown below, \eqref{eq:intenergy} requires solving an implicit equation involving the decomposition $\mathcal S^\pm$.
+This implicit equation can always be reduced to one dimension and can be solved explicitly for some definitions of $\mathcal S^\pm$.
 For some purposes, it is acceptable to simply take $\rho \approx \rho_i$.
 %, therefore we use the density of pure ice $\rho \approx \rho_i$ and the ice velocity $\uu_i = \uu$ (valid for $\omega \ll 1$) in this equaiton \emph{only}.
 The convective contributions to momentum balance $\rho\uu\otimes\uu$ and kinetic energy $\frac{1}{2\rho}\abs{\rho\uu}^2$ have vanishing influence in glaciology, but are easy to accommodate so we keep them for completeness.
@@ -55,8 +59,8 @@ The closures for \eqref{eq:vhtstrong} are
   \begin{align}
     \rho(p,e)        & = \big(1-\omega(p,e) \big) \rho_i + \omega(p,e) \rho_w                            \\
     \uu_i(\uu,p,e)   & = \uu + \rho(p,e)^{-1} \kappa_\omega \nabla\omega(p,e) \label{eq:vhtclosure:uice} \\
-    T(p,e)           & = \splice{T_0 + \frac{e}{c_i}}{T_m(p)}{e_m}{\delta}{e}                            \\
-    \omega(p,e)      & = \splice{0}{\frac{e-e_m(p)}{L}}{e_m}{\delta}{e}                                  \\
+    T(p,e)           & = T_0 + \frac{e_m(p) + \mathcal S_\delta^-\big(e - e_m(p)\big)}{c_i} \\
+    \omega(p,e)      & = \frac{\rho_i \mathcal S_\delta^+\big(e - e_m(p)\big)}{\rho_w L - (\rho_w-\rho_i)\mathcal S_\delta^+\big(e - e_m(p)\big)} \\
     \eta(\gamma,p,e) & = B(p,e)\left(\epsilon^2 + \frac{\gamma}{\gamma_0} \right)^{\frac{\mathfrak{p}-2}{2}}
   \end{align}
 \end{subequations}
@@ -65,7 +69,7 @@ with second invariant $\gamma = \half D\uu\tcolon D\uu$ and the additional const
   T_m(p)   & = T_3 - \beta_{CC} p          \\
   e_m(p)   & = c_i \big(T_m(p) - T_0 \big) \\
   T^*(p,e) & = T(p,e) - T_m(p) + T_3       \\
-  B(p,E)   & = B_0 \exp \left( \frac{Q\big(T_0-T^*(p,e)\big) - pVT_0}{\nfrak R T_0 T^*(p,e)} \right) \big(1 + B_\omega \omega(p,E) \big)^{-1/\nfrak}
+  B(p,E)   & = B_0 \exp \left( \frac{Q - pV}{\nfrak R T^*(p,e)} - \frac{Q}{\nfrak R T_0} \right) \big(1 + B_\omega \omega(p,E) \big)^{-1/\nfrak}
 \end{align*}
 with physical constants given in \tabref{tab:vhtconst}.
 Since dimensional units are used here unlike in earlier sections, the strain rate regularization $\epsilon$ is now a fraction of $\gamma_0$ which is the second invariant of a reference strain rate.
