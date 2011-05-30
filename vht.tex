@@ -125,24 +125,26 @@ Substituting $\omega\rho_w(\uu_w - \uu_i) = -\kappa_\omega\nabla\omega$ into \eq
 \end{equation*}
 as in \eqref{eq:vhtclosure:uice}.
 In \eqref{eq:vhtstrong:energy}, the mass flux is converted to energy flux $-L\kappa_\omega\nabla\omega$ using the latent heat $L$.
+The use of constant hydraulic conductivity $\kappa_\omega$ is a poor approximation for large amplitude $\omega$ since intraglacial conduits form for higher melt fractions, thus conductivity becomes nearly infinite.
+For such cases, it would likely be better to use a Darcy-type constitutive relation accommodating the gravitational contribution and with conductivity dependent on moisture, perhaps of the form $\kappa(\omega) = \kappa_0 \exp \frac{\omega}{\omega_0}$ where $\kappa_0$ is the conductivity for vanishing moisture fraction and $\omega_0$ is a characteristic melt fraction on the order of \SI{1}{\percent}.
 
 The present formulation is similar to \citet{aschwanden2011enthalpy} and approaches their model in the limit $\omega\to 0$, but is more conservative.
 The formulation here uses a 3D momentum balance and conserves mass, momentum, and energy, regardless of large amplitude moisture content and presence of numerical diffusion.
 We have intentionally neglected to write constitutive relations of the form $e(T,\omega,p)$ because such relationships are superfluous for the purpose of solving the equations.
 They can be obtained by inverting the constitutive relations presented here and, depending on the experimental setup, may be useful for model validation.
 
-For the purpose of determining cell Peclet numbers (a diagnostic tool and possible input to numerical stabilization methods), it is useful to write the thermal and moisture flux in terms of total energy gradient using
+For the purpose of determining cell Peclet numbers (a diagnostic tool and possible input to numerical stabilization methods), it is useful to write the thermal and moisture fluxes using
 \begin{align*}
   \frac{\partial T}{\partial E}      & = \frac{\partial T}{\partial e}\frac{\partial e}{\partial E} \approx \frac{1}{c_i} \frac{1}{\rho} \quad\text{Cold ice} \\
   \frac{\partial \omega}{\partial E} & = \frac{\partial \omega}{\partial e}\frac{\partial e}{\partial E} \approx \frac{1}{L} \frac{1}{\rho} \quad\text{Temperate ice}
 \end{align*}
-so that the energy flux can be written as $-K_T \nabla E - K_\omega \nabla E$ with
+so that the diffusive energy flux driven by energy gradient can be written as $-K_T \nabla E - K_\omega \nabla E$ with
 \begin{align*}
   K_T      & \approx \frac{k_T}{\rho c_i} = \SI{1.15e-6}{\metre\squared\per\second} \\
   K_\omega & \approx \frac{L \kappa_\omega}{\rho L} = \SI{1.15e-7}{\metre\squared\per\second} .
 \end{align*}
-Note that we have neglected kinetic energy and the dependence of density on $E$ in this approximation.
-For an element with streamline length $h = \SI{1}{\kilo\metre}$ and velocity $v = \SI{1}{\kilo\metre\per\year}$, the cell Peclet number is $\Peclet_h = hv / 2K = \num{1.4e4}$ for cold ice and ten times larger for temperate ice.
+Note that we have neglected kinetic energy and density dependence in this approximation.
+For an element with streamline length $h = \SI{1}{\kilo\metre}$ and velocity $v = \SI{1}{\kilo\metre\per\year}$, the cell Peclet number is $\Peclet_h = hv / K = \num{2.8e4}$ for cold ice and ten times larger for temperate ice.
 Numerical methods for such systems require upwinding to prevent non-physical oscillations.
 Godunov's Theorem~\citep[1954, see \eg][]{leveque2002finite} states that non-oscillatory linear methods for hyperbolic equations are at most first-order accurate.
 Higher order accuracy requires a nonlinear method, even if the equation being solved is linear.
@@ -162,7 +164,7 @@ The symmetric gradient of ice velocity $D\uu_i$ is needed to define the stress, 
 \end{equation}
 is avialable.
 Density is not an explict variable in this formulation and the definition of density involves the gradient of the explicit variables, therefore solving for $\nabla\uu_i$ in \eqref{eq:vhtgradu} produces a second order term.
-This term can be evaluated using the second derivative of the basis functions or using a local projection, but neither of these methods are conveniently available in {\Dohp} at present, therefore we define $\nabla\uu_i$ with the approximation
+This term can be evaluated using the second derivative of the basis functions or using a local projection, but neither of these methods are conveniently available in {\Dohp} at present, therefore we approximate $\nabla\uu_i$ using
 \begin{equation*}
   \nabla(\rho\uu) \approx \uu \otimes \nabla\rho + \rho \nabla \uu_i
 \end{equation*}
