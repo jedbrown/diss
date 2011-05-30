@@ -174,3 +174,59 @@ Although this simulation is run using realistic geometry on a section of the Jak
 More sophisticated lateral boundary conditions, energy conditions, and free-surface evolution are not considered in the present model.
 See \citet{aschwanden2011enthalpy} for further discussion of boundary conditions for energy transport.
 The output of this simulation is \emph{not} intended as a predictive model, instead it is a demonstration of the capability of the methods to handle systems that were previously not possible or too computationally expensive due to the need for short time steps.
+
+\subsection{Verification}\label{ssec:vhtverif}
+To verify the correctness of the implementation, we consider a manufactured solution with rich structure and choose a parameter range to activate all the terms in \eqref{eq:vhtstrong} and constitutive relations.
+Instead of the physical parameters in \tabref{tab:vhtconst}, we take all parameters to be of order one, with solid and melt densities of 1 and 2 respectively.
+For this problem, the melt fraction rises as high as \SI{28}{\percent} and temperature ranges \SI{11}{\percent} of its absolute value.
+Since the activation volume $V$ and Clausius-Capeyron gradient $\beta_{CC}$ are relatively large, the pressure plays a significant, and occasionally dominant role in defining the temperature and the material rheology.
+The large moisture content and large density contrast also increase the strength of the nonlinearity.
+
+Due to the non-uniform flow and various constitutive nonlinearities, nondimensional numbers are spatially variable.
+The Reynolds number ranges up to about \num{2.4}, the Peclet number ranges up to \num{5.3}, and the Prandtl number ranges from \num{0.6} to 1.
+A computed solution, accurate to \SI{0.5}{\percent} is shown in \figref{fig:vhtexact}.
+As usual, this manufactured solution is not physically realizable, but it excercises all the terms.
+
+\begin{figure}
+  \centering\includegraphics[width=\textwidth]{visit0020}
+  \caption{Manufactured solution as computed using a $\Qk 3 - \Qk 2 - \Qk 3$ finite element discretization on a $12\times 12\times 12$ mesh.
+    This solution is accurate to 4 digits for momentum and energy, with two digits of accuracy for pressure.
+    The gradients are accurate to 3 digits for momentum and energy, with \SI{3}{\percent} error for pressure gradient.}\label{fig:vhtexact}
+\end{figure}
+
+We consider norms for a $\Qk 3 - \Qk 2 - \Qk 3$ approximation under $h$-refinement.
+
+\begin{figure}
+  \centering\includegraphics{vhtdisc}
+  \caption{Convergence rates for $\Qk 3 - \Qk 2 - \Qk 3$ under $h$-refinement.}\label{fig:vhtrefine}
+  % ./vhtconvergence.py --plot -o vhtdisc.pdf
+\end{figure}
+
+
+
+This computation converges quadratically
+\begin{table}
+  \centering\caption{Nonlinear convergence rates.}\label{tab:vhtsnes}
+  \begin{tabular}{lllll}
+    \toprule
+    Iteration & Mass         & Momentum     & Energy       & Total        \\
+    \midrule
+    0         & 2.142762e-01 & 1.431024e+01 & 2.742861e+01 & 3.093796e+01 \\
+    1         & 1.086178e-05 & 8.386431e+00 & 8.412471e+00 & 1.187863e+01 \\
+    2         & 2.928430e-06 & 4.103421e+00 & 3.579857e+00 & 5.445497e+00 \\
+    3         & 1.744093e-06 & 3.059956e+00 & 6.853340e-01 & 3.135764e+00 \\
+    4         & 8.688964e-07 & 1.891518e+00 & 2.980380e-01 & 1.914854e+00 \\
+    5         & 4.952597e-07 & 6.852763e-01 & 7.214378e-02 & 6.890634e-01 \\
+    6         & 1.430063e-07 & 4.827890e-02 & 6.381075e-03 & 4.869877e-02 \\
+    7         & 1.057706e-08 & 3.257086e-05 & 3.007905e-05 & 4.433521e-05 \\
+    8         & 1.759267e-11 & 4.249319e-10 & 1.387815e-10 & 4.473666e-10 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Numerical experiments with nonlinear solver convergence and pseudo-transient continuation~\citep{coffey2003ptc,kelley1998cap} indicates that this system does not always have steady-state solutions, and when steady-state solutions exist, they may be non-unique.
+It would be interesting to explore these uniqueness properties using bifurcation techniques such as those in \citet{allgower2003inc}.
+However, these phenomena have not been observed in parameter ranges that are realistic for ice flow, so we do not explore them further.
+Note that such nonlinear effects do occur in glaciology, but generally involve sliding and/or geometry change.
+With thermally-induced density variation, gravity, and a boundary heat source, there are not steady-states above a critical Rayleigh number.
+This is seen in mantle convection and other fields, for which \eqref{eq:vhtstrong} is also valid, therefore it is no surprise that steady-states are not present.
