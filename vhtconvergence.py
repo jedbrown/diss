@@ -40,15 +40,38 @@ logs = [
 
 # for n in 2 4 6 8 12; do echo $n; awk '/nodes/{print $3, $5, $7;}' vht-q323b$n-x0diff.log; awk '/^Integral/{print $8;}' vht-q323b$n-x0diff.log; done
 # mesh nu np ne u0 u1 p0 p1 e0 e1
-discerrstr = """
+def toarray(strarr):
+    return np.array([map(float,line.split()) for line in strarr.split('\n')[1:-1]])
+discerr0 = toarray("""
 2   512 216 512 4.85e-03 5.43e-02 1.34e-01 1.29e+00 6.57e-02 7.97e-01
 4   4096 1728 4096 4.90e-04 7.27e-03 2.20e-02 2.52e-01 6.63e-03 1.60e-01
 6   13824 5832 13824 4.09e-04 3.16e-03 1.81e-02 1.22e-01 1.56e-03 5.00e-02
 8   32768 13824 32768 4.05e-04 2.56e-03 1.78e-02 8.95e-02 8.40e-04 2.14e-02
 12  110592 46656 110592 4.05e-04 2.42e-03 1.77e-02 7.48e-02 6.96e-04 6.72e-03
 16  262144 110592 262144 4.05e-04 2.41e-03 1.77e-02 7.21e-02 6.81e-04 3.46e-03
-""".split('\n')[1:-1]
-discerr = np.array(([map(float,line.split()) for line in discerrstr]))
+""")
+# src/fs/tests/vht -dmesh_in ~/dohp/data/dblock4.h5m -snes_{monitor_vht,converged_reason} -ksp_converged_reason -pc_type fieldsplit -pc_fieldsplit_type additive -fieldsplit_u_pc_type ilu -fieldsplit_e_pc_type lu -fieldsplit_e_pc_factor_mat_solver_package mumps -ksp_type fgmres -ksp_gmres_restart 300 -snes_rtol 1e-8 -ksp_rtol 1e-5 -rheo_eps 1 -rheo_p 1.5 -fp_trap -vht_case Exact0 -vht_u_bdeg 3 -vht_e_bdeg 3 -vht_view -vht_log_monitor -rheo_beta_CC 0.02 -rheo_V -0.01 -rheo_Bomega 0
+discerr1 = toarray("""
+2 512 216 512 4.84e-03 5.42e-02 8.85e-02 1.06e+00 7.01e-02 8.11e-01
+4 4096  1728  4096 5.83e-04 1.26e-02 1.18e-02 2.21e-01 1.24e-02 1.73e-01
+6  13824  5832  13824 1.62e-04 4.61e-03 4.01e-03 9.84e-02 8.15e-03 7.00e-02
+8 32768 13824 32768 5.95e-05 2.12e-03 1.80e-03 5.45e-02 6.66e-03 4.55e-02 
+""")
+# out=vht-q323b2-x0; src/fs/tests/vht -dmesh_in ~/dohp/data/dblock4.h5m -snes_{monitor_vht,converged_reason} -ksp_converged_reason -pc_type fieldsplit -pc_fieldsplit_type additive -fieldsplit_u_pc_type ilu -fieldsplit_e_pc_type lu -fieldsplit_e_pc_factor_mat_solver_package mumps -ksp_type fgmres -ksp_gmres_restart 300 -snes_rtol 1e-8 -ksp_rtol 1e-7 -rheo_eps 1 -rheo_p 1.5 -fp_trap -vht_case Exact0 -vht_u_bdeg 3 -vht_e_bdeg 3 -vht_view -vht_log_monitor -rheo_beta_CC 0.05 -rheo_V -0.01 -rheo_Bomega 0 -rheo_B0 10 -rheo_k_T 10 -rheo_kappa_w 4 -viewdhm $out.dhm
+discerr2 = toarray("""
+2 512 216 512 4.84e-03 5.42e-02 1.31e-01 1.28e+00 6.64e-02 8.00e-01
+4 4096 1728 4096 2.86e-04 6.87e-03 1.32e-02 2.37e-01 7.91e-03 1.64e-01
+6 13824 5832 13824 5.82e-05 2.05e-03 4.10e-03 9.91e-02 4.47e-03 5.96e-02
+8 32768 13824 32768 1.88e-05 8.69e-04 1.82e-03 5.46e-02 4.10e-03 3.87e-02
+12 110592 46656 110592 4.41e-06 2.59e-04 8.31e-04 2.38e-02 4.55e-03 3.35e-02
+""")
+discerr2b = toarray(""" vht-q323b2-x0b
+2 512 216 512 4.84e-03 5.42e-02 1.31e-01 1.28e+00 6.64e-02 7.99e-01
+4 4096 1728 4096 2.86e-04 6.87e-03 1.32e-02 2.37e-01 7.46e-03 1.62e-01
+6 13824 5832 13824 5.82e-05 2.05e-03 4.06e-03 9.91e-02 3.56e-03 5.61e-02
+8 32768 13824 32768 1.88e-05 8.69e-04 1.81e-03 5.46e-02 3.28e-03 3.33e-02
+""")
+discerr = discerr2
 
 def fit_ideal_loglog(x,y,slope):
     xmin, ymin = log(x[0]), log(y[0])
@@ -77,9 +100,9 @@ def plot_error(opts):
     plt.loglog(h, arr[:,7], 'gs-.', label = 'Pressure $H^1$')
     plt.loglog(h, arr[:,8], 'rv-', label  = 'Energy $L^2$')
     plt.loglog(h, arr[:,9], 'rv-.', label = 'Energy $H^1$')
-    refline(plt,h[:3],2, 2, 'k-')
-    refline(plt,h[:3],3, 0.3, 'k-')
-    refline(plt,h[:3],4, 0.02, 'k-')
+    refline(plt,h[:3],2, 1.8, 'k-')
+    refline(plt,h[:3],3, 0.2, 'k-')
+    refline(plt,h[:3],4, 0.01, 'k-')
     plt.legend(loc='upper left')
     plt.xlabel('Mesh size')
     plt.ylabel('Continuous norm of error')

@@ -27,7 +27,7 @@ However, until my recent additions to {\PETSc}, it was cumbersome to package sep
 The enhancements to {\PETSc} allow each physics to be packaged independently without sacrificing performance or runtime flexibility in choice of methods.
 We first summarize a variety of field-split methods and their requirements from the user, then we examine the new linear algebraic interface by which the user can generically provide this information.
 
-\subsubsection{Field-split preconditioning}
+\subsubsection{Field-split preconditioning}\label{sec:multiphysics:fieldsplit}
 Suppose the Jacobian of the original coupled problem has block structure
 \begin{equation}\label{eq:fieldsplit:jacobian}
   J = \begin{pmatrix} A & B \\ C & D \end{pmatrix} .

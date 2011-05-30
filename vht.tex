@@ -234,11 +234,9 @@ It could be an artifact of the manufactured solution process (perhaps rectifiabl
   % ./vhtconvergence.py --plot -o vhtdisc.pdf
 \end{figure}
 
-
-
-This computation converges quadratically
+The nonlinear solver converges quadratically as seen in \tabref{tab:vhtsnes}.
 \begin{table}
-  \centering\caption{Nonlinear convergence rates.}\label{tab:vhtsnes}
+  \centering
   \begin{tabular}{lllll}
     \toprule
     Iteration & Mass         & Momentum     & Energy       & Total        \\
@@ -254,6 +252,7 @@ This computation converges quadratically
     8         & 1.759267e-11 & 4.249319e-10 & 1.387815e-10 & 4.473666e-10 \\
     \bottomrule
   \end{tabular}
+  \caption{Nonlinear convergence rates.}\label{tab:vhtsnes}
 \end{table}
 
 Numerical experiments with nonlinear solver convergence and pseudo-transient continuation~\citep{coffey2003ptc,kelley1998cap} indicates that this system does not always have steady-state solutions, and when steady-state solutions exist, they may be non-unique.
@@ -262,3 +261,12 @@ However, these phenomena have not been observed in parameter ranges that are rea
 Note that such nonlinear effects do occur in glaciology, but generally involve sliding and/or geometry change.
 With thermally-induced density variation, gravity, and a boundary heat source, there are not steady-states above a critical Rayleigh number.
 This is seen in mantle convection and other fields, for which \eqref{eq:vhtstrong} is also valid, therefore it is no surprise that steady-states are not present.
+
+For Dirichlet problems, pressure is only determined up to a constant.
+As far as the solver is concerned, this is easy to handle by applying the Krylov iteration with null space removed and using a preconditioner that is tolerant of the one dimensional null space.
+Most preconditioners other than direct solvers are suitable, and the methods of \secref{sec:multiphysics:fieldsplit} perform fine as long as inner solvers (if used) are also informed of the null space.
+However, unlike for linear and power-law Stokes problems, the absolute value of pressure affects the other variables.
+Thus there is a one-parameter family of solutions in which all variables change rather than only the pressure.
+Additionally, it is possible to compute a negative pressure during the nonlinear solve.
+This is most common at higher viscosity because the forcing terms in the manufactured solutions become huge, thus producing extreme values of pressure.
+Negative pressures produce feedback through the activation volume $V$ to generate exponentially large viscosity.
