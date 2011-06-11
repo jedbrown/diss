@@ -167,10 +167,10 @@ For the purpose of determining cell Peclet numbers (a diagnostic tool and possib
   \frac{\partial \omega}{\partial E} & = \frac{\partial \omega}{\partial e}\frac{\partial e}{\partial E} \approx \frac{1}{L} \frac{1}{\rho} \quad\text{Temperate ice}
 \end{align*}
 so that the diffusive energy flux driven by energy gradient can be written as $-K_T \nabla E - K_\omega \nabla E$ with
-\begin{align*}
+\begin{align}\label{eq:vht:ediffusivity}
   K_T      & \approx \frac{k_T}{\rho c_i} = \SI{1.15e-6}{\metre\squared\per\second} \\
   K_\omega & \approx \frac{L \kappa_\omega}{\rho L} = \SI{1.15e-7}{\metre\squared\per\second} .
-\end{align*}
+\end{align}
 Note that we have neglected kinetic energy and density dependence in this approximation.
 For an element with streamline length $h = \SI{1}{\kilo\metre}$ and velocity $v = \SI{1}{\kilo\metre\per\year}$, the cell Peclet number is $\Peclet_h = hv / K = \num{2.8e4}$ for cold ice and ten times larger for temperate ice.
 Numerical methods for such systems require upwinding to prevent non-physical oscillations.

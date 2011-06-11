@@ -60,7 +60,7 @@ I am not aware of a priori error estimates for finite element methods that apply
 which controls $\norm{\uu}_{W^{1,\pfrak}}$ using the symmetric gradient $\norm{D\uu}_{L^\pfrak}$ and an inf-sup condition to control pressure using divergence of velocity~\citep{evans1998partial,brenner2008mathematical}.
 These conditions are easily satisfied by the continuum spaces, but they place important restrictions on the discrete spaces, an issue which we revisit in Section~\ref{sssec:approximation}.
 
-\subsection{Singularities in the continuum formulation}
+\subsection{Singularities in the continuum formulation}\label{sec:regularity:singular}
 The transition from no-slip to slip boundary conditions is exactly analogous to mode II and III fracture in nonlinear elasticity theory, transition from no-slip to an unconstrained stress condition (e.g. floating) is the mode I case.
 In the case of linear rheolgy, this is the classical inverse square root stress singularity $\sigma \sim r^{-1/2}$ in fracture mechanics~\citep{anderson2005fracture}, where $r$ is the distance from the transition, see \citet{erdogan1973two} for two bonded materials.
 For nonlinear rheology, the same energy estimates~\citep{rice1968path} apply and the singularity becomes $\abs{\sigma} \sim r^{(1-\pfrak)/\pfrak}$ and $\abs{D\uu} \sim r^{-1/\pfrak}$ as shown by \citet{rice1968plane,hutchinson1968singular}. 

@@ -2,7 +2,7 @@ Given the performance of unassembled Jacobian representations in \secref{ssec:te
 If the equations or parameters change so that a specific discretization or solution method is no longer working well, how much effort does it take to change the method?
 In this section, we outline the approach taken by the {\Dohp} library to facilitate run-time flexibility without sacrificing performance.
 
-\subsection{Dual order finite elements}
+\subsection{Dual order finite elements}\label{sec:dohpuser}
 Standard finite element methods define both the basis functions and the integration method in terms of a single unit known as an element.
 In order to use the dual order methods of \chapref{chap:dohp}, we need to define quadrature on smaller units because the low-order approximation space has more locality and less regularity within elements.
 We will continue to use ``element'' to refer to the maximal units of structure as with $p$-version finite element and spectral element methods, but introduce the new term ``quadrature patch'' for the smaller units.
