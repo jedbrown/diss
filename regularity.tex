@@ -40,10 +40,10 @@ Classical solutions to the linear constant-coefficient Stokes problem with frict
 For example, in addition to $C^2$ continuity on Dirichlet boundaries, \citet{saito2004stokes} required much higher $C^4$ continuity for slip surfaces; see also the analysis by \citet{fujita2002coherent}.
 Since the boundaries of interest for our problems are merely Lipschitz and change type abruptly, we cannot use the strong form \eqref{eq:slip:stokes-strong}.
 To discuss regularity issues at boundaries and our discretization, we need the weak form which is formally obtained by introducing test functions $\vv,q$ and integrating by parts.
-Given a Lipschitz domain $\Omega \subset \R^3$ and a nonempty open subset $\Gamma$ of the boundary $\partial\Omega$ which we identify as ``not frozen'', the problem is to find $(\uu,p) \in \bm W_D^{1,\pfrak}(\Omega) \times L^2(\Omega)$ such that
+Given a Lipschitz domain $\Omega \subset \R^3$ and open subsets $\Gamma_s$ and $\Gamma_b$ of the boundary $\partial\Omega$ which we identify as ``surface'' and ``non-frozen bed'', the problem is to find $(\uu,p) \in \bm W_D^{1,\pfrak}(\Omega) \times L^2(\Omega)$ such that
 \begin{equation}\label{eq:slip:stokes-weak}
   \int_\Omega D\vv\tcolon \eta\bm 1 \tcolon D\uu - q\div\uu - p\div\vv - \vv\cdot\bm f
-  - \int_\Gamma \vv\cdot (\eta D\uu - p\bm 1)\cdot\nn = 0
+  - \int_{\Gamma_b} \vv\cdot (\eta D\uu - p\bm 1)\cdot\nn = 0
 \end{equation}
 for all $(\vv,q)\in \bm W_0^{1,\pfrak}(\Omega) \times L^2(\Omega)$.
 Readers unfamiliar with Sobolev spaces may think of $W^{1,\pfrak}$ simply as the space with sufficiently well-behaved first derivatives.
@@ -51,7 +51,7 @@ The subscripts in $W_D^{1,\mathfrak{q}},W_0^{1,\mathfrak{q}}$ indicate that inho
 That is, all components of velocity are specified in regions where the bed is frozen and normal components are specified at places where sliding may take place.
 The implementation of Dirichlet conditions is somewhat different from its definition here and will be discussed later.
 For well-posedness, it remains to specify $(\eta D\uu - p\bm 1)\cdot\nn$ on $\Gamma$ as an algebraic function $\bm g(\uu)$ to enforce stress conditions on tangent components at slip surfaces and on all components at free surfaces in which case $\bm g$ is independent of $\uu$.
-
+Provided the surface $\Gamma_s$ is non-empty, the pressure is uniquely determined so there is no constant null space to remove, \cf \secref{sec:jscstokes}.
 Although it is not used directly in our work, \eqref{eq:slip:stokes-weak} corresponds to the minimization of the viscous energy $\int_\Omega \half D\uu\tcolon \eta\bm 1 \tcolon D\uu$ over the subspace where $\div\uu = 0$.
 In particular, it is the first variation of the Lagrangian obtained when pressure $p$ is introduced as a Lagrange multiplier to enforce the constraint.
 Boundedness of the Lagrangian requires coercivity of the viscous energy term which follows from Korn's inequality\footnote{%
