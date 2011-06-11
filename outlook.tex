@@ -10,3 +10,19 @@ For example, using multi-parameter continuation methods~\citep{allgower2003inc} 
 
 
 \todo{write this}
+
+The symbolic manipulations done to compute manufactured solutions are near their practical limit for the coupled transport problem in \secref{sec:vht} because the symbolic expressions may grow exponentially.
+The first implementation required half an hour to generate a manufactured solution; the resulting C source file was \SI{11}{\mega\byte} and crashed the compiler when optimization was turned on.
+The symbolic structure was manipulated somewhat by hand to identify certain intemediate expressions and defer their evaluation to bring code generation time under 1 minute and produce more manageable code size, but this approach will not scale indefinitely.
+Such limits of symbolic differentiation for finite element computations have been identified by \citet{wang1986finger,fritzson1992need,korelc1997automatic,korelc2002multi,wriggers2008nonlinear}.
+Algorithmic differentiation~\citet{griewank2003mathematical,griewank2008evaluating} offers an alternative way to generate high-performance code for these operations.
+Algorithmic differentiation tools are based either on operator overloading or source transformation, and can run in forward or reverse (adjoint) mode.
+For high-performance unassembled methods, both forward and reverse mode are needed.
+Those based on operator overloading, such as \citet{griewank1996adol,griewank1999adol,algopy-web}, are relatively unintrusive to use, but less scalable and less performant, especially when adjoints are needed.
+The Python package AlgoPy~\citep{algopy-web,walter2010algorithmic} could be used to differentiate the Python code discussed in \secref{sec:verification} and used again in \secref{sec:vht} almost without modification, but the derivatives would still be evaluated in the Python interpreter rather than by compiled C or Fortran code.
+
+Source transformation tools~\citep{bischof1997adic,utke2008openad} produce higher performance code and are much more scalable.
+They can even be applied at a higher level, for example to differentiate the MIT global circulation model~\citep{heimbach2005efficient}.
+Unfortunately, source transformation AD currently imposes a complicated build process and would be more awkward to use than the current symbolic representations.
+I am investigating maintainable and less intrusive, but still performant, ways to automate the simultaneous generation of manufactured forcing terms and physics components with Jean Utke, a primary author of OpenAD~\citep{openad-userman,utke2004openad} and collaborator on the SISIPHUS project.
+
