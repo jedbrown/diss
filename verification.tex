@@ -139,7 +139,7 @@ This is not tested by MMS, but consistency can be checked in other ways, such as
 Finally, a note on automation.
 The Python function \pyverb|weak_form| contains the governing equations, therefore it need not be necessary to manually write the same equations in C.
 Indeed, it would be very little effort to automatically generate C code from a weak form written in Python, in much the same spirit as has been done by the FEniCS project~\citep{fenicsproject}.
-In particular, it would be possible to use physical models implemented in the ``unified form language'' (UFL)~\citep{alnaes2009unified}, but generate pointwise physics kernels for {\Dohp} instead of the assembly code used by DOLFIN~\citep{logg2010dolfin}.
+For example, it would be possible to use physical models implemented in the ``unified form language'' (UFL)~\citep{alnaes2009unified}, but generate pointwise physics kernels for {\Dohp} instead of the assembly code used by DOLFIN~\citep{logg2010dolfin}.
 UFL is based on Python and looks very similar to the symbolic \pyverb|weak_form| above, but includes specification of the function space.
 The FEniCS project considers that to be an advantage because it permits optimizations that involve mixing the discretization with the physics, such as tabulation of element matrices on the reference element and mapping them to physical elements by dense matrix-matrix product~\citep{kirby2005optimizing}.
 While such methods can provide substantial speedup for simple physics on affine elements (DOLFIN only handles simplicial meshes), the method becomes untenable for more general nonlinear problems on non-affine meshes, and a quadrature representation must be adopted.
@@ -148,3 +148,10 @@ Separating physics from discretization, as \Dohp's interface encourages, has the
 Automation is frequently convenient, but it is the author's opinion that in order to manage complexity and maintain extensibility, that the automation process must be as transparent as possible.
 Furthermore, the C API for which code is to be automatically generated must be sufficiently clean that a human can easily use it.
 The ability to ``get dirty'' and incrementally explore the entire software stack is important.
+
+The specification of elements can also be automated.
+The FEniCS project makes it very easy to specify new elements on simplicial topologies using the formalism of \citet{ciarlet1978finite}, and implemented in the Finite Element Automatic Tabulator (FIAT)~\citep{kirby2004algorithm,kirby2006optimizing}.
+The FIAT implementation could be extended to handle more general element topologies, but would need non-trivial modification to support preservation of structure like tensor products.
+A unification of isogeometric analysis (\eg NURBS) and extended finite element basis functions is presented by \citet{benson2010isoxfem}, with a simple way to tabulate basis functions for a variety of element types including shells, with complex continuity conditions such as T-splines~\citep{sederberg2003tsplines,bazilevs2010isogeometric}.
+Once again, this tabulation does not retain structure such as tensor products and thus gives up the algorithmic and performance advantages of preserving the structure.
+However, the philosophy of these recent papers appears useful in a specification capable of preserving structure like tensor products without impacting genericity.
