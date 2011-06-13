@@ -1,6 +1,8 @@
 We consider the problem of computing a steady-state energy (in the form of temperature, moisture, and kinetic energy) field coupled to a Stokes problem with rheology depending on strain rate, pressure, temperature, and melt fraction.
 This problem is most important as part of inversion for a temperature field that is compatible with the observed geometry, flow field, borehole temperature measurements, and any other field observations.
 Time-stepping a transient model to steady state is extremely expensive, therefore it will never be feasible as part of the functional to be minimized by an optimization algorithm.
+The implicit method used for the steady-state prbolem can also be used to solve the transient system with time steps of arbitrary length, with no CFL stability limitation.
+The transient system produces algebraic systems that are somewhat easier to solve numerically.
 
 \subsection{Problem description}\label{ssec:vhtproblem}
 Given a Lipschitz domain $\Omega$ with surface $\Gamma_s$ and time interval $(0,\tau)$, the strong form is to find total momentum, pressure, and total energy density $(\rho\uu,p,E) \in W^{1,\pfrak} \times L^2 \times H^1$ such that
@@ -23,12 +25,14 @@ The thermal conductivity $k_T$ (\si{\joule\per\metre\per\kelvin\per\second}) and
 The constitutive relations for temperature and moisture fraction are usually defined piecewise.
 It is preferable for the convergence of Newton methods~\citep[\cf][]{gropp2000globalized} to have a discretization with $C^1$ continuity and it is simpler for manufactured solutions if the constitutive relation has a global (\ie not piecewise) definition in terms of analytic functions.
 To achieve this, we decompose the function $\mathcal{S}(x) = x$ into two globally smooth parts
-\begin{align*}
-  %\mathcal S_\delta^-(x) &= \frac{x}{2} \left(1 - \erf \frac{x}{\sqrt 2 a} \right)  -\frac{a}{\sqrt{2\pi}} \exp{\frac{-x^{2}}{2 a^{2}}} \\
-  %\mathcal S_\delta^+(x) &= \frac{x}{2} \left(1 + \erf \frac{x}{\sqrt 2 a} \right) + \frac{a}{\sqrt{2\pi}} \exp{\frac{-x^{2}}{2 a^{2}}} \\
-  \mathcal S_\delta^-(x) &= \frac{x}{2} - \frac{x}{2} \erf \frac{x}{\sqrt 2 \delta} - \frac{\delta}{\sqrt{2\pi}} \exp{\frac{-x^{2}}{2 \delta^{2}}} \\
-  \mathcal S_\delta^+(x) &= \frac{x}{2} + \frac{x}{2} \erf \frac{x}{\sqrt 2 \delta} + \frac{\delta}{\sqrt{2\pi}} \exp{\frac{-x^{2}}{2 \delta^{2}}}
-\end{align*}
+\begin{equation}\label{eq:vhttransition}
+  \begin{split}
+    % \mathcal S_\delta^-(x) &= \frac{x}{2} \left(1 - \erf \frac{x}{\sqrt 2 a} \right)  -\frac{a}{\sqrt{2\pi}} \exp{\frac{-x^{2}}{2 a^{2}}} \\
+    % \mathcal S_\delta^+(x) &= \frac{x}{2} \left(1 + \erf \frac{x}{\sqrt 2 a} \right) + \frac{a}{\sqrt{2\pi}} \exp{\frac{-x^{2}}{2 a^{2}}} \\
+    \mathcal S_\delta^-(x) &= \frac{x}{2} - \frac{x}{2} \erf \frac{x}{\sqrt 2 \delta} - \frac{\delta}{\sqrt{2\pi}} \exp{\frac{-x^{2}}{2 \delta^{2}}} \\
+    \mathcal S_\delta^+(x) &= \frac{x}{2} + \frac{x}{2} \erf \frac{x}{\sqrt 2 \delta} + \frac{\delta}{\sqrt{2\pi}} \exp{\frac{-x^{2}}{2 \delta^{2}}}
+  \end{split}
+\end{equation}
 which satisfy $\mathcal S_\delta^- (x) < 0$, $\mathcal S_\delta^+(x) > 0$ and $\mathcal S_\delta^-(x) + S_\delta^+(x) = x$.
 These functions arise from integrating the error function with standard deviation $\delta$.
 Taking $\delta\to 0$ recovers the piecewise linear decomposition $\mathcal S_0^-(x) = \min(x,0)$, $\mathcal S_0^+(x) = \max(x,0)$.
@@ -93,9 +97,8 @@ This formulation is not conventional in glaciology, but permits more intuitive u
     %$K_w$          & \SI{1.045e-4}{\kilogram\per\metre\per\second} & Temperature ice diffusivity
     $\beta_{CC}$    & \SI{7.9e-8}{\kelvin\per\pascal}               & Clausius-Capeyron gradient                                        \\
     $T_3$           & \SI{273.15}{\kelvin}                          & Triple point of water                                             \\
-    \midrule
-    $\gamma_0$      & $\half (\SI{1e-10}{\per\second})^2$           & Second invariant of reference strain rate                         \\
     $T_0$           & \SI{260}{\kelvin}                             & Reference temperature                          \\
+    $\gamma_0$      & $\half (\SI{1e-10}{\per\second})^2$           & Second invariant of reference strain rate                         \\
     $B_0$           & \SI{8.56e14}{\pascal\second}                  & Viscosity at reference strain rate and temperature                \\
     $Q$             & \SI{6.0e4}{\joule\per\mole}                   & Activation energy for creep                                       \\
     $V$             & \SI{-13.e-6}{\metre\cubed\per\mole}           & Activation volume for creep                                       \\
@@ -112,7 +115,7 @@ The total momentum can be defined in terms of constituent momenta as
 \begin{equation}\label{eq:wmomentum}
   \begin{split}
     \rho\uu & = (1-\omega) \rho_i \uu_i + \omega \rho_w \uu_w                             \\
-            & = (1-\omega) \rho_i \uu_i + \omega \rho_w u_i + \omega\rho_w(\uu_w - \uu_i) \\
+            & = (1-\omega) \rho_i \uu_i + \omega \rho_w \uu_i + \omega\rho_w(\uu_w - \uu_i) \\
             & = \rho \uu_i + \omega\rho_w(\uu_w - \uu_i) .
   \end{split}
 \end{equation}
@@ -151,10 +154,10 @@ These can be manipulated as
 which is the form appearing in \eqref{eq:vhtstrong:energy}.
 Although both expressions are equivalent for the continuous equations, the discrete equations are different because numerical solutions only satisfy partial differential equations weakly.
 Only the latter formulation is conservative.
-This formulation is also more amenable to discretization and is mandatory for stability when density is dependent on pressure (as it is here when melt content is available) and diffusion is poorly resolved on the mesh.
+This formulation is also more amenable to discretization and is mandatory for stability when density is dependent on pressure (as it is here when melt content is available, though the underlying physical process still does not support acoustics) and diffusion is poorly resolved on the mesh.
 The first term in \eqref{eq:heatdiss} is non-reversible dissipation while the second can be recovered through volume change and thus does not affect the global entropy.
 The ice velocity $\uu_i$ is used in \eqref{eq:vhtstrong:energy} because the melt fraction is assumed to be able to move through the ice matrix without viscous dissipation.
-Perhaps this is a reasonable assumption because the viscosity of ice is \num{1e15} larger than water, but for relatively stagnant ice with high moisture velocity, it is likely to be significant and the equations can be augmented with an additional diffusive term.
+Perhaps this is a reasonable assumption because the viscosity of ice is \num{1e15} times larger than water, but for relatively stagnant ice with high moisture velocity, it is likely to be significant and the equations can be augmented with an additional diffusive term.
 
 The present formulation is similar to \citet{aschwanden2011enthalpy} and approaches their model in the limit $\omega\to 0$, but is more conservative.
 The formulation here uses a 3D momentum balance and conserves mass, momentum, and energy, regardless of large amplitude moisture content and presence of numerical diffusion.
@@ -225,7 +228,7 @@ As usual, this manufactured solution is not physically realizable, but it excerc
 We consider norms for a $\Qk 3 - \Qk 2 - \Qk 3$ approximation under $h$-refinement.
 Due to the direct appearance of pressure in the equations, we cannot expect to realize fourth order convergence, at least not for the energy equation.
 Figure~\ref{fig:vhtrefine} shows the observed convergence behavior in which energy clearly converges with only third order accuracy.
-I do not have an explanation for why the convergence eventually stagnates, starting with the energy equation.
+I do not have an explanation for why the convergence for the energy equation eventually stagnates.
 It could be an artifact of the manufactured solution process (perhaps rectifiable using more accurate quadrature for the forcing term), other quadrature errors due to nonlinearity, or stability of the continuum equations or discretization.
 
 \begin{figure}
@@ -235,6 +238,7 @@ It could be an artifact of the manufactured solution process (perhaps rectifiabl
 \end{figure}
 
 The nonlinear solver converges quadratically as seen in \tabref{tab:vhtsnes}.
+All subsequent examples have exhibited similar convergence behavior.
 \begin{table}
   \centering
   \begin{tabular}{lllll}
