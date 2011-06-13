@@ -274,3 +274,38 @@ Thus there is a one-parameter family of solutions in which all variables change 
 Additionally, it is possible to compute a negative pressure during the nonlinear solve.
 This is most common at higher viscosity because the forcing terms in the manufactured solutions become huge, thus producing extreme values of pressure.
 Negative pressures produce feedback through the activation volume $V$ to generate exponentially large viscosity.
+
+\subsection{A simple problem}\label{sec:vhtsimple}
+To help understand the equations, we consider a block of size $[0,1]^3$ resting on a plate inclined at \SI{30}{\degree}.
+The block flows under its own weight with density variation due to moisture content.
+No-slip boundary conditions are imposed at the bottom, the sides and surface are free.
+This problem is nondimensional with densities of 1 and 2 for ``ice'' and ``water'' respectively.
+The conductivities are $\kappa_\omega = \num{2e-2}$ and $k_T = \num{4e-2}$ which produces a Peclet number of 120.
+Streamline stabilization similar to SUPG~\citep{brooks1982sup} was used (SUPG does not apply directly to this sort of problem).
+The power law exponent is $\pfrak=1.5$ with reference viscosity $B_0 = 5$, leading to a Reynolds number of \num{0.24}.
+Dirichlet energy boundary conditions $E(x,y,z) = -x (1-y^2)$ are used, where energy is measured relative to $T_0 = T_3 = 10$ at zero pressure.
+The latent heat of fusion is $L=10$ which produces a maximum moisture fraction of \SI{15}{\percent}.
+
+The computed energy and flow fields are shown in \figref{fig:vhtblock:energy} with the corresponding viscous dissipation $\eta D\uu\tcolon D\uu$ in \figref{fig:vhtblock:sigma}.
+Note that these steady states are not realizable because this configuration does not have steady solutions.
+
+\begin{figure}
+  \centering\includegraphics[width=\textwidth]{visit0031}
+  \caption{Energy isosurfaces and velocity streamlines for the block on an inclined plate.
+  The phase transition surface occurs roughly at the $E=0$.}\label{fig:vhtblock:energy}
+\end{figure}
+
+\begin{figure}
+  \centering\includegraphics[width=\textwidth]{visit0030}
+  \caption{Viscous heat production $\eta D\uu_i\tcolon D\uu_i$ isosurfaces and velocity streamlines for the block on an inclined plate.}\label{fig:vhtblock:sigma}
+\end{figure}
+
+Streamline diffusion such as SUPG is not a robust stabilization for this problem and it breaks down for this problem when the Peclet number exceeds about 200.
+This seems to be due to the localized shear region near the downstream corner with high viscous dissipation.
+The velocity in this region is very small, so the streamline diffusion proportional to $\abs{\uu} h$ \footnote{%
+More precisely, the streamline diffusion is proportional to velocity times the length of the cell in the streamline direction, which can be computed using the transform from the reference coordinates as $\abs{\grad_X \bm x \cdot \uu}$.
+} is small, but there are still sharp gradients.
+There is a $1/r$ singularity in the viscous heat production term $\eta D\uu_i\tcolon D\uu_i$, as discussed in \secref{sec:regularity:singular}.
+The precise mechanism for numerical instability with low diffusivity at the corner that SUPG appears unable to stabilize has not been identified, but it is less pronounced when the angle of incline is reduced.
+It is conceivable that a steady state solution to the continuum problem no longer exists.
+
