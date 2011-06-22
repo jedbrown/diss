@@ -23,7 +23,7 @@ In general, each constitutive relation is a function of all field variables.
 The thermal conductivity $k_T$ (\si{\joule\per\metre\per\kelvin\per\second}) and hydraulic diffusivity $\kappa_\omega$ (\si{\kilogram\metre\per\second}) are taken to be constant because experimental data are sparse, but this assumption is in no way critical.
 
 The constitutive relations for temperature and moisture fraction are usually defined piecewise.
-It is preferable for the convergence of Newton methods~\citep[\cf][]{gropp2000globalized} to have a discretization with $C^1$ continuity and it is simpler for manufactured solutions if the constitutive relation has a global (\ie not piecewise) definition in terms of analytic functions.
+It is preferable for the convergence of Newton methods~\citep[\cf][]{gropp2000globalized,kelley1995iterative} to have a discretization with $C^1$ continuity and it is simpler for manufactured solutions if the constitutive relation has a global (\ie not piecewise) definition in terms of analytic functions.
 To achieve this, we decompose the function $\mathcal{S}(x) = x$ into two globally smooth parts
 \begin{equation}\label{eq:vhttransition}
   \begin{split}
