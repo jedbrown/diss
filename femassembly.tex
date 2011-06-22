@@ -158,7 +158,7 @@ For each vector, the user specifies whether it should reside in a function space
 Dirichlet conditions are typically enforced by the library on a user-specified part of the boundary using \eqref{eq:slip:dirichlet}.
 The API to start an iterator and to evaluate test and trial functions uses variadic functions so it is easy to add more spaces without needing to use an excessively verbose or fine-grained API.
 
-Finally, we mention that this software design naturally supports isogeometric analysis (IGA) \citep{cottrell2009isogeometric} which replaces the Lagrange interpolants with splines, usually non-rational splines (NURBS).
+Finally, we mention that this software design naturally supports isogeometric analysis (IGA) \citep{cottrell2009isogeometric} which replaces the Lagrange interpolants with splines, usually non-uniform rational b-splines (NURBS).
 Advantages of IGA relative to conventional finite element methods include higher order continuity (especially important for equations beyond second order such as shell elements for structural mechanics or the Cahn-Hilliard equation for separation), the ability to represent certain geometries exactly (especially those created by computer-aided design software, thus simplifying the meshing process), and non-negative basis functions which enable robust definitions of normals for conservative slip and better control over positivity.
 Disadvantages include more nonzero entries in the assembled matrices and more complex implementation.
 To support IGA under the framework above, we identify a ``NURBS patch'' with \Dohp's ``element'' and IGA's ``element'' with \Dohp's ``quadrature patch''.
@@ -169,8 +169,8 @@ Although there has been some work visualizing high-order basis functions~\citep{
 Due to this deficiency, visualization of a model that uses high-order elements requires losing the high-order information by either representing each element as a structured grid or by replacing it with many smaller unstructured elements.
 Experience from other high-order projects~\citep{fischer2008nek5000} indicated that VisIt (and presumably other software) had poor scaling when thousands or millions of ``grids'' were defined, therefore {\Dohp} chose to simply represent everything using unstructured low-order elements.
 It is simple for an application to write it's entire state into an unstructured file, but the connectivity for lowest order elements is expensive to store and it is no longer possible to recover the high-order state.
-Because there were no extensible formats for storing high-order mesh data, {\Dohp} defined its own HDF5-based~\citep{hdf5} format, with read and write functionality for function spaces and vectors using PETSc's Viewer framework.
-The intent is for the format to be simultaneously usable as checkpoints in forward simulation, as part of time-dependent adjoint solves, and for visualization, without the need for custom support for each application.
+Because there were no extensible formats for storing high-order mesh data, I made a new HDF5-based~\citep{hdf5} format for use with {\Dohp}, with read and write functionality for function spaces and vectors using PETSc's Viewer component.
+My intent was for the format to be simultaneously usable as checkpoints in forward simulation, as part of time-dependent adjoint solves, and for visualization, without the need for custom support for each application.
 
 This format stores unstructured time-dependent multi-domain multi-field data.
 The mesh topology is contained in MOAB's format~\citep{moab}, although any iMesh implementation would, in principle, be sufficient.
@@ -178,15 +178,16 @@ The tags defining the function space are stored only once, unless the connectivi
 A function space has a reference to the geometry it is defined on.
 For problems with moving meshes, the geometry evolves, but not the topology (unless remeshing is needed, this is not yet implemented), so we avoid storing duplicate copies.
 Similarly, for arbitrary vectors defined on function spaces, only the vector values are stored at each step.
-The actual output for vectors is typically done using collective MPI-IO~\citep{corbett1995overview} accessed through HDF5.
+The actual output for vectors is typically done using collective or independent MPI-IO~\citep{corbett1995overview} accessed through HDF5.
 
 For each scalar or vector field, function spaces keep track of the name, units, and an arbitrary scaling factor.
 The scaling factor is needed for bitwise exact recovery of serialized state when the model works with non-dimensionalized fields, otherwise rounding error contaminates the low bits.
+This is bitwise-reproducible file IO is a stated objective of the Community Earth System Model~\citep*{cesm} and other projects, despite the fact that parallel implicit solvers cannot produce bitwise-reproducibile due to the non-associativity of floating point arithmetic~\citep{whatevery}.
 
-A reader plugin for VisIt was implemented to read this format.
+I implemented a reader plugin for VisIt to read this format.
 It works by reading in the function space and vector state (as requested by the VisIt client) and placing the topology and field data in VTK data structures.
 The implementation is a very thin C++ layer atop the standard C library.
-If at some point in the future, VisIt adds native support for high-order elements, the storage format will not need to be changed and the VisIt plugin would need only minor changes to support the new API.
+If at some point in the future, VisIt adds native support for high-order elements, the storage format would not need to change and the VisIt plugin would need only minor changes to support the new API.
 The field and mesh names are visible in the VisIt graphical user interface.
 Determining what fields are defined on a given part of the domain at a given time is not an especially simple task using HDF5's hierarchical structure.
 In particular, it involves walking the hierarchy in different ways to determine what is fundamentally \emph{relational} data.
