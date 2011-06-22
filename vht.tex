@@ -529,3 +529,10 @@ Despite several attempts, this preconditioner and many variants were not found t
 Among other deficiencies, it tended to have very poor behavior under GMRES restarts and often triggered instability in classical Gram-Schmidt.
 Since full orthogonalization using modified Gram-Schmidt is not practical, this approach is not used in the present numerical study.
 However, through the compositional algebra implemented in {\PETSc}, especially the \cverb|PCFieldSplit| component, all such variants remain available as run-time options.
+
+If a scalable preconditioner such as multigrid is available for $B_{uu}$ and $B_{pp}$, and if the results of \citet{olshanskii2006analysis} carry over to the present setting, then the methods used here will also be scalable.
+Unfortunately, $B_{pp}$ does not capture the anisotropy appearing due to Newton linearization, therefore we cannot expect it to be spectrally equivalent to $S$.
+An alternative is the least-squares commutator of \citet{elman2006bpb,elman1999bfbt} discussed in \secref{sec:multiphysics:fieldsplit}.
+Experiments with the LSC preconditioner (of which there are many variants) have not shown a clear advantage for this problem.
+Since the present tests have a sticky bed, are not especially high resolution, and algebraic multigrid tends not to be robust for vector problems with anisotropy and variable coefficients or for advection-dominated problems, we are using incomplete factorization preconditioners for $B_{uu}$, $B_{pp}$, and $B_{EE}$.
+Multigrid is likely necessary for other problems, especially those having large regions with a slippery bed, and I believe that pervasive support for various forms of geometric multigrid is important.
