@@ -351,13 +351,13 @@ As discussed above and in \secref{sec:regularity}, the equation system \eqref{eq
 Dropping the transient terms, the weak form is: find $(\rho\uu,p,E) \in W^{1,\pfrak}_D \times L^2 \times H^1_D$ such that
 \begin{multline}\label{eq:vhtweak}
   \int_\Omega \bigg[
-    \nabla\tf\uu \tcolon ( -\rho\uu\otimes\uu + \eta D\uu_i) - p\div\tf\uu - \rho \tf\uu\cdot \bm g -\tf p \div \rho\uu \\
+    \nabla\tf\mm \tcolon ( -\rho\uu\otimes\uu + \eta D\uu_i) - p\div\tf\mm - \rho \tf\mm\cdot \bm g -\tf p \div \rho\uu \\
     + \nabla\tf E \cdot \Big(
       -(E+p)\uu + k_T\nabla T + L (1-\omega)\frac{\rho_i}{\rho}\kappa_\omega\nabla\omega
     \Big) - \tf E \left( \eta D\uu_i\tcolon D\uu_i - \rho\uu\cdot\bm g \right)
     \bigg] = 0
 \end{multline}
-for all momentum, mass, and energy test functions $(\tf\uu,\tf p,\tf E) \in W^{1,\pfrak}_0 \times L^2 \times H^1_0$.
+for all momentum, mass, and energy test functions $(\tf\mm,\tf p,\tf E) \in W^{1,\pfrak}_0 \times L^2 \times H^1_0$.
 The trial spaces $W^{1,\pfrak}_D$ and $\times H^1_D$ have inhomogeneous Dirichlet boundary conditions built in on $\partial\Omega\setminus \Gamma_s$ and $\partial\Omega$ respectively, where $\Gamma_s$ is the free surface.
 The corresponding test spaces have homogeneous boundary conditions built in.
 We assume that the free surface $\Gamma_s \subset \partial\Omega$ is non-empty, therefore the pressure trial space and corresponding mass test space do not need a constraint.
