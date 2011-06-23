@@ -1,0 +1,35 @@
+For the purpose of improving the conditioning for numerical stability and iterative solvers, it is desirable that all field variables assume values of similar size and that the residuals also have similar size.
+Since we can choose the overall norm of the system arbitrarily, we choose to make field variables and residuals both of order 1.
+For the field variables, we choose characteristic sizes for the independent variables $\rho\uu$, $p$, and $E$.
+These are just meant to identify the order of magnitude so we choose powers of ten for simplicity.
+We would like the following characteristic quantities to have nondimensional size 1.
+\begin{equation}\label{eq:vhtsizes}
+  \begin{split}
+    [\rho\uu] &= \SI{1e3}{\kilo\gram\per\metre\cubed} \, \SI{1e-4}{\metre\per\second} = \SI{1e-1}{\kilo\gram\per\metre\squared\per\second} \\
+    [p] &= \rho \abs{\bm g} \, \SI{1e3}{\metre} = \SI{1e7}{\pascal} = \SI{1e7}{\kilo\gram\per\metre\per\second\squared} \\
+    [E] &= \rho c_i \, \SI{5}{\kelvin} = \SI{1e7}{\joule\per\metre\cubed} = \SI{1e7}{\kilo\gram\per\metre\per\second\squared} \\
+  \end{split}
+\end{equation}
+This is degenerate because energy density and pressure have the same units, therefore we can ask for one further constraint.
+We choose to make a viscous stress of \SI{100}{\kilo\pascal} integrated over an area of \SI{1}{\kilo\metre\squared} have nondimensional size 1 which ensures that the viscous part of the momentum residual will be of order 1.
+Asking for momentum, pressure, and viscous flux over a characteristic area to be of order unity amounts to solving
+\begin{align*}
+  \SI{.1}{\kilogram\per\metre\squared\per\second} &= 1 \\
+  \SI{1e7}{\kilo\gram\per\metre\per\second\squared} &= 1 \\
+  \SI{1e11}{\kilo\gram\metre\per\second\squared} &= 1
+\end{align*}
+which has the unique solution
+\begin{align}\label{eq:vhtunits}
+  \si{\kilo\gram} &= \num{1e3} & \si{\metre} &= \num{1e-2} & \si{\second} &= \num{1e6} .
+\end{align}
+In other words, the characteristic scales are \SI{1}{\gram}, \SI{100}{\metre}, and \SI{1}{\micro\second}.
+Due to the Lagrange-multiplier coupling of the pressure, this also ensures that the pressure is well-behaved relative to the velocity.
+Independently changing the scaling for the mass continuity equation would cause the Stokes problem to be non-symmetric.
+The energy equation, however, is very poorly scaled by this choice.
+For example, the advective energy flux $[E][u]$ integrated over an are of size \SI{1}{\kilo\metre\squared} has size
+\begin{equation*}
+  (\SI{1e6}{\metre\squared}) (\SI{1e7}{\kilo\gram\per\metre\per\second\squared}) (\SI{1e-4}{\metre\per\second}) = \SI{1e9}{\kilo\gram\metre\squared\per\second\cubed} = \num{1e-10} .
+\end{equation*}
+We scale the energy equation by \num{1e10} to correct this.
+With nondimensionalization defined by \eqref{eq:vhtunits}, all solution variables have order unity and the unconverged residuals (after balancing the hydrostatic mode which is about 100 times larger) also have the same order.
+As a consequence, the Jacobian has norm of order unity in the subspace where the hydrostatic mode is balanced.

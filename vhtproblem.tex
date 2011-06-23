@@ -1,0 +1,200 @@
+Given a Lipschitz domain $\Omega$ with surface $\Gamma_s$ and time interval $(0,\tau)$, the strong form is to find total momentum, pressure, and total energy density $(\rho\uu,p,E) \in W^{1,\pfrak} \times L^2 \times H^1$ such that
+\begin{subequations}\label{eq:vhtstrong}
+  \begin{align}
+    (\rho\uu)_t + \div (\rho\uu\otimes\uu - \eta D\uu_i + p\bm 1) - \rho \bm g &= 0 \label{eq:vhtstrong:momentum} \\
+    \rho_t + \div \rho\uu &= 0 \label{eq:vhtstrong:mass} \\
+    E_t + \div \left((E+p)\uu - k_T\nabla T - L (1-\omega)\frac{\rho_i}{\rho}\kappa_\omega\nabla\omega \right) - \eta D\uu_i\tcolon D\uu_i - \rho\uu\cdot\bm g &= 0 \label{eq:vhtstrong:energy}
+  \end{align}
+\end{subequations}
+on $\Omega\otimes (0,\tau)$, with Dirichlet flow boundary conditions except at the free surface, and all Dirichlet boundary conditions for energy $E$.
+These equations represent conservation of momentum, mass, and energy respectively.
+Note that $\rho_t$ appears in \eqref{eq:vhtstrong:mass}, but $\rho$ is not an explicit variable and only depends on pressure when the melt fraction is positive, therefore this system is still differential algebraic.
+The energy equation consists of a transport term, thermal diffusion, moisture diffusion, and heat production due to strain heating.
+We switch immediately to the steady-state form of \eqref{eq:vhtstrong} in which $(\rho\uu)_t$, $\rho_t$, and $E_t$ are all zero.
+Constitutive relations are needed for total density $\rho$ (\si{\kilogram\per\metre}), ice velocity $\uu_i$ (\si{\metre\per\second}), temperature $T$ (\si{\kelvin}), volumetric moisture fraction (porosity) $\omega$ (nondimensional), and viscosity $\eta$ ($\si{\pascal\second} = \si{\kilogram\per\metre\per\second}$).
+In general, each constitutive relation is a function of all field variables.
+The thermal conductivity $k_T$ (\si{\joule\per\metre\per\kelvin\per\second}) and hydraulic diffusivity $\kappa_\omega$ (\si{\kilogram\metre\per\second}) are taken to be constant because experimental data are sparse, but this assumption is in no way critical.
+
+The constitutive relations for temperature and moisture fraction are usually defined piecewise.
+It is preferable for the convergence of Newton methods~\citep[\cf][]{gropp2000globalized,kelley1995iterative} to have a discretization with $C^1$ continuity and it is simpler for manufactured solutions if the constitutive relation has a global (\ie not piecewise) definition in terms of analytic functions.
+To achieve this, we decompose the function $\mathcal{S}(x) = x$ into two globally smooth parts
+\begin{equation}\label{eq:vhttransition}
+  \begin{split}
+    % \mathcal S_\delta^-(x) &= \frac{x}{2} \left(1 - \erf \frac{x}{\sqrt 2 a} \right)  -\frac{a}{\sqrt{2\pi}} \exp{\frac{-x^{2}}{2 a^{2}}} \\
+    % \mathcal S_\delta^+(x) &= \frac{x}{2} \left(1 + \erf \frac{x}{\sqrt 2 a} \right) + \frac{a}{\sqrt{2\pi}} \exp{\frac{-x^{2}}{2 a^{2}}} \\
+    \mathcal S_\delta^-(x) &= \frac{x}{2} - \frac{x}{2} \erf \frac{x}{\sqrt 2 \delta} - \frac{\delta}{\sqrt{2\pi}} \exp{\frac{-x^{2}}{2 \delta^{2}}} \\
+    \mathcal S_\delta^+(x) &= \frac{x}{2} + \frac{x}{2} \erf \frac{x}{\sqrt 2 \delta} + \frac{\delta}{\sqrt{2\pi}} \exp{\frac{-x^{2}}{2 \delta^{2}}}
+  \end{split}
+\end{equation}
+which satisfy $\mathcal S_\delta^- (x) < 0$, $\mathcal S_\delta^+(x) > 0$ and $\mathcal S_\delta^-(x) + S_\delta^+(x) = x$.
+These functions arise from integrating the error function with standard deviation $\delta$.
+Taking $\delta\to 0$ recovers the piecewise linear decomposition $\mathcal S_0^-(x) = \min(x,0)$, $\mathcal S_0^+(x) = \max(x,0)$.
+In applications where a single global function is not important, the decomposition $\mathcal S^\pm$ could be defined using a spline which would reduce the high computational cost of evaluating $\erf$.
+This decomposition will be used to separate internal energy into thermal and melt contributions.
+
+For convenience in defining constitutive relations, we introduce specific internal energy $e$ (\si{\joule\per\kilogram}) which is related to total and kinetic energy through
+\begin{equation*}
+  E = \rho e + \half (1-\omega) \rho_i \abs{\uu_i}^2 + \half \omega \rho_w \abs{\uu_w}^2
+\end{equation*}
+which we approximate as
+\begin{equation}\label{eq:intenergy}
+  E = \rho e +  \frac{1}{2\rho} \abs{\rho\uu}^2 .
+\end{equation}
+This approximation may be violated, for example, at moderate porosity when the velocity of the melt fraction is very high compared to the bulk velocity, such as in an actively draining moulin.
+In such circumstances, it is likely unavoidable to add additional variables for water momentum and energy.
+Consistent with exact incompressibility, the internal energy is independent of pressure even though observable quantities like temperature and moisture fraction are dependent on pressure.
+Removing this assumption would produce acoustic waves and a conservative formulation would require that density be an explicit degree of freedom.
+When combined with the closure for $\rho(p,e)$, shown below, \eqref{eq:intenergy} requires solving an implicit equation involving the decomposition $\mathcal S^\pm$.
+This implicit equation can always be reduced to one dimension and can be solved explicitly for some definitions of $\mathcal S^\pm$.
+For some purposes, it is acceptable to simply take $\rho \approx \rho_i$.
+%, therefore we use the density of pure ice $\rho \approx \rho_i$ and the ice velocity $\uu_i = \uu$ (valid for $\omega \ll 1$) in this equaiton \emph{only}.
+The convective contributions to momentum balance $\rho\uu\otimes\uu$ and kinetic energy $\frac{1}{2\rho}\abs{\rho\uu}^2$ have vanishing influence in glaciology, but are easy to accommodate so we keep them for completeness.
+An alternative would be to discretize using $\rho$ instead of $p$ as the independent variable, but near incompressibility and the variation due to moisture content causes the resulting system to be extremely ill-conditioned.
+
+The closures for \eqref{eq:vhtstrong} are
+\begin{subequations}\label{eq:vhtclosure}
+  \begin{align}
+    \rho(p,e)        & = \big(1-\omega(p,e) \big) \rho_i + \omega(p,e) \rho_w                            \\
+    \uu_i(\uu,p,e)   & = \uu + \rho(p,e)^{-1} \kappa_\omega \nabla\omega(p,e) \label{eq:vhtclosure:uice} \\
+    T(p,e)           & = T_0 + \frac{e_m(p) + \mathcal S_\delta^-\big(e - e_m(p)\big)}{c_i} \\
+    \omega(p,e)      & = \frac{\rho_i \mathcal S_\delta^+\big(e - e_m(p)\big)}{\rho_w L - (\rho_w-\rho_i)\mathcal S_\delta^+\big(e - e_m(p)\big)} \\
+    \eta(\gamma,p,e) & = B(p,e)\left(\epsilon^2 + \frac{\gamma}{\gamma_0} \right)^{\frac{\mathfrak{p}-2}{2}}
+  \end{align}
+\end{subequations}
+with second invariant $\gamma = \half D\uu\tcolon D\uu$ and the additional constitutive relations
+\begin{align*}
+  T_m(p)   & = T_3 - \beta_{CC} p          \\
+  e_m(p)   & = c_i \big(T_m(p) - T_0 \big) \\
+  T^*(p,e) & = T(p,e) - T_m(p) + T_3       \\
+  B(p,E)   & = B_0 \exp \left( \frac{Q - pV}{\nfrak R T^*(p,e)} - \frac{Q}{\nfrak R T_0} \right) \big(1 + B_\omega \omega(p,E) \big)^{-1/\nfrak}
+\end{align*}
+with physical constants given in \tabref{tab:vhtconst}.
+Since dimensional units are used here unlike in earlier sections, the strain rate regularization $\epsilon$ is now a fraction of $\gamma_0$ which is the second invariant of a reference strain rate.
+The Arrhenius relation is normalized to zero pressure and a reference temperature $T_0$.
+This formulation is not conventional in glaciology, but permits more intuitive understanding of parameters because they are no longer sensitive to the power law exponent $\pfrak$ and large exponential terms.
+
+\begin{table}
+  \centering
+  \begin{tabular}{clll}
+    \toprule
+    Symbol          & Value                                         & Description                                                       \\
+    \midrule
+    $c_i$           & \SI{2009}{\joule\per\kilogram\per\kelvin}     & Specific heat capacity of ice                                     \\
+    %$c_w$          & \SI{4170}{\joule\per\kilogram\per\kelvin}     & Specific heat capacity of water                                   \\
+    $k_T$           & \SI{2.1}{\watt\per\metre\per\kelvin}          & Thermal conductivity of ice                                       \\
+    $\rho_i$        & \SI{910}{\kilogram\per\metre\cubed}           & Density of ice                                                    \\
+    $\rho_w$        & \SI{1000}{\kilogram\per\metre\cubed}          & Density of liquid water                                           \\
+    $L$             & \SI{3.34e5}{\joule\per\kilogram}              & Latent heat of fusion                                             \\
+    $g$             & \SI{9.81}{\metre\per\second\squared}          & Gravitational acceleration                                        \\
+    $\kappa_\omega$ & \SI{1.045e-4}{\kilogram\per\metre\per\second} & Hydraulic diffusivity of ice                                      \\
+    %$K_w$          & \SI{1.045e-4}{\kilogram\per\metre\per\second} & Temperature ice diffusivity
+    $\beta_{CC}$    & \SI{7.9e-8}{\kelvin\per\pascal}               & Clausius-Capeyron gradient                                        \\
+    $T_3$           & \SI{273.15}{\kelvin}                          & Triple point of water                                             \\
+    $T_0$           & \SI{260}{\kelvin}                             & Reference temperature                          \\
+    $\gamma_0$      & $\half (\SI{1e-10}{\per\second})^2$           & Second invariant of reference strain rate                         \\
+    $B_0$           & \SI{8.56e14}{\pascal\second}                  & Viscosity at reference strain rate and temperature                \\
+    $Q$             & \SI{6.0e4}{\joule\per\mole}                   & Activation energy for creep                                       \\
+    $V$             & \SI{-13.e-6}{\metre\cubed\per\mole}           & Activation volume for creep                                       \\
+    $R$             & \SI{8.31441}{\joule\per\mole\per\kelvin}      & Ideal gas constant                                                \\
+    $B_\omega$      & 181.25                                        & Influence of water content on viscosity \citep{greve2009dynamics} \\
+    \bottomrule
+  \end{tabular}
+  \caption{Physical constants used for the viscous heat transport problem.
+    The same constants are used in \citet{aschwanden2011enthalpy}.}\label{tab:vhtconst}
+\end{table}
+
+The definitions of the moisture flux in \eqref{eq:vhtstrong:energy} and ice velocity $\uu_i$ require further explanation.
+The total momentum can be defined in terms of constituent momenta as
+\begin{equation}\label{eq:wmomentum}
+  \begin{split}
+    \rho\uu & = (1-\omega) \rho_i \uu_i + \omega \rho_w \uu_w                             \\
+            & = (1-\omega) \rho_i \uu_i + \omega \rho_w \uu_i + \omega\rho_w(\uu_w - \uu_i) \\
+            & = \rho \uu_i + \omega\rho_w(\uu_w - \uu_i) .
+  \end{split}
+\end{equation}
+The second term is the momentum of the moisture content in the reference frame of the ice.
+The mass flux of the moisture is $-\kappa_\omega\nabla\omega$ which is also the momentum density.
+That is, the integral of $-\kappa_\omega\nabla\omega$ over a surface element is the mass flux (\si{\kilogram\per\second}) through that surface, while the integral over a volume element is the momentum (\si{\kilogram\metre\per\second}) of that volume.
+Substituting $\omega\rho_w(\uu_w - \uu_i) = -\kappa_\omega\nabla\omega$ into \eqref{eq:wmomentum} and solving for $\uu_i$ yields
+\begin{equation*}
+  \uu_i = \uu + \rho^{-1} \kappa_\omega \nabla\omega
+\end{equation*}
+as in \eqref{eq:vhtclosure:uice}.
+In \eqref{eq:vhtstrong:energy}, we need the energy flux in the reference frame of the total velocity.
+Starting from the mass flux in the reference frame of total velocity,
+\begin{equation}\label{eq:vhtmomflux}
+  \begin{split}
+    \omega\rho_w(\uu_w - \uu) & = \omega \rho_w (\uu_w - \uu_i) + \omega\rho_w(\uu_i - \uu)                             \\
+                              & = -\kappa_\omega\nabla\omega + \frac{\omega\rho_\omega}{\rho}\kappa_\omega\nabla \omega \\
+                              & = - \left( 1 - \frac{\omega\rho_\omega}{\rho} \right) \kappa_\omega \nabla \omega \\
+                              & = - (1-\omega)\frac{\rho_i}{\rho}\kappa_\omega\nabla\omega
+  \end{split}
+\end{equation}
+where the moisture flux and \eqref{eq:vhtclosure:uice} was used on the second line.
+The mass flux in \eqref{eq:vhtmomflux} is converted to energy flux by multiplying by the latent heat $L$ to produce the moisture flux appearing in \eqref{eq:vhtstrong:energy}.
+The use of constant hydraulic conductivity $\kappa_\omega$ is a poor approximation for large amplitude $\omega$ since intraglacial conduits form for higher melt fractions, thus conductivity becomes nearly infinite.
+For such cases, it would likely be better to use a Darcy-type constitutive relation accommodating the gravitational contribution and with conductivity dependent on moisture, perhaps of the form $\kappa(\omega) = \kappa_0 \exp \frac{\omega}{\omega_0}$ where $\kappa_0$ is the conductivity for vanishing moisture fraction and $\omega_0$ is a characteristic melt fraction on the order of \SI{1}{\percent}.
+
+The volumetric flux $p\bm u$ appearing in \eqref{eq:vhtstrong:energy} could have been written as part of a single heating term.
+For single-phase compressible flows, the heat production can be written $(\eta D\uu - p\bm 1)\tcolon \grad \uu$ from classical definitions of work~\citep[\eg][]{hutter2004continuum}, plus a kinetic energy contribution $-\uu\cdot\nabla p$.
+These can be manipulated as
+\begin{equation}\label{eq:heatdiss}
+  \begin{split}
+    (\eta D\uu - p\bm 1)\tcolon \grad \uu - \uu\cdot\grad p &= \eta D\uu\tcolon \grad\uu - p\div\uu - \uu\cdot\grad p \\
+    &= \eta D\uu\tcolon D\uu - \div (p\uu)
+  \end{split}
+\end{equation}
+which is the form appearing in \eqref{eq:vhtstrong:energy}.
+Although both expressions are equivalent for the continuous equations, the discrete equations are different because numerical solutions only satisfy partial differential equations weakly.
+Only the latter formulation is conservative.
+This formulation is also more amenable to discretization and is mandatory for stability when density is dependent on pressure (as it is here when melt content is available, though the underlying physical process still does not support acoustics) and diffusion is poorly resolved on the mesh.
+The first term in \eqref{eq:heatdiss} is non-reversible dissipation while the second can be recovered through volume change and thus does not affect the global entropy.
+The ice velocity $\uu_i$ is used in \eqref{eq:vhtstrong:energy} because the melt fraction is assumed to be able to move through the ice matrix without viscous dissipation.
+Perhaps this is a reasonable assumption because the viscosity of ice is \num{1e15} times larger than water, but for relatively stagnant ice with high moisture velocity, it is likely to be significant and the equations can be augmented with an additional diffusive term.
+
+The present formulation is similar to \citet{aschwanden2011enthalpy} and approaches their model in the limit $\omega\to 0$, but is more conservative.
+The formulation here uses a 3D momentum balance and conserves mass, momentum, and energy, regardless of large amplitude moisture content and presence of numerical diffusion.
+We have intentionally neglected to write constitutive relations of the form $e(T,\omega,p)$ because such relationships are superfluous for the purpose of solving the equations.
+They can be obtained by inverting the constitutive relations presented here and, depending on the experimental setup, may be useful for model validation.
+
+For the purpose of determining cell Peclet numbers (a diagnostic tool and possible input to numerical stabilization methods), it is useful to write the thermal and moisture fluxes using
+\begin{align*}
+  \frac{\partial T}{\partial E}      & = \frac{\partial T}{\partial e}\frac{\partial e}{\partial E} \approx \frac{1}{c_i} \frac{1}{\rho} \quad\text{Cold ice} \\
+  \frac{\partial \omega}{\partial E} & = \frac{\partial \omega}{\partial e}\frac{\partial e}{\partial E} \approx \frac{1}{L} \frac{1}{\rho} \quad\text{Temperate ice}
+\end{align*}
+so that the diffusive energy flux driven by energy gradient can be written as $-K_T \nabla E - K_\omega \nabla E$ with
+\begin{align}\label{eq:vht:ediffusivity}
+  K_T      & \approx \frac{k_T}{\rho c_i} = \SI{1.15e-6}{\metre\squared\per\second} \\
+  K_\omega & \approx \frac{L \kappa_\omega}{\rho L} = \SI{1.15e-7}{\metre\squared\per\second} .
+\end{align}
+Note that we have neglected kinetic energy and density dependence in this approximation.
+For an element with streamline length $h = \SI{1}{\kilo\metre}$ and velocity $v = \SI{1}{\kilo\metre\per\year}$, the cell Peclet number is $\Peclet_h = hv / K = \num{2.8e4}$ for cold ice and ten times larger for temperate ice.
+Numerical methods for such systems require upwinding to prevent non-physical oscillations.
+Godunov's Theorem~\citep[1954, see \eg][]{leveque2002finite} states that non-oscillatory linear methods for hyperbolic equations are at most first-order accurate.
+Higher order accuracy requires a nonlinear method, even if the equation being solved is linear.
+Robust methods for such systems are based on finite volume methods of total variation diminishing (TVD) and total variation bounded (TVB) type, as well as discontinuous Galerkin methods with limiters when necessary~\citep{leveque2002finite,harten1983high,boris1973flux,zalesak1979fully,harten1987uniformly,liu1994weighted,jiang1996efficient,shu2003high,hesthaven2008nodal}.
+In comparison, continuous finite element methods are much less robust, and most efforts to stabilize finite element methods for transport-dominated processes have used linear stabilization~\citep{brooks1982sup,hughes1989new,hughes1998variational,matthies2008stabilization}.
+Attempts to use nonlinear stabilization with continuous finite element methods have not been very successful.
+The best methods, according to the recent comparisons~\citep{john2007spurious,john2008spurious,john2008femtimecdr}, involve extreme restrictions on element types and suffer from difficulty in converging the nonlinear systems~\citep{mizukami1985petrov} or an algebraic construction~\citep{kuzmin2004high} that is difficult to apply with mesh anisotropy and material nonlinearity.
+For simplicity, we adopt the streamline upwind Petrov-Galerkin method of \citep{brooks1982sup}, but a discontinuous Galerkin method would be a better choice for discretization of the energy equation on unstructured grids.
+
+An additional detail appears in the finite element discretization of \eqref{eq:vhtstrong}.
+The symmetric gradient of ice velocity $D\uu_i$ is needed to define the stress, but only the gradient of momentum
+\begin{equation}\label{eq:vhtgradu}
+  \begin{split}
+    \nabla(\rho\uu) &= \uu \otimes \nabla\rho + \rho \nabla\uu \\
+    &= \uu \otimes \nabla\rho + \rho \nabla (\uu_i - \rho^{-1} \kappa_\omega\nabla \omega)
+  \end{split}
+\end{equation}
+is avialable.
+Density is not an explict variable in this formulation and the definition of density involves the gradient of the explicit variables, therefore solving for $\nabla\uu_i$ in \eqref{eq:vhtgradu} produces a second order term.
+This term can be evaluated using the second derivative of the basis functions or using a local projection, but neither of these methods are conveniently available in {\Dohp} at present, therefore we approximate $\nabla\uu_i$ using
+\begin{equation*}
+  \nabla(\rho\uu) \approx \uu \otimes \nabla\rho + \rho \nabla \uu_i
+\end{equation*}
+of \eqref{eq:vhtgradu}.
+
+Although this simulation is run using realistic geometry on a section of the Jakobshavn Isbr{\ae} channel, not all boundary conditions necessary for a realistic simulation have been implemented in {\Dohp}.
+More sophisticated lateral boundary conditions, energy conditions, and free-surface evolution are not considered in the present model.
+See \citet{aschwanden2011enthalpy} for further discussion of boundary conditions for energy transport.
+The output of this simulation is \emph{not} intended as a predictive model, instead it is a demonstration of the capability of the methods to handle systems that were previously not possible or too computationally expensive due to the need for short time steps.

@@ -1,0 +1,189 @@
+As discussed above and in \secref{sec:regularity}, the equation system \eqref{eq:vhtstrong} must be interpreted weakly because the fields have insufficient regularity.
+Dropping the transient terms, the weak form is: find $(\rho\uu,p,E) \in W^{1,\pfrak}_D \times L^2 \times H^1_D$ such that
+\begin{multline}\label{eq:vhtweak}
+  \int_\Omega \bigg[
+    \nabla\tf\mm \tcolon ( -\rho\uu\otimes\uu + \eta D\uu_i) - p\div\tf\mm - \rho \tf\mm\cdot \bm g -\tf p \div \rho\uu \\
+    + \nabla\tf E \cdot \Big(
+      -(E+p)\uu + k_T\nabla T + L (1-\omega)\frac{\rho_i}{\rho}\kappa_\omega\nabla\omega
+    \Big) - \tf E \left( \eta D\uu_i\tcolon D\uu_i - \rho\uu\cdot\bm g \right)
+    \bigg] = 0
+\end{multline}
+for all momentum, mass, and energy test functions $(\tf\mm,\tf p,\tf E) \in W^{1,\pfrak}_0 \times L^2 \times H^1_0$.
+The trial spaces $W^{1,\pfrak}_D$ and $\times H^1_D$ have inhomogeneous Dirichlet boundary conditions built in on $\partial\Omega\setminus \Gamma_s$ and $\partial\Omega$ respectively, where $\Gamma_s$ is the free surface.
+The corresponding test spaces have homogeneous boundary conditions built in.
+We assume that the free surface $\Gamma_s \subset \partial\Omega$ is non-empty, therefore the pressure trial space and corresponding mass test space do not need a constraint.
+
+The finite element method solves \eqref{eq:vhtweak} by introducing discrete test and trial spaces as well as a method of numerical integration.
+The numerical examples in this section use $\Qk 3 - \Qk 2 - \Qk 3$, but other choices are possible.
+In the present implementation, the order of each approximation space can be chosen independently through run-time options.
+Many of the more complicated spaces discussed in \secref{sssec:approximation} are not yet implemented in {\Dohp}, but would automatically become available through run-time options once the library support is added.
+Discontinuous $\Pkdisc k$ spaces are not used here because the visualization support is not complete.
+
+Evaluation of the discrete equations and components needed by the solver are implemented using the methods discussed in \secref{sec:dohpuser}.
+The discrete residual is evaluated monolithically, by evaluating all fields on a single set of quadrature points and computing the coefficients of the test functions at those points.
+For manufactured solutions, the artificial source terms are also evaluated at the quadrature points.
+During residual evaluation, certain intermediate quantities including the velocity $\uu$, temperature $T$, and melt fraction $\omega$, as well as the derivatives of these quantities with respect to the independent variables $\rho\uu$, $p$, $E$ and their gradients, are stashed away in quadrature-local storage managed by {\Dohp}.
+These stashed values are used to apply the Jacobian and blocks of the Jacobian matrix-free.
+The memory and asmyptotic flops benefits of this approach were discussed in \secref{sec:femassembly}.
+Computation of the gradients was done by hand, but is an error-prone process that should be automated using reverse-mode automatic differentiation in a highly local manner (a single quadrature point at a time).
+An alternative would be to simply store the independent variables and their gradients, then evaluate the action of the Jacobian using forward-mode (automatic or by-hand) differentiation.
+The disadvantage of this is that constitutive relations would have to be re-evaluated during Jacobian application.
+Since constitutive relations be quite expensive, it is preferable to store some intermediate values.
+Another alternative is to store the full Jacobian at each quadrature point.
+This would be a nearly dense matrix of size $17\times 20$ (20 comes from the state and gradients of all five fields, three rows are dropped because the gradient of the pressure/mass test function does not appear), or slightly smaller if momentum convection and other symmetry-breaking terms were dropped.
+This matrix would be more effort to compute, would require more storage, and would involve more floating point operations to apply than the present method.
+On today's hardware, the hybrid method of storing coefficients of specific intermediate quantities is clearly preferable to these alternatives.
+However, on some vector hardware, or for other problems with less compact representations, this explicit form could still be desirable.
+
+The Jacobian resulting from Newton linearization of \eqref{eq:vhtweak} has the block structure
+\begin{equation}\label{eq:vhtblock}
+  J =
+  \begin{pmatrix}
+    J_{uu} & J_{up} & J_{uE} \\
+    J_{pu} & 0 & 0 \\
+    J_{Eu} & J_{Ep} & J_{EE}
+  \end{pmatrix} .
+\end{equation}
+The contents of these blocks is summarized below.
+\begin{itemize}
+  \item[$J_{uu}$] The viscous and (much smaller for ice) momentum convection terms.
+    This block is nearly symmetric positive definite and has variable coefficients and anisotropy created by differentiating the power-law constitutive relation.
+  \item[$J_{up}$] The weak pressure gradient, viscosity dependence on pressure (directly and through density, temperature, and melt fraction), and the gravitational contribution from pressure-induced density variation (from changing the pressure melting temperature which may change the melt fraction).
+    This block is large in magnitude, mostly due to the weak pressure gradient which is nearly balanced by the gravitational forcing source term.
+  \item[$J_{uE}$] The viscous dependence on energy (via temperature, melt fraction, and density) as well as the gravitational contribution due to energy-induced density variation.
+    This term comes from a highly nonlinear term (the Arrhenius and moisture-dependent constitutive relations) but is typically not especially large in glaciology.
+    For bouyancy-driven flows such as mantle convection, the density variation is the crucial driving force for circulation.
+    However, despite the crucial coupling provided by this block and it's significant nonlinear influence, it contributes quite little to linear stiffness.
+  \item[$J_{pu}$] The divergence of momentum density which inforces mass conservation.
+    It is nearly equal to $J_{up}^T$ and is thus also large in magnitude.
+    Being the only non-zero block in its row, this is of critical importance.
+  \item[$J_{Eu}$] The sensitivity of energy on momentum, which is mostly the advective transport (the gradient of energy divided by density).
+    This term is very large in boundary layers containing large thermal and moisture gradients.
+    In particular, due to the high Peclet numbers involved, the boundary layers will often never be fully resolved at a practical resolution, thus mesh refinement is capable of resolving ever-larger gradients.
+    This results in the size of this term being essentially mesh-dependent.
+    This block also contains a similar term involving the pressure gradient, but pressure does not contain the same boundary layers as energy (indeed, the pressure gradient is approximately equal to $\rho \bm g$), so its contribution is much smaller and more benign (provided the pressure discretization is stable so that there are no oscillations).
+  \item[$J_{Ep}$] The contribution to thermal and moisture diffusion as well as the advective contribution as a function of pressure gradient.
+    Due to the size of perturbations in the pressure gradient, the advective term and the perturbations to the thermal and moisture gradients $\grad T$ and $\grad \omega$ are benign.
+    If the transition width $\delta$ in \eqref{eq:vhttransition} is made small, small changes in pressure can move the pressure melting which locally switches from thermal to moisture diffusion.
+    According to \eqref{eq:vht:ediffusivity}, this is an order of magnitude change in coefficients, but could be different depending on the constitutive relation for moisture diffusion.
+  \item[$J_{EE}$] An advection-diffusion system for energy.
+    It is generally advection-dominated except in boundary layers and regions of stagnant ice where diffusion driven by temperature and moisture gradient become significant.
+    It is typical that the velocity is almost parallel to the bed in which case vertical diffusion remains significant compared to vertical advection while horizontal (nearly streamline) diffusion is negligible.
+    In such cases, the thermal gradients in the horizontal direction are very small.
+    There are also advection-like terms arising from differentiating through $S^\pm_\delta$ which appear as transport in the directions $\grad T$ and $\grad \omega$ (usually nearly vertical).
+\end{itemize}
+All blocks in this system are available in unassembled form, using the reduced storage at quadrature points discussed above.
+
+The discussion above suggests that the blocks $J_{uu}$, $J_{up}$, $J_{pu}$, $J_{Eu}$, and $J_{EE}$ account for most of the linear stiffness, therefore the multiplicative preconditioner
+\begin{equation}\label{eq:vht:pcnested}
+  P =
+  \begin{bmatrix}
+    \begin{pmatrix}
+      J_{uu} & J_{up} \\
+      J_{pu} & 0
+    \end{pmatrix} & \\
+    J_{Eu} & J_{Ep} & J_{EE}
+  \end{bmatrix}
+\end{equation}
+should be an effective preconditioner for \eqref{eq:vhtblock}.
+Indeed, if applied exactly,
+\begin{equation*}
+  P^{-1}J =
+  \begin{bmatrix}
+    1 &
+    \begin{pmatrix}
+      J_{uu} & J_{up} \\ J_{pu} & 
+    \end{pmatrix}^{-1}
+    \begin{pmatrix}
+      J_{uE} \\
+    \end{pmatrix} \\
+    0 & 1
+  \end{bmatrix}
+\end{equation*}
+which satisfies $(P^{-1}J - 1)^2 = 0$ ensuring that left-preconditioned GMRES converges in two iterations.
+Computing
+\begin{align*}
+  (JP^{-1} - 1)^2 & = JP^{-1}JP^{-1} - 2JP^{-1} + 1           \\
+                  & = P(P^{-1}JP^{-1}J - 2P^{-1}J + 1) P^{-1} \\
+                  & = P(P^{-1}J - 1)^2P^{-1}                  \\
+                  & = (P^{-1}J - 1)^2 = 0
+\end{align*}
+ensures that right-preconditioned GMRES also converges in two iterations.
+Since GMRES convergence is more reliable for matrices that are not too far from normal~\citep{nachtigal1992fnm,embree1999descriptive,trefethen2005spectra} and because we intend to apply $P$ only approximately, it is beneficial that the off-diagonal part of $P^{-1}A$ is relatively small.
+This preconditioner can be applied with one (anisotropic variable-coefficient) Stokes solve and one advection-diffusion (variable-coefficient, with anisotropy due to stabilization) solve.
+
+Due to the mechanics of GMRES, three preconditioner applications are required for two iterations.
+By storing more information, the flexible variant FGMRES~\citep{saad1993fgmres} can extract the solution after two right-preconditioned iterations without a third preconditioner application.
+The generalized conjugate residual method GCR~\citep{eisenstat1983variational} has the same property and has equivalent convergence properties to GMRES when the preconditioner is linear~\cite{saad1986gmres}.
+Both of these methods store two vectors per Krylov iteration which enables them to be tolerant of variable preconditioners.
+They both work with the right-preconditioned form, have convergence tests in terms of unpreconditioned residuals, and are commonly restarted to bound the total storage requirement.
+FGMRES defines the residual and its norm through a recurrence relation similar to GMRES which has the advantage of requiring less arithmetic per iteration, but means that the residuals are expensive to compute during the iteration, therefore the norm estimated by the algorithm may be unstable.
+Classical Gram-Schmidt orthogonalization is not stable, but it is much faster than modified Gram-Schmidt, especially in parallel where reductions are very expensive.
+Since GCR computes the norm of the true residual explicitly instead of through a recurrence relation, the CGR convergence test is independent of inaccuracy in the classical Gram-Schmidt process.
+GCR with an inexact iterative preconditioner was introduced in \citet{vandervorst1994gmresr} under the name GMRESR and a variant using the same amount of arithmetic per iteration as FGMRES was presented in \citet{vuik1995new}.
+See also \citet{brakkee1998domain} for practical comparisons with domain decomposition methods for incompressible flow.
+
+For the Stokes solve in the application of \eqref{eq:vht:pcnested}, we start with the factorization
+\begin{equation*}
+  \begin{pmatrix}
+    J_{uu} & J_{up} \\
+    J_{pu} & 
+  \end{pmatrix} =
+  \begin{pmatrix}
+    1 & \\ J_{pu} J_{uu}^{-1}
+  \end{pmatrix}
+  \begin{pmatrix}
+    J_{uu} & J_{up} \\
+    & S
+  \end{pmatrix}
+\end{equation*}
+where $S = -J_{pu} J_{uu}^{-1}J_{uu}$.
+Since $S$ is dense and will be solved with approximately, it is reasonable to drop the lower-triangular block, leaving
+\begin{equation}\label{eq:vht:pcstokes}
+  P_s =
+  \begin{pmatrix}
+    J_{uu} & J_{up} \\
+    & S
+  \end{pmatrix}
+\end{equation}
+since the preconditioned operator also has a minimal polynomial of degree 2.
+
+Three assembled matrices are used in the solver defined using approximate solves with \eqref{eq:vht:pcnested,eq:vht:pcstokes}.
+The first is $B_{uu}$ which is an approximation of the momentum block $J_{uu}$ assembled using the same physics with truncated basis functions and sub-element $2^3$-point Gauss quadrature.
+This matrix corresponds to a $Q_1$ discretization on the sub-elements.
+We approximate the inverse of $J_{uu}$ by 10 conjugate gradient iterations preconditioned by block incomplete Cholesky applied to $B_{uu}$.
+
+An approximation of the energy coupling $B_{EE}$ is assembled using the same methodology and the inverse of $J_{EE}$ is computed using GMRES preconditioned by incomplete LU.
+This system is converged to a reasonable tolerance of \num{1e-5} because it is relatively inexpensive compared to the Stokes solve.
+
+Approximating the inverse of $S$ and the greater Stokes system is more involved.
+Following the results of \citep{olshanskii2006analysis} extrapolated to viscosity variation that is not isotropic or piecewise constant, we approximate $S$ by assembling $B_{pp}$, the mass matrix weighted by the inverse of effective viscosity $\eta$.
+The quadrature for this operator in the pressure space is defined using local $2^3$-point Gauss quadratures on the sub-elements associated with the $Q_3$ basis functions.
+While this quadrature has a lower order of accuracy than a Gauss quadrature with similar number of points on the whole element, it is more local and more robust to sharp viscosity variation.
+It also has the advantage of reusing the same constitutive relation evaluations as the assembled momentum and energy operators.
+The inverse of $S$ is approximated using incomplete Cholesky applied to the the scaled mass matrix $B_{pp}$ which has been significantly more robust than the lumped variant in common use~\citep[\eg][]{burstedde2008scalable,may2008pim}.
+
+We converge the Stokes solve to a relative tolerance of \num{1e-3} using GCR with the upper-triangular preconditioner \eqref{eq:vht:pcstokes} where $S$ is replaced by $B_{pp}$ and $J_{uu}$ solved inexactly.
+The Eisenstat-Walker~\citet*{eisenstat1996cft} method is used to adjust the linear solve tolerance of the outer Krylov iteration as the Newton iteration converges.
+Since the inner solves are relatively accurate and the $J_{uE}$ block has little linear stiffness, this usually converges in one iteration.
+
+A natural alternative preconditioner which was proposed by \citet{elman2011bouyancy} for Picard linearization of 2D isoviscous bouyancy-driven flows with the Boussinesq approximation using $Q_2-Q_1$ elements avoids nested iteration by using
+\begin{equation*}
+  P_1 =
+  \begin{pmatrix}
+    J_{uu} & J_{up} & J_{uE} \\
+     & B_{pp} & \\
+    & & J_{EE} \\
+  \end{pmatrix} .
+\end{equation*}
+Despite several attempts, this preconditioner and many variants were not found to deliver the robustness desired for the present model.
+Among other deficiencies, it tended to have very poor behavior under GMRES restarts and often triggered instability in classical Gram-Schmidt.
+Since full orthogonalization using modified Gram-Schmidt is not practical, this approach is not used in the present numerical study.
+However, through the compositional algebra implemented in {\PETSc}, especially the \cverb|PCFieldSplit| component, all such variants remain available as run-time options.
+
+If a scalable preconditioner such as multigrid is available for $B_{uu}$ and $B_{pp}$, and if the results of \citet{olshanskii2006analysis} carry over to the present setting, then the methods used here will also be scalable.
+Unfortunately, $B_{pp}$ does not capture the anisotropy appearing due to Newton linearization, therefore we cannot expect it to be spectrally equivalent to $S$.
+An alternative is the least-squares commutator of \citet{elman2006bpb,elman1999bfbt} discussed in \secref{sec:multiphysics:fieldsplit}.
+Experiments with the LSC preconditioner (of which there are many variants) have not shown a clear advantage for this problem.
+Since the present tests have a sticky bed, are not especially high resolution, and algebraic multigrid tends not to be robust for vector problems with anisotropy and variable coefficients or for advection-dominated problems, we are using incomplete factorization preconditioners for $B_{uu}$, $B_{pp}$, and $B_{EE}$.
+Multigrid is likely necessary for other problems, especially those having large regions with a slippery bed, and I believe that pervasive support for various forms of geometric multigrid is important.
