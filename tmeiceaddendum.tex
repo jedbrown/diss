@@ -1,0 +1,34 @@
+Solving the transient and steady-state problems with an implicit free surface is the next step.
+As a proof of concept, we consider the hydrostatic equations from \secref{sec:equations} augmented with surface evolution and erosion
+\begin{gather}
+  - \nabla\cdot \left[ \eta
+    \begin{pmatrix}
+      4 u_x + 2 v_y & u_y + v_x & u_z \\
+      u_y + v_x & 2 u_x + 4 v_y & v_z
+    \end{pmatrix} \right] + \rho g \nabla s = 0 \\
+  h_t + \nabla\cdot \int_b^{s} (u,v) = 0  \\
+  b_t + k_e \abs{(u,v)}^p = 0
+\end{gather}
+where $(u,v)$ is horizontal velocity, $\eta$ is the nonlinear effective viscosity, $h$ is the thickness, $b$ is the bed elevation, and $s = b+h$ is the surface elevation.
+The velocity equation is solved on the domain between $b$ and $h$ with the basal sliding parameter held constant.
+This is an Arbitrary Lagrange-Eulerian (ALE) formulation \citep{donea2004arbitrary} in which the mesh always conforms to the current surface.
+The ISMIP test C~\cite{pattyn2008beh} initial geometry, periodic horizontal boundary conditions, and basal sliding parameter distribution are used.
+The thickness is discretized using a cell-centered upwind finite volume method and fluxes are computed by splitting the faces of the continuous finite element solution for the velocity and performing numerical quadrature which is exact for affine elements.
+The steady-state solution with erosion turned off is shown in \figref{fig:hstat:csteady}, computed in 19 Newton iterations (without time stepping).
+There is no steady state when eroison is turned on, but the transient simulation can still take time steps dictated by the physical process of interest instead of a CFL condition that may not be interesting.
+\figref{fig:hstat:erosion300k} shows the bed elevation after \SI{300}{\kilo\year} of evolution, with time steps of \SI{30}{\kilo\year}.
+This time step length corresponds to a CFL number of nearly half a million.
+In practice, the climate changes somewhat faster than \SI{30}{\kilo\year} so a smaller time step size would be used, but it is still orders of magnitude slower than the CFL constraint for explicit advection.
+Since the short time-scale transient response is not of scientific interest for long-term erosion modeling (e.g. mountain range formation), this implicit free surface is much more efficient.
+
+\begin{figure}\centering
+  \includegraphics[width=0.8\textwidth]{talkfigures/THI/c-steady-crop}
+  \caption{A steady-state solution for ISMIP-HOM test C~\cite{pattyn2008beh} at 10km computed in 19 iterations.
+    The elevated surface is exaggerated surface height and the color in the solid domain is velocity.}\label{fig:hstat:csteady}
+\end{figure}
+
+\begin{figure}\centering
+  \includegraphics[width=0.6\textwidth]{talkfigures/THI/erosion300k}
+  \caption{Bed profile eroded from a flat bed after \SI{300}{\kilo\year} with test C slipperiness perturbation.
+    Time steps are \SI{30}{\kilo\year} at this point in the simulation.}\label{fig:hstat:erosion300k}
+\end{figure}
