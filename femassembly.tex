@@ -128,19 +128,19 @@ The unstructured $Q_1$ case requires 30\% overhead, and drops below 7\% when usi
   \centering
   \begin{tabular}{l ccc r@{.}l r@{.}l}
     \toprule
-    Library      & Mesh   & Connectivity & Discretization & \multicolumn{2}{c}{Laplace (s)} & \multicolumn{2}{c}{$p$-Bratu (s)} \\
+    Library        & Mesh   & Connectivity & Discretization & \multicolumn{2}{c}{Laplace (s)} & \multicolumn{2}{c}{$p$-Bratu (s)} \\
     \midrule
-    \libmesh     & $64^3$ & $Q_1$        & $Q_1$          & 4&8        & \multicolumn{2}{l}{---}           \\
-    \libmesh     & $32^3$ & $Q_2$        & $Q_2$          & 5&0         & \multicolumn{2}{l}{---}           \\
-%nomod    \libmesh     & $64^3$ & $Q_1$        & $Q_1$          & 16&5        & \multicolumn{2}{l}{---}           \\
-%nomod    \libmesh     & $32^3$ & $Q_2$        & $Q_2$          & 7&4         & \multicolumn{2}{l}{---}           \\
-    \dealii      & $64^3$ & $Q_1$        & $Q_1$          & 7&8         & \multicolumn{2}{l}{---}           \\
-    \dealii      & $32^3$ & $Q_2$        & $Q_2$          & 4&9         & \multicolumn{2}{l}{---}           \\
-    \Dohp        & $64^3$ & $Q_1$        & $Q_1$          & 2&32        & 2&58          \\
-    \Dohp        & $32^3$ & $Q_2$        & $Q_1$          & 2&06        & 2&35          \\
-    \Dohp        & $32^3$ & $Q_2$        & $Q_2$          & 5&44        & 5&78          \\
-    \Dohp        & $16^3$ & $Q_4$        & $Q_1$          & 1&91        & 2&22          \\
-    \cverb|DMDA| & $64^3$ & structured   & $Q_1$          & 1&79        & \multicolumn{2}{l}{---}           \\
+    \libmesh       & $64^3$ & $Q_1$        & $Q_1$          & 4                               & 8  & \multicolumn{2}{l}{---}      \\
+    \libmesh       & $32^3$ & $Q_2$        & $Q_2$          & 5                               & 0  & \multicolumn{2}{l}{---}      \\
+%nomod    \libmesh & $64^3$ & $Q_1$        & $Q_1$          & 16                              & 5  & \multicolumn{2}{l}{---}      \\
+%nomod    \libmesh & $32^3$ & $Q_2$        & $Q_2$          & 7                               & 4  & \multicolumn{2}{l}{---}      \\
+    \dealii        & $64^3$ & $Q_1$        & $Q_1$          & 7                               & 8  & \multicolumn{2}{l}{---}      \\
+    \dealii        & $32^3$ & $Q_2$        & $Q_2$          & 4                               & 9  & \multicolumn{2}{l}{---}      \\
+    \Dohp          & $64^3$ & $Q_1$        & $Q_1$          & 2                               & 32 & 2 & 58                       \\
+    \Dohp          & $32^3$ & $Q_2$        & $Q_1$          & 2                               & 06 & 2 & 35                       \\
+    \Dohp          & $32^3$ & $Q_2$        & $Q_2$          & 5                               & 44 & 5 & 78                       \\
+    \Dohp          & $16^3$ & $Q_4$        & $Q_1$          & 1                               & 91 & 2 & 22                       \\
+    \cverb|DMDA|   & $64^3$ & structured   & $Q_1$          & 1                               & 79 & \multicolumn{2}{l}{---}      \\
     \bottomrule
   \end{tabular}
   \caption{Assembly time for the Laplace and $p$-Bratu problems with different element types and libraries.
