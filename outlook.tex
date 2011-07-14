@@ -1,3 +1,20 @@
+We have presented a variety of numerical methods and software tools for the simulation of ice dynamics.
+These methods provide increased accuracy, improved performance (especially on emerging hardware), and make the use of more advanced analysis techniques viable.
+There are still many open problems in the design of computational methods for glacier flow, and many methods known to other fields and widely used for problems with similar characteristics, but that have not yet been applied to glaciology.
+The software to
+
+  \todo{finish}
+
+\section{Future directions}
+Any worthwhile research creates more questions than it answers.
+
+A recurring theme of this thesis has been that computational infrastructure for glaciological problems is immature, thus impeding the use of better numerical methods and limiting the scope of scientific inquiry.
+The US Department of Energy's Office of Advanced Scientific Computing Research took notice of this issue in 2009 by creating an initiative to improve the software library support and availability of modern computational methods for addressing the scientific problems posed by the IPCC AR4~\citep{lemk2007ar4wg1}, namely the dynamic response of ice sheets to climate change.
+The Scalable Ice-sheet Solvers and Infrastructure for Petascale High-resolution Unstructured Simulations (SISIPHUS)~\citep*{sisiphus-web} project was funded under this initiative for 2M USD over three years.
+I wrote a large fraction of the technical content for the SISIPHUS proposal and there is some overlap with this thesis.
+Objectives that I will be pursuing in collaboration with other SISIPHUS personnel include an implicit ALE free surface for the Stokes model, automated remeshing after topological changes and large deformations, semi-smooth Newton methods for sliding and grounding line contact problems, bifurcation analysis, and adjoint sensitivity analysis.
+The rest of this section elaborates on some of these and other techniques useful for analysis of ice dynamics.
+
 There are many periodic processes in glaciology, including ice stream margin migration and shutdown~\citep{raymond2000energy,bueler2009shallow}, Heinrich events~\citep{heinrich1988cyclic,calov2010heino}, and grounding line migration \citep{schoof2007isg,mismip}.
 All numerical studies to date have explored these phenomena by direct time integration.
 This involves large spin-up times and many time steps (sometimes millions) to complete a period.
@@ -7,9 +24,12 @@ Furthermore, it provided access to stable limit cycles and equilibrium solutions
 With such a method, it would also be possible to efficiently explore the effect of parameters on these cycles.
 For example, using multi-parameter continuation methods~\citep{allgower2003inc} to find combinations of parameters that cause a qualitative change in the structure of the periodic solution.
 
-
-
-\todo{write this}
+Glacier dynamics are greatly influenced by the basal hydrology which can account for rapid changes in boundary conditions.
+Basal hydrology is undoubtedly a stiff process, with recent modeling efforts~\citep[\eg][]{pimentel2010hydrologically,pimentel2011numerical} requiring very short time steps.
+The current continuum formulations are not known to be entropy-stable and numerical simulations in two horizontal directions exhibit strong grid dependence~\citep{schoof2010ice}.
+The equations of basal hydrology are variational inequalities in which part of the domain may by strictly hyperbolic (\eg producing shocks) while other regions may be highly diffusive.
+The lack of entropy and mixed characteristic makes it difficult to formulate robust discretizations and solvers.
+I believe that the semi-smooth Newton methods for variational inequalities that were recently added to {\PETSc} will be effective at solving these discrete systems implicitly, and coupled to a flow model.
 
 The symbolic manipulations done to compute manufactured solutions are near their practical limit for the coupled transport problem in \secref{sec:vht} because the symbolic expressions may grow exponentially.
 The first implementation required half an hour to generate a manufactured solution; the resulting C source file was \SI{11}{\mega\byte} and crashed the compiler when optimization was turned on.
@@ -25,4 +45,30 @@ Source transformation tools~\citep{bischof1997adic,utke2008openad} produce highe
 They can even be applied at a higher level, for example to differentiate the MIT global circulation model~\citep{heimbach2005efficient}.
 Unfortunately, source transformation AD currently imposes a complicated build process and would be more awkward to use than the current symbolic representations.
 I am investigating maintainable and less intrusive, but still performant, ways to automate the simultaneous generation of manufactured forcing terms and physics components with Jean Utke, a primary author of OpenAD~\citep{openad-userman,utke2004openad} and collaborator on the SISIPHUS project.
+We also intend to use AD for adjoint sensitivity analysis, but applied only in specific places.
+For example, automatically differentiating iterative solvers is not desirable for performance and algorithmic reasons.
+Additionally, AD places unacceptable constraints on the software design that can be used when developing discretization and solvers libraries.
 
+An implicit arbitrary Lagrangian-Eulerian (ALE) formulation for the free surface is desirable for accuracy reasons and because it enables the use of more powerful methods for stability, sensitivity, and parameter inversion.
+ALE formulations for free surface flows have been investigated by several authors, \citet[\eg]{braess2000arbitrary,walkley2004calculation,behr2004application,cairncross2000fem,baer2000fem}.
+From a solvers perspective, the most difficult problem is accounting for the ``bobbing'' mode for a long ice shelf.
+The transient behavior associated with this mode is much faster than any other dynamics in the system, but it is very poorly captured by the Stokes problem alone.
+Indeed, the Stokes problem for a detached floating ice berg at equilibrium has six rigid body modes, three in-plane (two translations and one rotation) that really have zero energy when coupled to displacement and three modes (two rocking, one bobbing) that are also zero energy for the Stokes problem, but high energy when the domain is allowed to move under the buoyancy force.
+When a long thin ice shelf is connected to land, the three in-plane modes are well-constrained due to the strength of in-plane viscous deformation, but rocking and bobbing remains low energy for the Stokes problem while being high energy when the domain moves due to buoyancy
+This heuristic argument explains why a split preconditioner that separates the mesh motion from the Stokes problem will struggle for long ice shelves and long time steps.
+This is also the explanation for the transient instability observed by \citet{durand2009marine} and stabilized by introducing large non-physical damping.
+If the buoyancy force is approximately balanced locally by using a coupled solver for both mesh motion and Stokes instead of segregated multigrid on each problem separately, and if a suitable coarse space is chosen, then these bobbing and rocking should be well-controlled by the preconditioner and no artificial damping or time-step restriction should be present.
+
+Scalable methods for large-scale parameter inversion generally come from posing the (ill-posed) inversion as a (well-posed, regularized) deterministic PDE-constrained optimization problem for which Newton and multigrid methods can be applied~\citep{biros2005pln1,biros2005pln2,akcelik2006parallel}.
+A significant recent development on this front is \citet{akcelik2011fast} which offers the ability to use the Hessian structure from deterministic inversion to rapidly converge on Bayesian~\citep{tarantola2005ipt} statistics which were otherwise unattainable in a scalable way.
+The problem of determining the thermal state or basal conditions from primarily surface observations can be written as such a problem.
+The reduced Hessian for these problems is spectrally equivalent to a Fredholm integral operator of the second kind.
+Such operators are well-approximated by low-rank updates to the identity, which means that iterative methods can, in principle, converge very quickly.
+In practice, despite having rapid decay in the spectrum, a large number of iterations are still required unless the reduced Hessian is preconditioned.
+Fortunately, the multigrid method, with some modifications relative to differential operators, is effective for Fredholm integral operators of the second kind~\citep{hackbusch1985multi}.
+The key distinction is that for differential operators, the short wavelength modes of the error are also the high energy modes so there is no problem of a smoother polluting the long wavelength components.
+In contrast, the long wavelength modes are high energy for integral operators, so the smoother needs to be restricted to operating on the short wavelength modes only in order to prevent pollution.
+In return, multigrid of the second kind converges even faster than multigrid for differential operators.
+This form of multigrid preconditioning has been used successfully for a variety of inverse and optimization problems of similar flavor to parameter inversion in glaciology, \citep{akcelik2005ddd,biros2008multilevel,rees2010optimal}.
+Regardless of the details of the optimization method, the adjoint of the PDE is a required ingredient.
+Therefore the adjoint of the PDE serves at least three purposes: error estimation, sensitivity analysis, and optimization/inversion.
