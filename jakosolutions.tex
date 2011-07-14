@@ -1,0 +1,29 @@
+The mesh is read by the analysis code and high-order function spaces for velocity and pressure were defined on it according to runtime parameters, usually $Q_3$ momentum, $Q_2$ pressure, and $Q_3$ energy with SUPG-style stabilization.
+We solve the steady-state problem \eqref{eq:vhtweak} using boundary conditions defined using the three tagged boundary sets.
+For boundary conditions for momentum are free surface, no-slip at the bed, and velocity at the lateral boundary given by the shallow ice approximation.
+Due to surface and bed roughness, these lateral boundary conditions are noisier than desired, but the noise can be seen to dissipate in one to two ice thicknesses and thus has little influence on the flow in the vicinity of the ice stream.
+The boundary conditions for energy are all Dirichlet, with a temperate bed \SI{273.15}{\kelvin}, intermediate temperature \SI{260}{\kelvin} surface, and a cold upstream region at \SI{246.85}.
+A computed flow field is shown in \figref{fig:jakoflow}.
+A side view of momentum density and energy field is shown in \figref{fig:jakosideview}.
+
+\begin{figure}
+  \centering\includegraphics[width=\textwidth]{visit0009-trim}
+  \caption{Computed momentum density field for the ice stream region at Jakobshavn Isbr{\ae}.}\label{fig:jakoflow}
+\end{figure}
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{visit0010-trim} \\
+  \includegraphics[width=\textwidth]{visit0011-trim}
+  \caption{Computed energy density (top) and momentum density (bottom) with flow streamlines for the ice stream region at Jakobshavn Isbr{\ae}.}\label{fig:jakosideview}
+\end{figure}
+
+The main weakness with the energy transport scheme is that it is overly diffusive and that the boundary layer near the surface is poorly resolved.
+The cold region in \figref{fig:jakosideview} does not extend far into the downstream region with warm boundary conditions.
+The maximum cell Peclet number, after accounting for crosswind numerical stabilization terms, was computed to be 81.
+As discussed earlier, a physical value for the Peclet number is on the order of \num{1e4}.
+Unfortunately, SUPG is not capable of delivering stable low-diffusion solutions for such advection-dominated systems.
+One partial solution is to refine the mesh near the surface, but this is computationally expensive and wasteful in the vast majority of an ice sheet where there is no thermal boundary layer near the surface.
+In contrast, the velocity field has a boundary layer near the bed almost everywhere, so refinement near the bed is certainly desirable.
+An additional source of thermal diffusion in \figref{fig:jakosideview} is the velocity field which is not in equilibrium with the surface.
+Therefore streamline diffusion, which necessarily produces a stabilized cell Peclet number no larger than 1, causes extra diffusion normal to the surface.
