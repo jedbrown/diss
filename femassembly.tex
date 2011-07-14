@@ -182,7 +182,7 @@ The actual output for vectors is typically done using collective or independent 
 
 For each scalar or vector field, function spaces keep track of the name, units, and an arbitrary scaling factor.
 The scaling factor is needed for bitwise exact recovery of serialized state when the model works with non-dimensionalized fields, otherwise rounding error contaminates the low bits.
-This is bitwise-reproducible file IO is a stated objective of the Community Earth System Model~\citep*{cesm} and other projects, despite the fact that parallel implicit solvers cannot produce bitwise-reproducibile due to the non-associativity of floating point arithmetic~\citep{whatevery}.
+This is bitwise-reproducible file IO is a stated objective of the Community Earth System Model~\citep*{collins2006community} and other projects, despite the fact that parallel implicit solvers cannot produce bitwise-reproducibile results on a different number of processors due to the non-associativity of floating point arithmetic~\citep{goldberg1991every} and algorithmic changes resulting from domain decomposition~\citep{smith1996domain}.
 
 I implemented a reader plugin for VisIt to read this format.
 It works by reading in the function space and vector state (as requested by the VisIt client) and placing the topology and field data in VTK data structures.
