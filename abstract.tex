@@ -41,7 +41,15 @@ Robustness and accuracy requirements for ice flow problems place many constraint
 Many of these technical requirements are undocumented in the glaciology literature and hampering current efforts for robust simulation.
 These technical issues are investigated and conclusions are drawn, with practical consequences to the present work and future development of methods for ice flow.
 
-A study of the numerical accuracy of different Stokes discretizations is conducted for a section of the ice stream channel at Jakobshavn Isbr{\ae}.
+Current formulations for polythermal ice do not account for density variation caused by melt fraction and thus commit a conservation error of first order in the melt fraction.
+A new continuum formulation that exactly conserves mass, momentum, and energy independent of the melt fraction is presented.
+A high order finite element discretization for this system is proposed and numerical accuracy is addressed using manufactured solutions.
+This formulation treats all terms, including energy transport, implicitly in time, which allows the direct application of Newton-Krylov methods to compute the steady state.
+Steady state solutions are useful for parameter inversion, ``spin up'', and stability analysis.
+They are conventionally conventionally computed using direct time integration with a time step size constrained by the CFL stability criterion.
+With this constraint, they require a mesh-dependent number of time steps, typically very large, to reach steady state.
+The Newton-Krylov method converges in a small, mesh-independent number of iterations.
+This steady-state solver is applied to a section of the ice stream channel at Jakobshavn Isbr{\ae}.
 Setting up a model of an outlet glacier using realistic geometry and boundary conditions is a time-consuming task.
 This is especially true if a geometric model is needed to define slip conditions, or if the mesh needs to conform to the grounding line.
 Visualization is also complicated by the need to georeference model results.
