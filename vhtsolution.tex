@@ -54,7 +54,7 @@ The contents of these blocks is summarized below.
     This term comes from a highly nonlinear term (the Arrhenius and moisture-dependent constitutive relations) but is typically not especially large in glaciology.
     For bouyancy-driven flows such as mantle convection, the density variation is the crucial driving force for circulation.
     However, despite the crucial coupling provided by this block and it's significant nonlinear influence, it contributes quite little to linear stiffness.
-  \item[$J_{pu}$] The divergence of momentum density which inforces mass conservation.
+  \item[$J_{pu}$] The divergence of momentum density which enforces mass conservation.
     It is nearly equal to $J_{up}^T$ and is thus also large in magnitude.
     Being the only non-zero block in its row, this is of critical importance.
   \item[$J_{Eu}$] The sensitivity of energy on momentum, which is mostly the advective transport (the gradient of energy divided by density).
@@ -62,8 +62,7 @@ The contents of these blocks is summarized below.
     In particular, due to the high Peclet numbers involved, the boundary layers will often never be fully resolved at a practical resolution, thus mesh refinement is capable of resolving ever-larger gradients.
     This results in the size of this term being essentially mesh-dependent.
     This block also contains a similar term involving the pressure gradient, but pressure does not contain the same boundary layers as energy (indeed, the pressure gradient is approximately equal to $\rho \bm g$), so its contribution is much smaller and more benign (provided the pressure discretization is stable so that there are no oscillations).
-  \item[$J_{Ep}$] The contribution to thermal and moisture diffusion as well as the advective contribution as a function of pressure gradient.
-    Due to the size of perturbations in the pressure gradient, the advective term and the perturbations to the thermal and moisture gradients $\grad T$ and $\grad \omega$ are benign.
+  \item[$J_{Ep}$] The contribution to thermal and moisture diffusion as well as the advective contribution $\uu\cdot \grad$.
     If the transition width $\delta$ in \eqref{eq:vhttransition} is made small, small changes in pressure can move the pressure melting which locally switches from thermal to moisture diffusion.
     According to \eqref{eq:vht:ediffusivity}, this is an order of magnitude change in coefficients, but could be different depending on the constitutive relation for moisture diffusion.
   \item[$J_{EE}$] An advection-diffusion system for energy.
