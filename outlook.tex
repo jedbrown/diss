@@ -45,7 +45,7 @@ Source transformation tools~\citep{bischof1997adic,utke2008openad} produce highe
 They can even be applied at a higher level, for example to differentiate the MIT global circulation model~\citep{heimbach2005efficient}.
 Unfortunately, source transformation AD currently imposes a complicated build process and would be more awkward to use than the current symbolic representations.
 I am investigating maintainable and less intrusive, but still performant, ways to automate the simultaneous generation of manufactured forcing terms and physics components with Jean Utke, a primary author of OpenAD~\citep{openad-userman,utke2004openad} and collaborator on the SISIPHUS project.
-We also intend to use AD for adjoint sensitivity analysis, but applied only in specific places.
+We also intend to use AD for adjoint sensitivity analysis, but with AD applied only in localized parts of the code rather than at a higher level.
 For example, automatically differentiating iterative solvers is not desirable for performance and algorithmic reasons.
 Additionally, AD places unacceptable constraints on the software design that can be used when developing discretization and solvers libraries.
 

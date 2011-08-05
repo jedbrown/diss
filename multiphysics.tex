@@ -27,7 +27,7 @@ However, until my recent additions to {\PETSc}, it was cumbersome to package sep
 The enhancements to {\PETSc} allow each physics to be packaged independently without sacrificing performance or runtime flexibility in choice of methods.
 We first summarize a variety of field-split methods and their requirements from the user, then we examine the new linear algebraic interface by which the user can generically provide this information.
 
-\subsubsection{Field-split preconditioning}\label{sec:multiphysics:fieldsplit}
+\subsection{Field-split preconditioning}\label{sec:multiphysics:fieldsplit}
 Suppose the Jacobian of the original coupled problem has block structure
 \begin{equation}\label{eq:fieldsplit:jacobian}
   J = \begin{pmatrix} A & B \\ C & D \end{pmatrix} .
@@ -136,7 +136,7 @@ See \citet{benzi2005nss} for a review of methods for saddle point problems.
 As a practical and architectural concern, we warn that that excessive splitting leads to lower arithmetic intensity and more synchronization points which reduces the utilization of modern hardware.
 Therefore, it usually only makes sense to split when there is a clear reward in superior algorithmic performance such as many fewer Krylov iterations or substantially reduced storage requirements (e.g. by not needing to assemble inter-field coupling or by taking advantage of symmetric block storage for part of a larger problem).
 
-\subsubsection{Linear algebraic interfaces to facilitate field-split preconditioning}
+\subsection{Linear algebraic interfaces to facilitate field-split preconditioning}\label{sec:multiphysics:algebraic}
 One ideal governing the {\PETSc} approach is to isolate the user's specification of the discretization and physics from the solution methods and underlying data structures so that solver choices can be delayed until run time.
 The user should not need to write any special code to support a given solver (in some cases auxiliary matrices may still be needed), thus new solvers will automatically be available when added to the library or present in a plugin.
 The seemingly simple matter of interlacing fields for high throughput (see \secref{sec:throughput}) versus splitting them for certain preconditioners motivates an interface in which ``blocks'' are addressed more abstractly than by number.
