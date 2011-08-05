@@ -46,7 +46,7 @@ A new continuum formulation that exactly conserves mass, momentum, and energy in
 A high order finite element discretization for this system is proposed and numerical accuracy is addressed using manufactured solutions.
 This formulation treats all terms, including energy transport, implicitly in time, which allows the direct application of Newton-Krylov methods to compute the steady state.
 Steady state solutions are useful for parameter inversion, ``spin up'', and stability analysis.
-They are conventionally conventionally computed using direct time integration with a time step size constrained by the CFL stability criterion.
+They are conventionally computed using direct time integration with a time step size constrained by the CFL stability criterion.
 With this constraint, they require a mesh-dependent number of time steps, typically very large, to reach steady state.
 The Newton-Krylov method converges in a small, mesh-independent number of iterations.
 This steady-state solver is applied to a section of the ice stream channel at Jakobshavn Isbr{\ae}.
@@ -55,4 +55,4 @@ This is especially true if a geometric model is needed to define slip conditions
 Visualization is also complicated by the need to georeference model results.
 These difficulties have been partially mitigated by having the analysis code work with georeferenced input in any format and any projection, and produce georeferenced output.
 
-The purpose of this thesis is not to make a specific prediction, but rather to improve the methods and process available for future predictive modeling, especially by less computationally inclined glaciologists.
+The purpose of this thesis is not to make a specific prediction, but rather to improve the methods and process available for future predictive modeling, especially by glaciologists less interested in numerical and computational issues.
