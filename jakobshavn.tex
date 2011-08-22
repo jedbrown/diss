@@ -1,2 +1,15 @@
 Jakobshavn Isbr{\ae} is representative of many similar outlet glaciers which control the response of the Greenland and Antarctic ice sheets to changing climate.
 Understanding the effect of changing boundary conditions, especially ocean conditions near the grounding line and subglacial processes influenced by surface melt, is critical for predictive modeling of ice sheets.
+
+\subsection{Prior modeling efforts}
+\citet{funk1994mechanisms2} provided an early model of polythermal ice at Jakobshavn Isbr{\ae}.
+This was a 2D flowline model using the shallow ice approximation for momentum balance and assuming steady state flow conditions, but with high vertical resolution and explicitly tracking the cold-temperate interface (CTS, assumed to be a single-valued function of horizontal position).
+More recent work with polythermal ice has used an enthalpy method to avoid the need to explicitly track the interface~\citep[\eg][]{aschwanden2009mma,aschwanden2011enthalpy} and includes more complete momentum balance than the shallow ice approximation.
+For predictive modeling, we need to determine a thermal field that is in general, non-equilibrium (informed by reconstructed climate and borehole measurements) and compatible with current flow conditions, such that forward modeling does not involve an initial non-physical transient.
+This problem of determining a compatible thermal field is coupled to that of determining basal boundary conditions.
+These problems have not yet been solved together, but more principled inverse methods have been applied to the latter problem.
+Bayesian inferrence is an especially elegant approach to inverse problems in glaciology, but unfortunately, the usual formulation \citep[\eg][]{tarantola2005ipt} involves dense matrices which prevent the use of scalable algorithms.
+Consequently, use of these techniques~\citep{gudmundsson2008limit,raymond2009estimating}, while offering theoretical insight, could not be applied to full-scale problems.
+An alternative approach is the use of deterministic inversion methods initially developed for optimal control problems~\citep{bueskens2000sqp} for which there are efficient, scalable solution algorithms~\citep{akcelik2006parallel}.
+\citet{macayeal1992basal,macayeal1993tutorial} introduced adjoint-based methods for parameter inversion to glaciology, and more recent work~\citep{johnson2004ice,morlighem2010spatial} have scaled the methods up to more complete continuum models and larger problem sizes.
+Related methods have been used by \citet{heimbach2009greenland} to estimate the sensitivity of total ice volume to uncertain model inputs (basal, surface, and initial conditions).
