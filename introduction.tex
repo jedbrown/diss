@@ -50,56 +50,13 @@ I have been an active developer since 2008 and any developments that I felt belo
 and is in production use by many external groups.
 Components which are not part of {\PETSc} are available under a BSD-style open source license.
 
-\section{Summary of contributions}
-
-\chapref{chap:dohp} presents new perspective on high-order methods for finite element analysis.
-This formulation is well-suited to advances in linear and nonlinear solvers and offers dramatically better utilization of modern hardware than conventional methods.
-\Dohp, a new general purpose library based on this method is presented, and the performance is shown to be several times faster than other widely used finite element libraries.
-Through new software interfaces, this performance is achieved while retaining more run-time flexibility in terms of element and preconditioning choice, and drastically better performance as the order of the element increases.
-The library also retains more geometric information than existing open source libraries, permitting more natural coupling to CAD and geometric models, as well as the implicit solution of equations in which the domain is part of the solution.
-
-In \chapref{chap:tme-ice}, a new Newton-Krylov-Multigrid solver for the hydrostatic equations of ice sheet flow is presented.
-The high cost of solving the hydrostatic equations using conventional methods has been the principle impediment to their use in large-scale ice sheet models, causing existing models to fall back to simpler momentum balance models.
-In addition to poor algorithms, the community has also suffered from lack of quality parallel implementations, thus further limiting the scope of problems that could be solved.
-The new solver demonstrates textbook multigrid efficiency on a variety of demanding problems, offering several orders of magnitude speedup for problem sizes of interest, and nearly perfect strong and weak scalability on parallel hardware.
+\chapref{chap:dohp} investigates efficient nonlinear solvers for high-order finite element methods in a rather general setting.
+High order methods have accuracy benefits, but they are also capable of better utilizing modern hardware, and are necessary for certain conservation and stability properties that are needed for robust methods on practical meshes for ice flow problems.
+\chapref{chap:tme-ice} presents an especially robust and scalable multigrid method for the hydrostatic equations of ice flow.
+These equations are considered to be an important intermediate description of the ice flow and were previously thought to be very expensive to solve.
+Our implementation improves by several orders of magnitude on the best previous results, both in time to solution and in maximum problem size.
 The code is available as a tutorial in {\PETSc}.
 
-\chapref{chap:software} discusses several of the software components that were implemented to facilitate efficient solvers for multiphysics problems, high throughput, flexible and performant finite element methods for coupled problems, and designing code for easy verification.
-A new algebraic interface for multiphysics coupling is introduced.
-Robust coupling of multiple interacting physical processes is a challenging problem in which many commonly used methods are fundamentally inadequate.
-The best methods are highly problem dependent, change as the number of coupled processes grows, and are a highly active area of research.
-A crucial limitation of earlier software was that trying different methods generally involved a great deal of error-prone software development by the user.
-This poor software support made it difficult to test the quality and performance of different methods, thus locking projects in to methods that may eventually prove to be ill-suited to the problems of interest.
-The new algebraic interface allows an arbitrary number of physical processes to be coupled using a wide range of methods that can be selected and composed at run-time.
-It permits straightforward reuse of single physics modules with no code modification, thus offering better support for model verification and extensibility.
-The interface offers higher performance and a great deal more flexibility in choice of methods than previous software.
-This software, along with implicit time integrators for differential algebraic equations and optimal explicit strong stability preserving integrators for hyperbolic systems, has been added to {\PETSc} and is in production use by several external groups.
-
-Improvements in throughput for sparse matrix kernels and unassembled finite element discretizations are presented.
-Common methods for solving partial differential equations exhibit very low utilization of modern hardware, often less than 5 percent, due to their overwhelming dependence on memory bandwidth.
-Part of this under-utilization was due to implementation issues with sparse matrix kernels preventing good reuse of high-level caches.
-This was rectified within this work by improving \PETSc's sparse matrix kernels by 20 to 30 percent, and performance is now close to the theoretical limit of the hardware.
-The more fundamental limitation of memory bandwidth cannot be overcome by implementation optimization; it requires changing the underlying algorithm.
-In the context of the finite element library \Dohp, this can be achieved by eschewing assembled sparse matrices in favor of a matrix-free representation that has higher arithmetic intensity and uses much less memory for everything beyond lowest order elements.
-This transformation permits an order of magnitude improvement in hardware utilization and is transparently available to the user in the {\Dohp} library.
-Improved support for such unassembled representations was integrated into the multi-physics coupling interface.
-
+\chapref{chap:software} discusses several of the software components that were implemented to facilitate efficient solvers, high throughput, flexible and performant finite element methods for multi-physics problems, and designing code for easy verification.
 \chapref{chap:discretization} investigates several relatively unique discretization requirements for ice flow problems.
-Robustness and accuracy requirements for ice flow problems place many constraints on the discretization and treatment of boundary conditions.
-Many of these technical requirements are relatively unique to ice flow problems, but are undocumented in the glaciology literature, thus hampering current efforts for robust simulation.
-These technical issues are investigated in \chapref{chap:discretization} and conclusions are drawn, with practical consequences to the present work and future development of methods for ice flow.
-
-Finally, \chapref{chap:jakobshavn} applies the tools developed earlier to a conservative formulation for polythermal ice flow and to the Jakobshavn Isbr{\ae} ice stream.
-Current formulations for polythermal ice do not account for density variation caused by melt fraction and thus commit a conservation error of first order in the melt fraction.
-A new continuum formulation that exactly conserves mass, momentum, and energy independent of the melt fraction is presented.
-A high order finite element discretization for this system is proposed and numerical accuracy is addressed using manufactured solutions.
-This formulation treats all terms, including energy transport, implicitly in time, which allows the direct application of Newton-Krylov methods to compute the steady state.
-Steady state solutions are useful for parameter inversion, ``spin up'', and stability analysis.
-They are conventionally computed using direct time integration with a time step size constrained by the CFL stability criterion.
-With this constraint, they require a mesh-dependent number of time steps, typically very large, to reach steady state.
-The Newton-Krylov method converges in a small, mesh-independent number of iterations.
-This steady-state solver is applied to a section of the ice stream channel at Jakobshavn Isbr{\ae}.
-Setting up a model of an outlet glacier using realistic geometry and boundary conditions is a time-consuming task.
-This is especially true if a geometric model is needed to define slip conditions, or if the mesh needs to conform to the grounding line.
-Visualization is also complicated by the need to georeference model results.
-These difficulties have been partially mitigated by having the analysis code work with georeferenced input in any format and any projection, and produce georeferenced output.
+Finally, \chapref{chap:jakobshavn} has applications to the Jakobshavn Isbr{\ae} ice stream.
