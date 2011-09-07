@@ -1,0 +1,129 @@
+Viele der weltweiten wissenschaftlichen Anstrengungen sind darauf
+ausgerichtet, das Verständnis des Klimawandels und seiner Konsequenzen zu
+verstehen und vorherzusagen, dies insbesondere auch im Hinblick auf die
+möglicherweise katastrophalen Auswirkungen auf die Gesellschaft. Numerische
+Modelle spielen eine immer wichtigere Rolle bei der Analyse komplexer
+Prozesse, allerdings ist der Anwendungsbereich der Modelle limitiert durch die
+gegenwärtigen Modell-Ansätze.  Mit zunehmender Modell-Komplexität ist es
+schwierig, die Güte der Implementation zu verifizieren, die Genauigkeit der
+Simulation zu be\-stimmen, und zwischen numerischen und Modellfehlern zu
+unterscheiden.  Die etablierten Strategien der Modellkopplung, die als
+notwendig zur Bewältigung der Komplexität angesehen werden, verursachen
+signifikante Stabilitäts- und Genauigkeitsprobleme.  Die Effizienz von
+nichtlinearen Solvern sind ein weiteres Hindernis für hohe Auflösung und
+fortgeschrittene Analysetechniken wie etwa Optimierung, Quantifizierung der
+Ungenauigkeit und Stabilitätsanalyse.  Heutige Implementierungen verwenden
+Diskretisierungen niedriger Ordnung welche moderne Hardware nur schlecht
+ausnutzt, sind von niedriger Genauigkeit, und rufen in gewissen Fällen
+numerische Artefakte hervor.  Diese Arbeit enthält Beiträge zu jeder dieser
+Herausforderungen.
+
+Eine neue Perspektive auf Finite-Elemente Methoden höherer Ordnung wird
+eingeführt.  Diese Formulierung ergänzt die Fortschritte bei linearen und
+nichtlinearen Solvern, und nützt die Eigenschaften moderner Hardware viel
+besser aus als herkömmliche Methoden.  Eine neuentwickelte, allgemein
+verwendbare Programm-Bibliothek mit Namen Dohp wird präsentiert, deren
+Performance um ein vielfaches besser ist als diejenige von anderen
+gebräuchlichen Finite-Elemente Programm-Bibliotheken.  Die hohe Performance
+wird erreicht durch neue Software-Interfaces, während gleichzeitig die
+Flexibilität zur Laufzeit bei der Auswahl von Elementen und Preconditionern
+grösser ist.  Die Performance des Codes steigt drastisch mit höherer
+Element-Ordnung.  Diese Programm-Bibliothek stellt auch mehr geometrische
+Information bereit als andere Open-Source Codes, und erlaubt dadurch eine
+natürliche Kopplung mit CAD und geometrischen Modellen, sowie die implizite
+Lösung von Gleichungssystemen, in denen die Modell-Geometrie Teil der Lösung
+ist.
+
+Ein neuer Newton-Krylov Multigrid-Solver für die hydrostatischen
+Eisschild-Gleichungen wird dargestellt.  Der hohe Aufwand zur Lösung der
+hydrostatischen Gleichungen mit konventionellen Methoden war bisher der
+Hauptgrund für deren Nicht-Gebrauch in grossen Eisschildmodellen --
+stattdessen werden einfachere Approximationen der Impuls-Bilanz verwendet.
+Neben den schlechten Algorithmen hat die Modellier-Gemeinde auch keine gute
+Implementation für Parallelcomputer zur Hand, was den Anwendungsbereich weiter
+stark einschränkt.  Der neue Solver zeigt eine Multigrid-Effizienz wie aus dem
+Lehrbuch für mehrere anspruchsvolle Probleme, bietet eine Laufzeitverminderung
+um Grössenordnungen für interessierende Problemgrössen, und zeigt nahezu
+perfekte starke und schwache Skalierbarkeit auf paralleler Hardware.
+
+Ein neues algebraisches Interface für die Kopplung verschiedener Modell-Codes
+wird eingeführt.  Die robuste Kopplung mehrerer physikalischer Prozesse ist
+eine Herausforderung für welche viele der normalerweise verwendeten Methoden
+inadäquat sind.  Welche Koppelungsmethode sich am besten eignet ist
+problemabhängig, ändert sich mit der Anzahl der betrachteten Probleme, und
+sind ein Gebiet aktiver Forschung.  Eine entscheidende Einschränkung
+bisheriger Software war, dass das Ausprobieren verschiedener Methoden
+üblicherweise einen grossen Programmieraufwand des Benutzers erforderte.  Die
+mangelnde Unterstützung durch die Software erschwerte das Testen von Qualität
+und Performance verschiedener Methoden, und führte oft zur Verwendung
+inadäquater Methoden für die zu lösenden Probleme.  Das neue algebraische
+Interface erlaubt es, eine beliebige Zahl physikalischer Prozesse mit einer
+grossen Auswahl an Methoden zu koppeln, welche zur Laufzeit ausgewählt und
+kombiniert werden können.  Es erlaubt die unveränderte Verwendung bestehender
+Programmmodule für die einzelnen Prozesse, und bietet daher bessere
+Unterstützung von Verifikation und Extensibilität.  Das Interface bietet eine
+höhere Performance und weitaus mehr Flexibilität bei der Auswahl der Methoden
+als bisherige Software.  Diese Software, zusammen mit impliziten
+Zeitintegratoren für differentiell-algebraische Gleichungen sowie optimaler
+expliziter, stark stabilitätserhaltender Integration für hyperbolische
+Systeme, wurde in PETSc implementiert und ist bei mehreren externen
+Forschungsgruppen in Gebrauch.
+
+Verbesserungen des Durchsatzes auf moderner Hardware werden
+dargestellt. Bisherige Methoden zur Lösung partieller Differentialgleichungen
+zeigen eine schlechte Ausnützung moderner Hardware, oft unter 5 Prozent, wegen
+der überwiegenden Abhängigkeit von der Memory-Bandbreite.  Zum Teil war diese
+schlechte Ausnützung auf Implementationsprobleme der ``Sparse Matrix Kernels''
+zurückzuführen, die zu schlechter Auslastung des high-level Caches führten.
+Im Rahmen dieser Arbeit wurden die PETSc Sparse Matrix Kernels um 20 bis 30
+Prozent verbessert -- die Performance ist nun nahe der theoretischen Grenze
+der Hardware.  Der fundamentaleren Limitierung von Memory-Bandbreite lässt
+sich nicht mit einer optimierten Implementierung beikommen, dafür sind
+Veränderungen des Lösungs-Algorithmus notwendig.  Im Kontext der
+Finite-Elemente-Bibliothek Dohp kann das durch Vermeiden von assemblierten
+``Sparse-Matrices'' erreicht werden, indem der Matrix-freien Repräsentation
+Vorzug gegeben wird, welche eine höhere arithmetische Intensität und stark
+reduzierte Speicheranforderungen für alle Elemente, ausser jener der
+niedrigsten Ordnung, hat.  Diese Transformation erlaubt eine Verbesserung um
+eine Grössenordnung im Hardware-Gebrauch, und ist in Dohp für den Benutzer
+transparent anwendbar.  Eine verbesserte Unterstützung für nicht-assemblierte
+Repräsentationen wurde auch im Multi-Physik-Interface integriert.
+
+Die Robustheits- und Genauigkeitsanforderungen für Eisfliessen schränken die
+Auswahl der Diskretisierung und die Behandlung der Randbedingungen ein.  Viele
+dieser technischen Anforderungen sind in der Glaziologie-Literatur nicht
+dokumentiert, und behindern gegenwärtige Anstrengungen einer robusten
+Simulation.  Diese technischen Anforderungen werden untersucht und Folgerungen
+gezogen, die praktische Konsequenzen für diese Arbeit, sowie auch für künftige
+Entwicklungen der Methoden für die Modellierung des Eisfliessens haben.
+
+Gegenwärtige Formulierungen für polythermales Eis vernachlässigen die
+Dichtevariation durch die Schmelze, und verursachen einen Erhaltungs-Fehler
+erster Ordnung im Schmelzanteil.  Eine neue Kontinuums-Formulierung mit
+exakter Erhaltung von Masse, Impuls und Energie, unabhängig vom Schmelzanteil,
+wird präsentiert.  Für dieses System wird eine Diskretisierung hoher Ordnung
+vorgeschlagen, und die numerische Genauigkeit wird mit ``Manufactured
+Solutions'' untersucht.  Diese Formulierung behandelt alle Terme,
+einschliesslich des Energietransportes, implizit in der Zeit, was die
+Verwendung von Newton-Krylov Methoden zur Berechnung von stationären Zuständen
+erlaubt.  Solche stationäre Zustände sind nützlich zur Inversion von
+Parametern, ``spin up'', sowie zur Stabilitätsanalyse.  Sie werden
+üblicherweise mit direkter Zeitintegration berechnet mit einer Schrittweite
+die durch die CFL Stabilitätsbedingung begrenzt ist.  Diese Bedingung verlangt
+üblicherweise eine sehr grosse, netzabhängige Anzahl von Zeitschritten zur
+Erreichung eines stationären Zustandes.  Die Newton-Krylov Methode hingegen
+konvergiert nach einer kleinen, netzunabhängigen Anzahl Iterationen.  Dieser
+Solver wird für einen Ausschnitt des Jakobshavn Isbr{\ae} angewendet.  Ein
+solches Modell eines Outlet-Gletschers mit realistischer Geometrie und
+Randbedingungen zu erstellen ist zeitaufwendig, insbesondere wenn ein
+geometrisches Modell für die Darstellung der Gleit-Randbedingung benötigt
+wird, oder wenn das Netz zur Grounding Line konform sein soll.  Die
+Visualisierung der Resultate wird erschwert durch die Notwendigkeit einer
+Georeferenzierung.  Diese Schwierigkeiten wurden teilweise dadurch gelöst,
+dass der Code mit georeferenzierten Eingabedaten in beliebigem Format und
+Projektion auskommt, und eine georeferenzierte Ausgabe erzeugt.
+
+Das Ziel dieser Arbeit ist nicht, genaue Vorhersagen zu machen, sondern die
+Methoden und Prozesse für zukünftige Vorhersage-Modelle zu verbessern -- dies
+insbesondere für Glaziologen die weniger an numerischen und
+implementations-bedingten Problemen interessiert sind. 
