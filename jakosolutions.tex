@@ -5,10 +5,12 @@ Due to surface and bed roughness, these lateral boundary conditions are noisier 
 The boundary conditions for energy are all Dirichlet, with a temperate bed \SI{273.15}{\kelvin}, intermediate temperature \SI{260}{\kelvin} surface, and a cold upstream region at \SI{246.85}.
 A computed flow field is shown in \figref{fig:jakoflow}.
 A side view of momentum density and energy field is shown in \figref{fig:jakosideview}.
+\figref{fig:jakocontourstream} is a contour plot of temperature/moisture looking upstream.
+The isosurfaces show the effect of tributaries on thermal structure inside the ice stream.
 
 \begin{figure}
   \centering\includegraphics[width=\textwidth]{visit0009-trim}
-  \caption{Computed momentum density field for the ice stream region at Jakobshavn Isbr{\ae}.}\label{fig:jakoflow}
+  \caption{Computed momentum density streamlines for the ice stream region at Jakobshavn Isbr{\ae}. The highest velocity occurs in a deep, narrow region of the ice stream.}\label{fig:jakoflow}
 \end{figure}
 
 \begin{figure}
@@ -17,6 +19,19 @@ A side view of momentum density and energy field is shown in \figref{fig:jakosid
   \includegraphics[width=\textwidth]{visit0011-trim}
   \caption{Computed energy density (top) and momentum density (bottom) with flow streamlines for the ice stream region at Jakobshavn Isbr{\ae}.}\label{fig:jakosideview}
 \end{figure}
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{vis/visit-jako-contour-stream}
+  \caption{Contours of potential temperature (\si{\degreeCelsius}) and velocity streamlines (colored by speed measured in \si{\metre\per\year}).
+    Variability in layer thickness is clearly caused by tributaries and geometry.
+    The maximum potential temperature is \SI{7.3}{\degreeCelsius} which corresponds to a maximum melt fraction of \SI{4.8}{\percent}.
+    The sharp transition from cold upstream boundary condition is just visible at the top of this plot.
+  }\label{fig:jakocontourstream}
+\end{figure}
+% Theta = -273 + 260 + EnergyDensity / (2009 * 910) # Potential temperature
+% T = min(0, Theta)
+% omega = max(0, Theta * 2009 / 3.34e5)
 
 The main weakness with the energy transport scheme is that it is overly diffusive and that the boundary layer near the surface is poorly resolved.
 The cold region in \figref{fig:jakosideview} does not extend far into the downstream region with warm boundary conditions.
