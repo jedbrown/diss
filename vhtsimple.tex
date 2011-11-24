@@ -14,12 +14,16 @@ Note that these steady states are not realizable because this configuration does
 \begin{figure}
   \centering\includegraphics[width=\textwidth]{visit0031}
   \caption{Energy isosurfaces and velocity streamlines for the block on an inclined plate.
-  The phase transition surface occurs roughly at the $E=0$.}\label{fig:vhtblock:energy}
+    The energy scale has been shifted so that the phase transition occurs at approximately $E=0$.
+    The warmest region (inside the red isosurface) occurs where the singular viscous heat production (see \figref{fig:vhtblock:sigma}) balances advection and combined thermal and moisture diffusion.
+  }\label{fig:vhtblock:energy}
 \end{figure}
 
 \begin{figure}
   \centering\includegraphics[width=\textwidth]{visit0030}
-  \caption{Viscous heat production $\eta D\uu_i\tcolon D\uu_i$ isosurfaces and velocity streamlines for the block on an inclined plate.}\label{fig:vhtblock:sigma}
+  \caption{Isosurfaces of the viscous heat production rate $\eta D\uu_i\tcolon D\uu_i$ and velocity streamlines for the block on an inclined plate.
+    Viscous heat production has a $1/r$ singularity at both the upstream and downstream corners, clearly stronger at the downstream corner.
+  }\label{fig:vhtblock:sigma}
 \end{figure}
 
 Streamline diffusion such as SUPG is not a robust stabilization for this problem and it breaks down for this problem when the Peclet number exceeds about 200.
