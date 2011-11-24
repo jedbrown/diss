@@ -3,6 +3,16 @@ Instead of the physical parameters in \tabref{tab:vhtconst}, we take all paramet
 For this problem, the melt fraction rises as high as \SI{28}{\percent} and temperature ranges \SI{11}{\percent} of its absolute value.
 Since the activation volume $V$ and Clausius-Capeyron gradient $\beta_{CC}$ are relatively large, the pressure plays a significant, and occasionally dominant role in defining the temperature and the material rheology.
 The large moisture content and large density contrast also increase the strength of the nonlinearity.
+The chosen solution is given by
+\begin{equation}\label{eq:vhtmanufactured}
+  \begin{split}
+    \rho u & = \frac 1 3 \sin \frac{\pi x}{2} \cdot \sin \frac{\pi y}{2} \cdot \sin \frac{\pi z}{2}  \\
+    \rho v & = -\frac 1 3 \cos \frac{\pi x}{2} \cdot \cos \frac{\pi y}{2} \cdot \sin \frac{\pi z}{2} \\
+    \rho w & = -\frac 2 3 \cos \frac{\pi x}{2} \cdot \sin \frac{\pi y}{2} \cdot \cos \frac{\pi z}{2} \\
+    p      & = 1 + \cos \frac{\pi x}{2} \cdot \sin \frac{\pi y}{2} \cdot \sin \frac{\pi z}{2}        \\
+    E & = \sin \pi \frac{x+y+z^2}{2} \cdot \cos \pi \frac{x^2+y+z}{2} .
+  \end{split}
+\end{equation}
 
 Due to the non-uniform flow and various constitutive nonlinearities, nondimensional numbers are spatially variable.
 The Reynolds number ranges up to about \num{2.4}, the Peclet number ranges up to \num{5.3}, and the Prandtl number ranges from \num{0.6} to 1.
@@ -11,9 +21,11 @@ As usual, this manufactured solution is not physically realizable, but it excerc
 
 \begin{figure}
   \centering\includegraphics[width=\textwidth]{visit0020}
-  \caption{Manufactured solution as computed using a $\Qk 3 - \Qk 2 - \Qk 3$ finite element discretization on a $12\times 12\times 12$ mesh.
-    This solution is accurate to 4 digits for momentum and energy, with two digits of accuracy for pressure.
-    The gradients are accurate to 3 digits for momentum and energy, with \SI{3}{\percent} error for pressure gradient.}\label{fig:vhtexact}
+  \caption{The numerical approximation to the manufactured solution \eqref{eq:vhtmanufactured} as computed using a $\Qk 3 - \Qk 2 - \Qk 3$ finite element discretization on a $12\times 12\times 12$ mesh.
+    The converging streamlines are symmetric from below.
+    Energy isosurfaces are shown, with the phase transition occuring at approximately $E=0$.
+    The numerical solution is accurate to 4 digits for momentum and energy and 2 digits for pressure, evaluated using the maximum norm and a higher order quadrature rule.
+    The gradients are accurate to 3 digits for momentum and energy, with \SI{3}{\percent} error in the pressure gradient.}\label{fig:vhtexact}
 \end{figure}
 
 We consider norms for a $\Qk 3 - \Qk 2 - \Qk 3$ approximation under $h$-refinement.
