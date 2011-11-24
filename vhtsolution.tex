@@ -132,7 +132,7 @@ For the Stokes solve in the application of \eqref{eq:vht:pcnested}, we start wit
     J_{pu} & 0
   \end{pmatrix} =
   \begin{pmatrix}
-    1 & 0 \\ 0 & J_{pu} J_{uu}^{-1}
+    1 & 0 \\ J_{pu} J_{uu}^{-1} & 1
   \end{pmatrix}
   \begin{pmatrix}
     J_{uu} & J_{up} \\
@@ -145,12 +145,12 @@ Since $S$ is dense and will be solved with approximately, it is reasonable to dr
   P_s =
   \begin{pmatrix}
     J_{uu} & J_{up} \\
-    & S 0
+    0 & S
   \end{pmatrix}
 \end{equation}
 since the preconditioned operator also has a minimal polynomial of degree 2.
 
-Three assembled matrices are used in the solver defined using approximate solves with \eqref{eq:vht:pcnested,eq:vht:pcstokes}.
+Three assembled matrices are used in the solver defined using approximate solves with \eqref{eq:vht:pcnested} and \eqref{eq:vht:pcstokes}.
 The first is $B_{uu}$ which is an approximation of the momentum block $J_{uu}$ assembled using the same physics with truncated basis functions and sub-element $2^3$-point Gauss quadrature.
 This matrix corresponds to a $Q_1$ discretization on the sub-elements.
 We approximate the inverse of $J_{uu}$ by 10 conjugate gradient iterations preconditioned by block incomplete Cholesky applied to $B_{uu}$.
