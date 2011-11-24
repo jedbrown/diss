@@ -10,12 +10,13 @@ As a proof of concept, we consider the hydrostatic equations from \secref{sec:eq
       u_y + v_x & 2 u_x + 4 v_y & v_z
     \end{pmatrix} \right] + \rho g \nabla s = 0 \\
   h_t + \nabla\cdot \int_b^{s} (u,v) = 0  \\
-  b_t + k_e \abs{(u,v)}^p = 0
+  b_t + k_e \abs{(u,v)}^l = 0
 \end{gather}
 where $(u,v)$ is horizontal velocity, $\eta$ is the nonlinear effective viscosity, $h$ is the thickness, $b$ is the bed elevation, and $s = b+h$ is the surface elevation.
+The power law erosion model with nondimensional erosion parameter $k_e = \sinum{1e-3}$ and exponent $l=1$ was used by~\citet{tomkin2002influence,herman2008evolution,egholm2011modeling}.
 The velocity equation is solved on the domain between $b$ and $h$ with the basal sliding parameter held constant.
 This is an Arbitrary Lagrange-Eulerian (ALE) formulation \citep{donea2004arbitrary} in which the mesh always conforms to the current surface.
-The ISMIP test C~\cite{pattyn2008beh} initial geometry, periodic horizontal boundary conditions, and basal sliding parameter distribution are used.
+The ISMIP test C~\citep{pattyn2008beh} initial geometry, periodic horizontal boundary conditions, and basal sliding parameter distribution are used.
 The thickness is discretized using a cell-centered upwind finite volume method and fluxes are computed by splitting the faces of the continuous finite element solution for the velocity and performing numerical quadrature which is exact for affine elements.
 The steady-state solution with erosion turned off is shown in \figref{fig:hstat:csteady}, computed in 19 Newton iterations (without time stepping).
 There is no steady state when eroison is turned on, but the transient simulation can still take time steps dictated by the physical process of interest instead of a CFL condition that may not be interesting.
@@ -26,7 +27,7 @@ Since the short time-scale transient response is not of scientific interest for 
 
 \begin{figure}\centering
   \includegraphics[width=0.8\textwidth]{talkfigures/THI/c-steady-crop}
-  \caption{A steady-state solution for ISMIP-HOM test C~\cite{pattyn2008beh} at 10km computed in 19 iterations.
+  \caption{A steady-state solution for ISMIP-HOM test C~\citep{pattyn2008beh} at 10km computed in 19 iterations.
     The elevated surface is exaggerated surface height and the color in the solid domain is velocity.}\label{fig:hstat:csteady}
 \end{figure}
 
