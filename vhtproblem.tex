@@ -1,3 +1,15 @@
+We choose a formulation for polythermal ice that is unconventional in glaciology, but is similar to that used for compressible gas dynamics and other hyperbolic and viscous conservation laws \citep{liu2000hyperbolic,toro2009riemann,leveque2002finite}.
+Instead of writing evolution equations for primitive (directly observable) quantities such as velocity or temperature, we write evolution equations only for conserved quantities such as total momentum and energy.
+When integrated over a reference cell, this formulation leads to an exact conservation statement in terms of integrals through cell faces.
+If a discretization containing the piecewise constants is used, the amount of each conserved quantity will be written using numerical evaluation of these integrals, with an equal amount flowing out of one cell and into another.
+This leads to a discretization that is locally conservative for \emph{topological} reasons, independent of accuracy or constitutive relations.
+The fluxes are identified with physical processes such as thermal diffusion or viscosity, for which we provide constitutive relations.
+Constitutive relations are usually written in terms of primitive variables, so we must solve an equation of state to determine the primitive variables from the conserved quantities.
+Any equation of state can be used, provided that the primitive variables are a single-valued function of the conserved variables.
+This is typically the case, but would not be if, for example, the ice/melt mixture was not assumed to be in local thermodynamic equilibrium.
+Extending the present model to avoid the assumption of local thermodynamic equilibrium would require additional state variables (e.g. independent ice momentum and melt momentum), such that the primitive variables once again became a well-defined function of the state variables.
+As usual in the study of conservation laws, our exposition begins by stating the conservative structure of the equations to be solved, then identifying the physical meaning of the fluxes, and finally ``closing'' the system by stating constitutive relations and an equation of state.
+
 Given a Lipschitz domain $\Omega$ with surface $\Gamma_s$ and time interval $(0,\tau)$, the strong form is to find total momentum, pressure, and total energy density $(\rho\uu,p,E) \in W^{1,\pfrak} \times L^2 \times H^1$ such that
 \begin{subequations}\label{eq:vhtstrong}
   \begin{align}
