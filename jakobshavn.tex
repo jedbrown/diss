@@ -1,10 +1,30 @@
 Jakobshavn Isbr{\ae} is representative of many similar outlet glaciers which control the response of the Greenland and Antarctic ice sheets to changing climate.
 Understanding the effect of changing boundary conditions, especially ocean conditions near the grounding line and subglacial processes influenced by surface melt, is critical for predictive modeling of ice sheets.
+Models that do not support polythermal ice cannot describe the refreezing process and are thus thermodynamically inconsistent.
+Additionally, the viscosity model cannot be dependent on moisture content, and will thus appear too viscous in regions where moisture is present.
+At Jakobshavn Isbr{\ae}, the stress and strain rate is sufficiently high to melt a thick layer near the bed~\citep{funk1994mechanisms2}, then in the last few kilometers, the ice rises several hundred meters to the grounding line.
+The pressure change associated with that rise causes an increase in the pressure melting temperature of about \SI{0.4}{\degreeCelsius}, leaving the ice supercooled.
+This refreezing of internal moisture may cause healing of ice that was damaged by the very high strain rates encountered in the region.
+Along with the supercooled ice, basal water is also becoming supercooled as it flows up the incline, which may lead to refreezing at the bed, sealing basal cracks.
 
-\subsection{Prior modeling efforts}
+This process involving polythermal ice and basal hydrology suggests a possible explanation for the seasonal calving cycle at Jakobshavn.
+From observations over the past few years~\citep{joughin2008continued,amundson2008glacier}, there is no calving until late February or March when rapid calving begins.
+This is long before surface temperatures are above freezing, and the calving stops abruptly in August, before surface melt has ceased.
+Sea ice breaking up offers a possible mechanism for the rapid breakup observed in early spring~\citep{joughin2008continued,amundson2008glacier,amundson2010ice}, but does not explain why calving ceases in late summer, before sea ice arrives and while air temperature is still quite warm.
+I propose that increased surface melt leads to more supercooled flow up the bed near the incline, thus more effectively sealing basal cracking and healing damaged ice.
+The presence of frozen rocks on the top of inverted icebergs during our 2008 field campaign supports the hypothesis that significant refreezing occurs at the bed.
+Although this hypothesis is not discussed further in the present work, a model capable of testing this hypothesis would require a polythermal ice flow model and a basal hydrology model.
+The former is considered in more detail.
+
+% reason for polythermal at Jakobshavn
+
 \citet{funk1994mechanisms2} provided an early model of polythermal ice at Jakobshavn Isbr{\ae}.
-This was a 2D flowline model using the shallow ice approximation for momentum balance and assuming steady state flow conditions, but with high vertical resolution and explicitly tracking the cold-temperate interface (CTS, assumed to be a single-valued function of horizontal position).
+This was a 2D flowline model using the shallow ice approximation for momentum balance and assuming steady state flow conditions, but with high vertical resolution and explicitly tracking the cold-temperate interface (CTS) which is assumed to be a single-valued function of horizontal position, as in \citet{hutter1982polythermal,greve1997continuum}.
 More recent work with polythermal ice has used an enthalpy method to avoid the need to explicitly track the interface~\citep[\eg][]{aschwanden2009mma,aschwanden2011enthalpy} and includes more complete momentum balance than the shallow ice approximation.
+Enthalpy-based methods are well-established for heat transfer problems with phase change \citep[\eg][]{shamsundar1975amc,white1982efs} and have been used for geophysical problems such as magma dynamics~\citep{katz2008magma} which is has very similar form to polythermal ice.
+Such methods are simpler than explicitly tracking the CTS because only a single field is needed and no jump conditions need to be evaluated inside the domain.
+Our formulation, explained in \secref{sec:vht} is distinct in that it tracks total energy density instead of enthalpy, thus allowing a system that is conservative due to its geometric structure, thus making conservation more feasible to enforce up to rounding error (instead of truncation error) in numerical methods.
+
 For predictive modeling, we need to determine a thermal field that is in general, non-equilibrium (informed by reconstructed climate and borehole measurements) and compatible with current flow conditions, such that forward modeling does not involve an initial non-physical transient.
 This problem of determining a compatible thermal field is coupled to that of determining basal boundary conditions.
 These problems have not yet been solved together, but more principled inverse methods have been applied to the latter problem.
